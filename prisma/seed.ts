@@ -33,6 +33,7 @@ import { createInvoice, recordPayment } from "../src/server/invoices";
 import { saveFeeAgreement, generateInvoiceFromFee } from "../src/server/fees";
 import { createExpense } from "../src/server/expenses";
 import { trustDeposit } from "../src/server/trust";
+import { createEmployee, createAdvance } from "../src/server/hr";
 import { riyalsToHalalas } from "../src/lib/money";
 import type { AppSession } from "../src/lib/auth/types";
 
@@ -40,14 +41,17 @@ const COA_SEED: Array<{ code: string; name: string; type: AccountType }> = [
   { code: "1000", name: "النقد والبنك", type: AccountType.ASSET },
   { code: "1100", name: "الذمم المدينة", type: AccountType.ASSET },
   { code: "1200", name: "حسابات عهدة العملاء", type: AccountType.ASSET },
+  { code: "1300", name: "سُلف الموظفين", type: AccountType.ASSET },
   { code: "1500", name: "الأصول الثابتة", type: AccountType.ASSET },
   { code: "2000", name: "الذمم الدائنة", type: AccountType.LIABILITY },
   { code: "2100", name: "أمانات العملاء (عهدة)", type: AccountType.LIABILITY },
   { code: "2200", name: "ضريبة القيمة المضافة المستحقة", type: AccountType.LIABILITY },
+  { code: "2300", name: "التأمينات الاجتماعية المستحقة (GOSI)", type: AccountType.LIABILITY },
   { code: "3000", name: "رأس المال", type: AccountType.EQUITY },
   { code: "4000", name: "إيرادات الأتعاب", type: AccountType.REVENUE },
   { code: "5000", name: "تكلفة الخدمات المباشرة", type: AccountType.EXPENSE },
   { code: "5100", name: "المصروفات التشغيلية", type: AccountType.EXPENSE },
+  { code: "5200", name: "الرواتب والأجور", type: AccountType.EXPENSE },
 ];
 
 const prisma = new PrismaClient();
@@ -282,9 +286,25 @@ async function main() {
   });
   await trustDeposit(finSession, { clientId: imdad.id, amountMinor: riyalsToHalalas(20000), note: "عهدة رسوم ومصاريف" });
 
+  // ── HR: staff (mixed nationalities → Saudization band), + a salary advance ──
+  const SAR = riyalsToHalalas;
+  const staff: Array<Parameters<typeof createEmployee>[1]> = [
+    { name: "عبدالرحمن التنفيذي", department: "الإدارة", jobTitle: "المدير التنفيذي", nationality: "سعودي", nationalId: "1012345678", iban: "SA0380000000608010167519", hireDate: new Date("2018-03-01"), basicSalary: SAR(20000), allowances: SAR(5000), gosiContribution: SAR(2000), leaveBalanceDays: 24 },
+    { name: "منى المحاسِبة", department: "المالية", jobTitle: "محاسبة", nationality: "سعودي", nationalId: "1023456789", iban: "SA4420000001234567891234", hireDate: new Date("2021-06-15"), basicSalary: SAR(12000), allowances: SAR(2000), gosiContribution: SAR(1200), leaveBalanceDays: 21 },
+    { name: "خالد المحامي", department: "القانوني", jobTitle: "محامٍ", nationality: "سعودي", nationalId: "1034567890", iban: "SA1140000009876543210987", hireDate: new Date("2020-01-10"), basicSalary: SAR(15000), allowances: SAR(3000), gosiContribution: SAR(1500), leaveBalanceDays: 18 },
+    { name: "سارة القحطاني", department: "الاستقبال", jobTitle: "موظفة استقبال", nationality: "سعودي", nationalId: "1045678901", iban: "SA6980000000111122223333", hireDate: new Date("2024-09-01"), basicSalary: SAR(7000), allowances: SAR(1000), gosiContribution: SAR(700), leaveBalanceDays: 21 },
+    { name: "راج كومار", department: "التقنية", jobTitle: "مطوّر", nationality: "هندي", nationalId: "2456789012", iban: "SA2230400108054011300020", hireDate: new Date("2022-04-01"), basicSalary: SAR(10000), allowances: SAR(2000), gosiContribution: 0, leaveBalanceDays: 15 },
+    { name: "أحمد مصطفى", department: "الإداري", jobTitle: "كاتب", nationality: "مصري", nationalId: "2567890123", iban: "SA5510000044445555666677", hireDate: new Date("2023-11-20"), basicSalary: SAR(6000), allowances: SAR(1000), gosiContribution: 0, leaveBalanceDays: 12 },
+  ];
+  const employees = [];
+  for (const s of staff) employees.push(await createEmployee(finSession, s));
+  // A 6,000 SAR advance over 3 months to the accountant (installment 2,000).
+  const mona = employees.find((e) => e.name === "منى المحاسِبة")!;
+  await createAdvance(finSession, { employeeId: mona.id, amount: SAR(6000), months: 3, note: "سلفة شخصية" });
+
   const invCount = await prisma.invoice.count({ where: { officeId: office.id } });
   console.info(
-    `Seeded office ${office.id}: ${users.length} users, 2 clients, 4 leads, 4 cases, ${flags} conflict flags, ${COA_SEED.length} accounts, ${invCount} invoices.`,
+    `Seeded office ${office.id}: ${users.length} users, 2 clients, 4 leads, 4 cases, ${flags} conflict flags, ${COA_SEED.length} accounts, ${invCount} invoices, ${employees.length} employees.`,
   );
 }
 

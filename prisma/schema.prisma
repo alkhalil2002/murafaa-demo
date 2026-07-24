@@ -328,6 +328,7 @@ enum JournalSourceType {
   TRUST_DEPOSIT
   TRUST_WITHDRAWAL
   TRUST_TRANSFER
+  PAYROLL
   MANUAL
 }
 
@@ -403,6 +404,54 @@ enum CaseOutcome {
   LOST // خسارة
 }
 
+// ── HR (Phase 6) ──
+
+/// Employment status (prototype EMPLOYEES.st).
+enum EmployeeStatus {
+  ACTIVE // على رأس العمل
+  ON_LEAVE // في إجازة
+  SUSPENDED // موقوف
+  TERMINATED // منتهية خدمته
+}
+
+/// Advance/loan lifecycle (prototype ADVANCES.status).
+enum AdvanceStatus {
+  ACTIVE // قيد السداد
+  SETTLED // مسدَّدة
+  CANCELLED // ملغاة
+}
+
+/// Leave type (prototype LEAVES.type). Only ANNUAL draws down leaveBal.
+enum LeaveType {
+  ANNUAL // سنوية
+  SICK // مرضية
+  UNPAID // بدون راتب
+  MATERNITY // وضع
+  OTHER // أخرى
+}
+
+/// Employee-request kind (prototype EMP_REQUESTS.kind).
+enum RequestKind {
+  LEAVE // طلب إجازة
+  ADVANCE // طلب سلفة
+  CERTIFICATE // خطاب تعريف
+  OTHER // أخرى
+}
+
+/// Employee-request status (prototype EMP_REQUESTS.status/stage).
+enum RequestStatus {
+  SUBMITTED // مُقدَّم
+  IN_REVIEW // قيد المراجعة
+  APPROVED // معتمد
+  REJECTED // مرفوض
+}
+
+/// Payroll-run lifecycle. POSTED runs are immutable and have a journal entry.
+enum PayrollRunStatus {
+  DRAFT // مسودة
+  POSTED // مُرحَّل
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Tenancy
 // ─────────────────────────────────────────────────────────────────────────
@@ -449,6 +498,11 @@ model Office {
   caseScopes        RoleCaseScope[]
   auditLogs         AuditLog[]
   otps              OtpChallenge[]
+  employees         Employee[]
+  advances          Advance[]
+  leaves            Leave[]
+  employeeRequests  EmployeeRequest[]
+  payrollRuns       PayrollRun[]
 
   @@map("offices")
 }
@@ -479,6 +533,7 @@ model User {
   tasks           Task[]         @relation("TaskAssignee")
   waivedConflicts ConflictFlag[] @relation("ConflictWaivedBy")
   timeEntries     TimeEntry[]    @relation("TimeEntryLawyer")
+  employee        Employee?      @relation("EmployeeUser")
 
   @@unique([officeId, phone])
   @@index([officeId])
@@ -1541,4 +1596,189 @@ model AiCitation {
 
   @@index([interactionId])
   @@map("ai_citations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// HR (Phase 6) — payroll, advances, leaves, requests, Saudization, WPS
+// ─────────────────────────────────────────────────────────────────────────
+
+/// An employee of the office (prototype EMPLOYEES + EMP_EXTRA, folded in).
+/// Money fields are integer halalas. Nationality + hireDate feed end-of-service
+/// (docs/06 §5) and Saudization (docs/06 §6). Optionally linked to a login User
+/// for the employee portal.
+model Employee {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  /// Optional link to a login account (portal identity). One user ⇢ one employee.
+  userId String? @unique @map("user_id") @db.Uuid
+  user   User?   @relation("EmployeeUser", fields: [userId], references: [id])
+
+  name        String
+  department  String?        @map("department")
+  jobTitle    String?        @map("job_title")
+  nationality String         @default("سعودي") // EMP_EXTRA.nat — isSaudi() compares to this
+  nationalId  String?        @map("national_id") // هوية/إقامة — used for WPS
+  iban        String? // used for WPS wage file
+  hireDate    DateTime       @map("hire_date") // EMP_EXTRA.joinY derives from this
+  status      EmployeeStatus @default(ACTIVE)
+
+  basicSalary      Int  @map("basic_salary") // halalas
+  allowances       Int  @default(0) // halalas
+  gosiContribution Int  @default(0) @map("gosi_contribution") // employee GOSI deduction, halalas
+  leaveBalanceDays Int  @default(0) @map("leave_balance_days") // remaining annual-leave days
+  performanceScore Int? @map("performance_score") // 0–100 (PERF_LOG feeds نبض الفريق)
+
+  terminatedAt      DateTime? @map("terminated_at")
+  endOfServiceMinor Int?      @map("end_of_service_minor") // computed EOS award, halalas
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  advances     Advance[]
+  leaves       Leave[]
+  requests     EmployeeRequest[]
+  payrollLines PayrollLine[]
+
+  @@index([officeId, status])
+  @@index([officeId, nationality])
+  @@map("employees")
+}
+
+/// A salary advance/loan to an employee (prototype ADVANCES). Repaid by monthly
+/// deductions inside the payroll run (docs/06 §8). Amounts are halalas.
+model Advance {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  employeeId String   @map("employee_id") @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  amount             Int // total advance, halalas
+  monthlyInstallment Int?          @map("monthly_installment") // explicit installment, halalas; else derived
+  months             Int           @default(1) // number of installments (>=1)
+  paid               Int           @default(0) // repaid so far, halalas
+  advanceDate        DateTime      @map("advance_date")
+  status             AdvanceStatus @default(ACTIVE)
+  note               String?
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, employeeId])
+  @@index([officeId, status])
+  @@map("advances")
+}
+
+/// A recorded leave (prototype LEAVES). ANNUAL leave draws down leaveBalanceDays.
+model Leave {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  employeeId String   @map("employee_id") @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  type            LeaveType @default(ANNUAL)
+  days            Int
+  startDate       DateTime  @map("start_date")
+  note            String?
+  /// Whether this leave drew down the balance (true only for ANNUAL) — recorded
+  /// so balance restoration on soft-delete is exact.
+  deductedBalance Boolean   @default(false) @map("deducted_balance")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, employeeId])
+  @@map("leaves")
+}
+
+/// A self-service employee request (prototype EMP_REQUESTS): leave, advance,
+/// certificate, etc. `history` is an append-only JSON audit of stage changes.
+model EmployeeRequest {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  employeeId String   @map("employee_id") @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  department String?
+  kind       RequestKind
+  detail     String?
+  days       Int?
+  status     RequestStatus @default(SUBMITTED)
+  history    Json          @default("[]") // [{status, by, at, note}]
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, employeeId])
+  @@index([officeId, status])
+  @@map("employee_requests")
+}
+
+/// A monthly payroll run (prototype PAYROLL_RUNS). One per (office, period).
+/// When POSTED it holds a balanced journal entry and is immutable. Totals are
+/// halalas; per-employee detail lives in PayrollLine.
+model PayrollRun {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  periodKey String           @map("period_key") // YYYY-MM
+  status    PayrollRunStatus @default(POSTED)
+
+  totalBasic      Int @default(0) @map("total_basic")
+  totalAllowances Int @default(0) @map("total_allowances")
+  totalGosi       Int @default(0) @map("total_gosi")
+  totalAdvances   Int @default(0) @map("total_advances") // advance deductions applied
+  totalNet        Int @default(0) @map("total_net")
+
+  journalEntryId String? @map("journal_entry_id") @db.Uuid
+  postedById     String? @map("posted_by") @db.Uuid
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  lines PayrollLine[]
+
+  @@unique([officeId, periodKey])
+  @@map("payroll_runs")
+}
+
+/// One employee's line in a payroll run. net = basic + allowances − gosi −
+/// advanceDeduction (docs/06 §8, data-model PAYROLL_RUNS). All halalas.
+model PayrollLine {
+  id           String     @id @default(uuid()) @db.Uuid
+  payrollRunId String     @map("payroll_run_id") @db.Uuid
+  payrollRun   PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+
+  employeeId String   @map("employee_id") @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  basic            Int
+  allowances       Int
+  gosi             Int
+  advanceDeduction Int @map("advance_deduction")
+  net              Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([payrollRunId])
+  @@index([employeeId])
+  @@map("payroll_lines")
 }

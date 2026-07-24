@@ -25,6 +25,13 @@ async function main() {
   await prisma.caseFeeAgreement.deleteMany();
   await prisma.chartOfAccount.deleteMany();
   await prisma.accountingPeriod.deleteMany();
+  // HR (children → parents; payroll lines cascade with their run).
+  await prisma.payrollLine.deleteMany();
+  await prisma.payrollRun.deleteMany();
+  await prisma.advance.deleteMany();
+  await prisma.leave.deleteMany();
+  await prisma.employeeRequest.deleteMany();
+  await prisma.employee.deleteMany();
   await prisma.document.deleteMany();
   await prisma.documentTemplate.deleteMany({ where: { officeId: { not: null } } });
   await prisma.conflictFlag.deleteMany();

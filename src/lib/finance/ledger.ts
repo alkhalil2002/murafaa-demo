@@ -15,14 +15,17 @@ export const ACC = {
   CASH_BANK: "1000",
   RECEIVABLES: "1100",
   TRUST_ASSET: "1200", // client-trust bank (asset)
+  EMPLOYEE_ADVANCES: "1300", // salary advances owed by employees (asset)
   FIXED_ASSETS: "1500",
   PAYABLES: "2000",
   TRUST_LIABILITY: "2100", // client trust owed (liability)
   VAT_PAYABLE: "2200",
+  GOSI_PAYABLE: "2300", // GOSI withheld, owed to the authority (liability)
   CAPITAL: "3000",
   FEE_REVENUE: "4000",
   DIRECT_COST: "5000",
   OPERATING_EXPENSE: "5100",
+  SALARIES_EXPENSE: "5200", // gross salaries & wages (expense)
 } as const;
 
 export type DocPrefix = "INV" | "REC" | "CN" | "JV";
