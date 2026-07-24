@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Theme tokens carried over from the prototype (docs/05).
+ * --bench  = platform green · --gold = accent · --advocate = opponent maroon
+ * --parch  = parchment background.
+ */
+:root {
+  --bench: #0e3a30;
+  --bench-2: #0a2a22;
+  --gold: #c2974b;
+  --gold-soft: #e7d2a4;
+  --advocate: #7a2e33;
+  --advocate-2: #5c2025;
+  --parch: #faf6ec;
+  --parch-line: #eadfc8;
+  --ink: #1c1a15;
+  --ink-soft: #5a5446;
+  --line: #d9cfb8;
+  --ok: #2e7d5b;
+  --warn: #b25c1e;
+}
+
+@layer base {
+  html {
+    /* Arabic-first, RTL is the default direction for the whole app. */
+    direction: rtl;
+  }
+
+  body {
+    background-color: var(--parch);
+    color: var(--ink);
+    font-family: var(--font-plex-arabic), system-ui, sans-serif;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-amiri), serif;
+  }
+}

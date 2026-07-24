@@ -1,0 +1,333 @@
+// Murafaa — Prisma schema (single source of truth for the DB).
+// Phase 1 (foundation): tenancy, users, auth/OTP, RBAC (3 layers),
+// core case/client entities, and the audit log.
+//
+// Invariants enforced across EVERY business table (docs/02 §4, CLAUDE.md):
+//   - id          UUID primary key
+//   - officeId    tenant scope — present from day one (owner decision 2026-07-05)
+//   - createdAt / updatedAt / createdById  audit columns
+//   - deletedAt   soft delete (recycle bin)
+// Money is stored as integer minor units (halalas), never floats.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Phase 5 adds the pgvector extension here (AI knowledge base); not needed yet.
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Enums (stable procedural vocabulary — docs/06 §10)
+// ─────────────────────────────────────────────────────────────────────────
+
+/// The six office-portal roles (docs/04). Stored as an enum; the editable
+/// permission *matrix* lives in the Permission table, not here.
+enum Role {
+  PARTNER // شريك — full access, replaces prototype "god mode"
+  LAWYER // محامي
+  ASSISTANT // مساعد
+  ACCOUNTANT // محاسب
+  ADMIN // إداري
+  RECEPTION // موظف استقبال
+}
+
+/// The 13 permission-controlled modules (docs/04).
+enum PermModule {
+  CASES
+  AI
+  CLIENTS
+  DOCUMENTS
+  FINANCE
+  HR
+  REPORTS
+  PERMISSIONS
+  WHATSAPP
+  APPOINTMENTS
+  TASKS
+  ALERTS
+  PULSE
+}
+
+/// Permission levels: none < view < edit < full (docs/04).
+enum PermLevel {
+  NONE
+  VIEW
+  EDIT
+  FULL
+}
+
+/// Row-level case visibility scope per role (docs/04 layer 3).
+enum CaseScope {
+  ALL
+  ASSIGNED
+}
+
+enum ClientType {
+  INDIVIDUAL // فرد
+  COMPANY // شركة
+}
+
+/// Litigation stages (docs/06 §10 PROC_STAGES).
+enum ProcStage {
+  RECONCILIATION // الصلح
+  FIRST_INSTANCE // الدرجة الأولى
+  APPEAL // الاستئناف
+  CASSATION // النقض
+  EXECUTION // التنفيذ
+}
+
+enum CaseStatus {
+  ACTIVE // جارية
+  SUSPENDED // متوقفة
+  CLOSED // مغلقة
+}
+
+/// Case outcome (docs/06 §10) — feeds the win-rate KPI.
+enum CaseOutcome {
+  WON // كسب
+  PARTIAL // جزئي
+  SETTLED // تسوية
+  LOST // خسارة
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Tenancy
+// ─────────────────────────────────────────────────────────────────────────
+
+/// A law office = one tenant. Every business row hangs off an Office.
+model Office {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  users       User[]
+  clients     Client[]
+  cases       Case[]
+  permissions Permission[]
+  fieldDenies FieldPermission[]
+  caseScopes  RoleCaseScope[]
+  auditLogs   AuditLog[]
+  otps        OtpChallenge[]
+
+  @@map("offices")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Users & auth
+// ─────────────────────────────────────────────────────────────────────────
+
+model User {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  name  String
+  /// E.164 phone, unique per office (OTP login identifier).
+  phone String
+  role  Role
+  /// Owner is modeled as PARTNER — there is no implicit god mode.
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  assignedCases CaseAssignee[]
+  auditLogs     AuditLog[]
+
+  @@unique([officeId, phone])
+  @@index([officeId])
+  @@map("users")
+}
+
+/// One-time password challenge for phone/WhatsApp login (docs/02 §8).
+/// The code is stored hashed; the row is short-lived and attempt-limited.
+model OtpChallenge {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  phone      String
+  codeHash   String    @map("code_hash")
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([officeId, phone])
+  @@index([expiresAt])
+  @@map("otp_challenges")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// RBAC — the editable matrix (docs/04). Enforced server-side, all 3 layers.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Layer 1: module access. (office, role, module) → level.
+model Permission {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  role   Role
+  module PermModule
+  level  PermLevel
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([officeId, role, module])
+  @@index([officeId])
+  @@map("permissions")
+}
+
+/// Layer 2: field denial. (office, role, resource, field) is denied.
+/// Seeded example: ASSISTANT is denied the "fees" field on cases.
+model FieldPermission {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  role     Role
+  resource String
+  field    String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([officeId, role, resource, field])
+  @@index([officeId])
+  @@map("field_permissions")
+}
+
+/// Layer 3: row scope for cases. (office, role) → ALL | ASSIGNED.
+model RoleCaseScope {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  role  Role
+  scope CaseScope
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([officeId, role])
+  @@index([officeId])
+  @@map("role_case_scopes")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Core domain (minimal for Phase 1 — expanded in Phase 2)
+// ─────────────────────────────────────────────────────────────────────────
+
+model Client {
+  id       String @id @default(uuid()) @map("id") @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  name  String
+  phone String?
+  city  String?
+  type  ClientType @default(INDIVIDUAL)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  cases Case[]
+
+  @@index([officeId])
+  @@map("clients")
+}
+
+model Case {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  /// Display number (e.g. "1445/...").
+  number String
+  title  String
+
+  /// Our client (FK, replacing the prototype's name-string link).
+  clientId String? @map("client_id") @db.Uuid
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  /// Opposing party — the axis of conflict-of-interest detection (docs/06 §4).
+  opposingParty String? @map("opposing_party")
+
+  city   String?
+  stage  ProcStage   @default(FIRST_INSTANCE)
+  status CaseStatus  @default(ACTIVE)
+  outcome CaseOutcome?
+
+  /// Objection deadline = judgment date + 30 days (docs/06 §1). Nullable until
+  /// judgment is recorded; computed by the service layer, never the UI.
+  objectionDueAt DateTime? @map("objection_due_at")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  assignees CaseAssignee[]
+
+  @@index([officeId])
+  @@index([officeId, clientId])
+  @@map("cases")
+}
+
+/// Join table for the many-to-many case ⇄ user assignment (docs/03 §توصيات).
+model CaseAssignee {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([caseId, userId])
+  @@index([officeId])
+  @@index([userId])
+  @@map("case_assignees")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Audit (docs/02 §5, §9 — every sensitive access/decision is logged)
+// ─────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  /// Actor may be null for system actions.
+  actorId String? @map("actor_id") @db.Uuid
+  actor   User?   @relation(fields: [actorId], references: [id])
+
+  action   String
+  resource String?
+  targetId String? @map("target_id")
+  /// PERMIT | DENY — records permission decisions too (docs/04 §6).
+  decision String?
+  detail   String?
+  meta     Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([officeId, createdAt])
+  @@index([officeId, actorId])
+  @@map("audit_logs")
+}
