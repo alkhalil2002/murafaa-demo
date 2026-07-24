@@ -14,6 +14,9 @@ next-env.d.ts
 .env.*
 !.env.example
 
+# Local dev object storage (documents) — never commit stored files
+.storage/
+
 # OS
 .DS_Store
 

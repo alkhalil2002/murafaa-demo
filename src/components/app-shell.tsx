@@ -28,6 +28,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           { href: "/leads", label: t("nav.leads") },
         ]
       : []),
+    ...(can(PermModule.DOCUMENTS) ? [{ href: "/documents", label: t("nav.documents") }] : []),
     ...(can(PermModule.TASKS) ? [{ href: "/tasks", label: t("nav.tasks") }] : []),
     ...(can(PermModule.APPOINTMENTS)
       ? [

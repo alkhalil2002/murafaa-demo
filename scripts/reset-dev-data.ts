@@ -8,6 +8,8 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.document.deleteMany();
+  await prisma.documentTemplate.deleteMany({ where: { officeId: { not: null } } });
   await prisma.conflictFlag.deleteMany();
   await prisma.caseReminder.deleteMany();
   await prisma.caseEvent.deleteMany();

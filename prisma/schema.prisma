@@ -207,6 +207,42 @@ enum ReminderSource {
   EXECUTION_FOLLOWUP // التنفيذ
 }
 
+/// Media/form shape of a document (prototype doc.kind → kindIconG).
+enum DocKind {
+  DOCUMENT // مستند (PDF/office file)
+  IMAGE // صورة (needs OCR)
+  TEXT // نص
+  FILE // ملف (generic)
+  LETTER // خطاب (generated letter/report)
+}
+
+/// Where a document came from (prototype doc.source).
+enum DocSource {
+  OPENING // افتتاحي — opening pack
+  PROCEDURAL_REQUEST // طلب — procedural-request attachment
+  HEARING // جلسة — hearing worksheet/attachment
+  CLIENT // عميل — client-portal upload
+  TEMPLATE // قالب — generated from a template
+  UPLOAD // رفع — staff upload
+}
+
+/// Which side a document belongs to (prototype doc.party).
+enum DocParty {
+  OURS // نحن
+  OPPONENT // الخصم
+  COURT // المحكمة
+}
+
+/// Template category (prototype template.c) — groups the picker.
+enum DocumentTemplateCategory {
+  CLAIMS // دعاوى
+  MEMOS // مذكرات
+  CONTRACTS // عقود
+  POWERS_OF_ATTORNEY // وكالات
+  ADMIN // إدارية
+  EXECUTION // تنفيذ
+}
+
 /// Litigation stages (docs/06 §10 PROC_STAGES).
 enum ProcStage {
   RECONCILIATION // الصلح
@@ -238,25 +274,30 @@ enum CaseOutcome {
 model Office {
   id        String    @id @default(uuid()) @db.Uuid
   name      String
+  /// Letterhead / branding used by all generated PDFs (name, tagline, contact,
+  /// license, colors, confidentiality notice, logo key). Null → code defaults.
+  branding  Json?
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  users         User[]
-  clients       Client[]
-  cases         Case[]
-  leads         Lead[]
-  tasks         Task[]
-  appointments  Appointment[]
-  hearings      Hearing[]
-  caseEvents    CaseEvent[]
-  caseReminders CaseReminder[]
-  conflictFlags ConflictFlag[]
-  permissions   Permission[]
-  fieldDenies   FieldPermission[]
-  caseScopes    RoleCaseScope[]
-  auditLogs     AuditLog[]
-  otps          OtpChallenge[]
+  users             User[]
+  clients           Client[]
+  cases             Case[]
+  leads             Lead[]
+  tasks             Task[]
+  appointments      Appointment[]
+  hearings          Hearing[]
+  caseEvents        CaseEvent[]
+  caseReminders     CaseReminder[]
+  conflictFlags     ConflictFlag[]
+  documents         Document[]
+  documentTemplates DocumentTemplate[]
+  permissions       Permission[]
+  fieldDenies       FieldPermission[]
+  caseScopes        RoleCaseScope[]
+  auditLogs         AuditLog[]
+  otps              OtpChallenge[]
 
   @@map("offices")
 }
@@ -472,6 +513,7 @@ model Case {
   events        CaseEvent[]
   reminders     CaseReminder[]
   tasks         Task[]
+  documents     Document[]
   conflictFlags ConflictFlag[] @relation("ConflictCase")
   convertedFrom Lead[]         @relation("LeadConvertedCase")
 
@@ -779,4 +821,97 @@ model NajizClassification {
   @@unique([mainClass, subClass, caseType])
   @@index([mainClass])
   @@map("najiz_classifications")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase 3 — documents: templates + generated/uploaded case documents.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// A reusable legal-document template (prototype TEMPLATES). System templates
+/// are seeded global (officeId null, isSystem) and available to every office;
+/// an office may add its own. bodyTemplate holds {{placeholder}} text; fields
+/// is the ordered field descriptor list (id/label/type/options/autofill/deny).
+model DocumentTemplate {
+  id       String  @id @default(uuid()) @db.Uuid
+  officeId String? @map("office_id") @db.Uuid
+  office   Office? @relation(fields: [officeId], references: [id])
+
+  key          String
+  title        String
+  category     DocumentTemplateCategory
+  /// Placeholder body ({{fieldId}} + the {{office}} token), rendered inside the letterhead.
+  bodyTemplate String                   @map("body_template")
+  /// Ordered field descriptors (Json): {id,label,type,options?,default?,autofill?,deny?}.
+  fields       Json
+  isSystem     Boolean                  @default(false) @map("is_system")
+  isActive     Boolean                  @default(true) @map("is_active")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  documents Document[]
+
+  @@index([officeId])
+  @@index([key])
+  @@map("document_templates")
+}
+
+/// A case document — the unified document center (prototype case.docs[]). Every
+/// origin (opening pack, hearing, client upload, template output, staff upload)
+/// lands here, distinguished by `source`. Binary lives in object storage
+/// (GCS Dammam / local dev); this row is the metadata + storage key.
+model Document {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  /// Nullable: a template doc may be generated standalone before saving to a case.
+  caseId String? @map("case_id") @db.Uuid
+  case   Case?   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  fileName     String    @map("file_name")
+  kind         DocKind   @default(DOCUMENT)
+  source       DocSource
+  party        DocParty?
+  /// Free-text descriptor (صحيفة/محضر/مذكرة/مُولّد…), not an enforced enum.
+  docType      String?   @map("doc_type")
+  sessionLabel String?   @map("session_label")
+  /// Soft link to a hearing (plain column, mirrors CaseEvent.actorUserId style).
+  hearingId    String?   @map("hearing_id") @db.Uuid
+
+  // ── stored object ──
+  storageKey String  @map("storage_key")
+  mimeType   String  @map("mime_type")
+  sizeBytes  Int     @map("size_bytes")
+  sha256     String?
+
+  // ── template-generated docs ──
+  templateId    String?           @map("template_id") @db.Uuid
+  template      DocumentTemplate? @relation(fields: [templateId], references: [id])
+  fieldValues   Json?             @map("field_values")
+  renderedHtml  String?           @map("rendered_html")
+  /// Frozen document date (BR-DOC-DATE-LOCALE) — re-rendering never changes it.
+  generatedDate DateTime?         @map("generated_date")
+
+  // ── text extraction (Phase-5 KB seam; produced here, indexed later) ──
+  needsOcr      Boolean @default(false) @map("needs_ocr")
+  extractedText String? @map("extracted_text")
+
+  // ── client-portal sharing (Phase-8 seam) ──
+  clientVisible    Boolean   @default(false) @map("client_visible")
+  fromClient       Boolean   @default(false) @map("from_client")
+  clientSharedAt   DateTime? @map("client_shared_at")
+  clientSharedById String?   @map("client_shared_by") @db.Uuid
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, caseId])
+  @@index([officeId, source])
+  @@index([officeId, clientVisible])
+  @@map("documents")
 }

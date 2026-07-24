@@ -4,8 +4,11 @@ import { ConflictSeverity, ConflictStatus } from "@prisma/client";
 import { AppShell, DeniedPanel } from "@/components/app-shell";
 import { getSession } from "@/lib/auth/session";
 import { getCase } from "@/server/cases";
+import { listDocuments } from "@/server/documents";
 import { renderConflictMessage } from "@/lib/conflict/service";
 import { PermissionError } from "@/lib/permissions/guard";
+import { docSourceLabel } from "@/lib/labels";
+import { shareDocumentAction } from "@/app/documents/actions";
 import {
   caseStatusLabel,
   hearingKindLabel,
@@ -34,6 +37,14 @@ export default async function CaseDetailPage({
     const activeFlags = c.conflictFlags.filter((f) => f.status === ConflictStatus.ACTIVE);
     const anyHigh = activeFlags.some((f) => f.severity === ConflictSeverity.HIGH);
     const messages = await Promise.all(activeFlags.map((f) => renderConflictMessage(session, f)));
+
+    // Documents section is optional: hide it if the role lacks المستندات access.
+    let documents: Awaited<ReturnType<typeof listDocuments>> | null = null;
+    try {
+      documents = await listDocuments(session, id);
+    } catch {
+      documents = null;
+    }
 
     content = (
       <>
@@ -98,6 +109,61 @@ export default async function CaseDetailPage({
             </ul>
           )}
         </section>
+
+        {documents && (
+          <section className="mt-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-serif text-xl text-bench">{t("documents.caseDocs")}</h2>
+              <Link
+                href={`/documents?caseId=${c.id}`}
+                className="rounded-xl bg-bench px-3 py-1.5 text-sm text-white hover:bg-bench-2"
+              >
+                {t("documents.create")}
+              </Link>
+            </div>
+            {documents.length === 0 ? (
+              <p className="text-sm text-ink-soft">{t("documents.empty")}</p>
+            ) : (
+              <ul className="space-y-2">
+                {documents.map((d) => (
+                  <li
+                    key={d.id}
+                    className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-white p-3 text-sm"
+                  >
+                    <span>📄</span>
+                    <span className="font-medium">{d.fileName}</span>
+                    <span className="rounded-full bg-parch px-2 py-0.5 text-xs text-ink-soft">
+                      {docSourceLabel(d.source)}
+                    </span>
+                    {d.clientVisible && (
+                      <span className="rounded-full bg-ok/15 px-2 py-0.5 text-xs text-ok">
+                        {t("documents.shared")}
+                      </span>
+                    )}
+                    <div className="ms-auto flex items-center gap-2">
+                      <a
+                        href={`/api/documents/${d.id}/download`}
+                        className="rounded-lg border border-line px-2.5 py-1 text-xs hover:bg-parch"
+                      >
+                        {t("documents.download")}
+                      </a>
+                      <form action={shareDocumentAction}>
+                        <input type="hidden" name="id" value={d.id} />
+                        <input type="hidden" name="caseId" value={c.id} />
+                        <button
+                          type="submit"
+                          className="rounded-lg border border-line px-2.5 py-1 text-xs hover:bg-parch"
+                        >
+                          {d.clientVisible ? t("documents.unshare") : t("documents.share")}
+                        </button>
+                      </form>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         <section className="mt-6">
           <h2 className="mb-3 font-serif text-xl text-bench">{t("cases.timeline")}</h2>

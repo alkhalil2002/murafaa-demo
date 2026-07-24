@@ -4,6 +4,10 @@ import {
   CaseStatus,
   ClientStatus,
   ClientType,
+  DocKind,
+  DocParty,
+  DocSource,
+  DocumentTemplateCategory,
   HearingKind,
   HearingStatus,
   LeadSource,
@@ -69,3 +73,7 @@ export const taskColumnLabel = (v: TaskColumn) => t(`taskColumn.${v}` as Message
 export const taskPriorityLabel = (v: TaskPriority) => t(`taskPriority.${v}` as MessageKey);
 export const taskCategoryLabel = (v: TaskCategory) => t(`taskCategory.${v}` as MessageKey);
 export const apptTypeLabel = (v: AppointmentType) => t(`apptType.${v}` as MessageKey);
+export const docKindLabel = (v: DocKind) => t(`docKind.${v}` as MessageKey);
+export const docSourceLabel = (v: DocSource) => t(`docSource.${v}` as MessageKey);
+export const docPartyLabel = (v: DocParty) => t(`docParty.${v}` as MessageKey);
+export const docCategoryLabel = (v: DocumentTemplateCategory) => t(`docCategory.${v}` as MessageKey);

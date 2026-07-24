@@ -25,6 +25,7 @@ import {
 import { najizLeaves } from "../src/lib/najiz";
 import { dateInDays } from "../src/lib/dates";
 import { recomputeCaseConflicts } from "../src/lib/conflict/service";
+import { TEMPLATE_DEFS } from "../src/lib/documents/template-defs";
 
 const prisma = new PrismaClient();
 
@@ -37,6 +38,7 @@ const prisma = new PrismaClient();
  */
 async function main() {
   await seedNajiz();
+  await seedDocumentTemplates();
 
   const OFFICE_NAME = "مكتب مُرافعة التجريبي";
   const existing = await prisma.office.findFirst({ where: { name: OFFICE_NAME } });
@@ -226,6 +228,25 @@ async function seedNajiz() {
   if (count > 0) return;
   await prisma.najizClassification.createMany({ data: najizLeaves() });
   console.info(`Seeded ${najizLeaves().length} Najiz classification rows.`);
+}
+
+/** Seed the 8 global system document templates (officeId null, isSystem). */
+async function seedDocumentTemplates() {
+  const count = await prisma.documentTemplate.count({ where: { isSystem: true } });
+  if (count > 0) return;
+  await prisma.documentTemplate.createMany({
+    data: TEMPLATE_DEFS.map((tpl) => ({
+      officeId: null,
+      key: tpl.key,
+      title: tpl.title,
+      category: tpl.category,
+      bodyTemplate: tpl.bodyTemplate,
+      fields: tpl.fields as object,
+      isSystem: true,
+      isActive: true,
+    })),
+  });
+  console.info(`Seeded ${TEMPLATE_DEFS.length} system document templates.`);
 }
 
 main()
