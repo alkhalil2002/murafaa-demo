@@ -69,6 +69,20 @@ export async function requireField(
   throw new PermissionError("field");
 }
 
+/**
+ * Layer 1 — non-throwing module check, for hiding UI controls a role cannot use
+ * (the server still enforces on the action). Mirrors requireModule without the
+ * throw/audit.
+ */
+export async function canAction(
+  session: AppSession,
+  module: PermModule,
+  action: PermAction,
+): Promise<boolean> {
+  const policy = await policyFor(session);
+  return canModule(policy, session.role, module, action);
+}
+
 /** Layer 2 — non-throwing check, for filtering fields out of a response. */
 export async function mayViewField(
   session: AppSession,

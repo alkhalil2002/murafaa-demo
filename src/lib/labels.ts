@@ -1,4 +1,5 @@
 import {
+  AdvanceStatus,
   AppointmentType,
   CaseOutcome,
   CaseStatus,
@@ -8,22 +9,27 @@ import {
   DocParty,
   DocSource,
   DocumentTemplateCategory,
+  EmployeeStatus,
   ExpenseCategory,
   FeeType,
   HearingKind,
   HearingStatus,
   LeadSource,
   LeadStage,
+  LeaveType,
   PartyRole,
   PaymentMethod,
   PermModule,
   ProcStage,
+  RequestKind,
+  RequestStatus,
   Role,
   TaskCategory,
   TaskColumn,
   TaskPriority,
   TrustTxnType,
 } from "@prisma/client";
+import type { NitaqatBandKey } from "@/lib/hr/core";
 import type { EffectiveInvoiceStatus } from "@/lib/finance/core";
 import { t, type MessageKey } from "@/lib/i18n";
 
@@ -87,3 +93,9 @@ export const feeTypeLabel = (v: FeeType) => t(`feeType.${v}` as MessageKey);
 export const payMethodLabel = (v: PaymentMethod) => t(`payMethod.${v}` as MessageKey);
 export const expenseCategoryLabel = (v: ExpenseCategory) => t(`expCat.${v}` as MessageKey);
 export const trustTypeLabel = (v: TrustTxnType) => t(`trustType.${v}` as MessageKey);
+export const employeeStatusLabel = (v: EmployeeStatus) => t(`empStatus.${v}` as MessageKey);
+export const advanceStatusLabel = (v: AdvanceStatus) => t(`advStatus.${v}` as MessageKey);
+export const leaveTypeLabel = (v: LeaveType) => t(`leaveType.${v}` as MessageKey);
+export const requestKindLabel = (v: RequestKind) => t(`reqKind.${v}` as MessageKey);
+export const requestStatusLabel = (v: RequestStatus) => t(`reqStatus.${v}` as MessageKey);
+export const nitaqatBandLabel = (v: NitaqatBandKey) => t(`nitaqat.${v}` as MessageKey);

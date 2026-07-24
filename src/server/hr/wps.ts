@@ -1,6 +1,5 @@
 import { PermModule } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { logAudit } from "@/lib/audit";
 import type { AppSession } from "@/lib/auth/types";
 import { PermissionError, requireModule } from "@/lib/permissions/guard";
 
@@ -8,7 +7,10 @@ import { PermissionError, requireModule } from "@/lib/permissions/guard";
  * WPS (Wage Protection System / حماية الأجور) file generation from a POSTED
  * payroll run (docs/02 §7, §13). Produces the per-employee wage records a bank /
  * Mudad ingests. Real Mudad/bank API wiring is Phase 7 (integrations); this
- * builds the deterministic file payload. HR-gated (view) — read-only export.
+ * builds the deterministic file payload. HR-gated (view), read-only and
+ * idempotent — it performs NO writes, so it is safe to reach on a GET render
+ * (a refresh/prefetch can't duplicate anything). The actual export/submission
+ * to Mudad will carry its own audit entry when that integration lands.
  */
 
 export type WpsRecord = {
@@ -54,7 +56,6 @@ export async function generateWpsFile(session: AppSession, runId: string): Promi
   }));
   const missingIban = records.filter((r) => !r.iban).map((r) => r.employeeName);
 
-  await logAudit({ session, action: "payroll.wps", resource: "hr", targetId: runId, detail: run.periodKey });
   return {
     periodKey: run.periodKey,
     recordCount: records.length,
