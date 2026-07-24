@@ -68,6 +68,143 @@ enum CaseScope {
 enum ClientType {
   INDIVIDUAL // فرد
   COMPANY // شركة
+  ESTABLISHMENT // مؤسسة
+}
+
+/// Client lifecycle status (prototype CLIENTS.st). Distinct from the Lead pipeline.
+enum ClientStatus {
+  ACTIVE // نشط
+  PROSPECT // محتمل
+  INACTIVE // متوقف
+}
+
+/// Our client's litigation capacity in a case (prototype case.role).
+enum PartyRole {
+  PLAINTIFF // مدّعٍ
+  DEFENDANT // مدّعى عليه
+}
+
+/// Hearing lifecycle (prototype hearing.status).
+enum HearingStatus {
+  UPCOMING // قادمة
+  HELD // منعقدة
+}
+
+/// Hearing kinds (docs/06 §10 HEARING_KINDS, 10 values).
+enum HearingKind {
+  PRELIMINARY // تمهيدية
+  PLEADING // مرافعة
+  MEMO_EXCHANGE // تبادل مذكرات
+  PROCEDURAL_CONTROL // ضبط/إجراءات
+  WITNESS_HEARING // سماع شهود
+  EXPERT_EXAMINATION // خبرة
+  RESERVED_FOR_JUDGMENT // حجز للحكم
+  JUDGMENT_PRONOUNCEMENT // نطق بالحكم
+  RECONCILIATION // صلح
+  OTHER // أخرى
+}
+
+/// Case timeline event types (prototype EV_META).
+enum CaseEventType {
+  STAGE // المرحلة
+  REQUEST // طلب إجرائي
+  DOC // مستند
+  APPROVAL // اعتماد
+  OPENING // افتتاحي
+  DEADLINE // موعد/مهلة
+  MESSAGE // رسالة
+  SYSTEM // نظام
+}
+
+/// CRM pipeline stage (prototype LEADS keys / STAGES).
+enum LeadStage {
+  PROSPECT // عميل محتمل
+  FIRST_CONSULTATION // استشارة أولى
+  FEE_PROPOSAL_SENT // عرض أتعاب مُرسل
+  CONTRACTED // متعاقد
+}
+
+/// Where a lead originated (prototype leadSrc + waToLead).
+enum LeadSource {
+  REFERRAL // إحالة
+  WEBSITE // الموقع
+  LINKEDIN // لينكدإن
+  PHONE_CALL // اتصال
+  EXHIBITION // معرض
+  WHATSAPP // واتساب
+  OTHER // أخرى
+}
+
+/// Kanban column = task status (docs/06 §10 TASK_COLS).
+enum TaskColumn {
+  NEW // جديد
+  IN_PROGRESS // قيد التنفيذ
+  DONE // منجز
+}
+
+enum TaskPriority {
+  URGENT // عاجل
+  NORMAL // عادي
+}
+
+/// Task categories (prototype TASK_CATS) — carry point weights in Pulse (Phase 6).
+enum TaskCategory {
+  CONTRACT_SIGNING // توقيع عقد
+  MEMO_DRAFTING // إعداد مذكرة
+  CONTRACT_DOC_REVIEW // مراجعة عقد/مستند
+  LEGAL_RESEARCH // بحث قانوني
+  PROCEDURAL_FOLLOWUP // متابعة إجرائية
+  CLIENT_CORRESPONDENCE // مراسلة عميل
+  GENERAL // مهمة عامة
+}
+
+/// How a task was created (for audit/filtering).
+enum TaskSource {
+  MANUAL
+  AUTO_HEARING_PREP
+  AUTO_OBJECTION
+  HEARING_ACTION
+}
+
+/// Standalone appointment type (prototype apptType).
+enum AppointmentType {
+  FIRST_CONSULTATION // استشارة أولى
+  CONTRACT_REVIEW // مراجعة عقد
+  FOLLOW_UP // متابعة
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CANCELLED
+  DONE
+}
+
+/// Conflict-of-interest severity (docs/06 §4).
+enum ConflictSeverity {
+  HIGH // مرتفع
+  MEDIUM // متوسط
+}
+
+/// Which of the four conflict rules fired (docs/06 §4).
+enum ConflictType {
+  OPPONENT_IS_CLIENT // الخصم عميل حالي
+  OPPONENT_IS_LEAD // الخصم عميل محتمل
+  OPPONENT_IS_OUR_CLIENT_OTHER_CASE // الخصم موكّلنا في قضية أخرى
+  OUR_CLIENT_IS_OPPONENT_OTHER_CASE // موكّلنا خصم في قضية أخرى
+}
+
+enum ConflictStatus {
+  ACTIVE // نشط
+  WAIVED // موافقة/تنازل موثّق
+  RESOLVED // منتهٍ
+}
+
+/// Origin of a case reminder (prototype reminder.from).
+enum ReminderSource {
+  MANUAL
+  PENDING_HEARING // جلسة معلّقة
+  HEARING_MINUTES // محضر الجلسة
+  EXECUTION_FOLLOWUP // التنفيذ
 }
 
 /// Litigation stages (docs/06 §10 PROC_STAGES).
@@ -105,14 +242,21 @@ model Office {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  users       User[]
-  clients     Client[]
-  cases       Case[]
-  permissions Permission[]
-  fieldDenies FieldPermission[]
-  caseScopes  RoleCaseScope[]
-  auditLogs   AuditLog[]
-  otps        OtpChallenge[]
+  users         User[]
+  clients       Client[]
+  cases         Case[]
+  leads         Lead[]
+  tasks         Task[]
+  appointments  Appointment[]
+  hearings      Hearing[]
+  caseEvents    CaseEvent[]
+  caseReminders CaseReminder[]
+  conflictFlags ConflictFlag[]
+  permissions   Permission[]
+  fieldDenies   FieldPermission[]
+  caseScopes    RoleCaseScope[]
+  auditLogs     AuditLog[]
+  otps          OtpChallenge[]
 
   @@map("offices")
 }
@@ -126,10 +270,10 @@ model User {
   officeId String @map("office_id") @db.Uuid
   office   Office @relation(fields: [officeId], references: [id])
 
-  name  String
+  name     String
   /// E.164 phone, unique per office (OTP login identifier).
-  phone String
-  role  Role
+  phone    String
+  role     Role
   /// Owner is modeled as PARTNER — there is no implicit god mode.
   isActive Boolean @default(true) @map("is_active")
 
@@ -138,8 +282,10 @@ model User {
   createdById String?   @map("created_by") @db.Uuid
   deletedAt   DateTime? @map("deleted_at")
 
-  assignedCases CaseAssignee[]
-  auditLogs     AuditLog[]
+  assignedCases   CaseAssignee[]
+  auditLogs       AuditLog[]
+  tasks           Task[]         @relation("TaskAssignee")
+  waivedConflicts ConflictFlag[] @relation("ConflictWaivedBy")
 
   @@unique([officeId, phone])
   @@index([officeId])
@@ -232,18 +378,25 @@ model Client {
   officeId String @map("office_id") @db.Uuid
   office   Office @relation(fields: [officeId], references: [id])
 
-  name  String
-  phone String?
-  city  String?
-  type  ClientType @default(INDIVIDUAL)
+  name   String
+  phone  String?
+  city   String?
+  type   ClientType   @default(INDIVIDUAL)
+  status ClientStatus @default(ACTIVE)
 
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   createdById String?   @map("created_by") @db.Uuid
   deletedAt   DateTime? @map("deleted_at")
 
-  cases Case[]
+  cases         Case[]
+  appointments  Appointment[]
+  convertedFrom Lead[]         @relation("LeadConvertedClient")
+  conflictFlags ConflictFlag[] @relation("ConflictMatchedClient")
 
+  // phone is the client-portal login key; unique per office when present
+  // (Postgres allows multiple NULLs, so phone-less clients are fine).
+  @@unique([officeId, phone])
   @@index([officeId])
   @@map("clients")
 }
@@ -257,31 +410,74 @@ model Case {
   number String
   title  String
 
+  /// Our client's litigation capacity (prototype case.role).
+  clientRole PartyRole @default(PLAINTIFF) @map("client_role")
+
   /// Our client (FK, replacing the prototype's name-string link).
   clientId String? @map("client_id") @db.Uuid
   client   Client? @relation(fields: [clientId], references: [id])
 
   /// Opposing party — the axis of conflict-of-interest detection (docs/06 §4).
+  /// Free text (no FK): the opponent is not necessarily in our system.
   opposingParty String? @map("opposing_party")
 
-  city   String?
-  stage  ProcStage   @default(FIRST_INSTANCE)
-  status CaseStatus  @default(ACTIVE)
+  /// Najiz classification (main → sub → leaf). Stored as strings validated
+  /// against the NajizClassification reference table.
+  najizMainClass String? @map("najiz_main_class")
+  najizSubClass  String? @map("najiz_sub_class")
+  najizCaseType  String? @map("najiz_case_type")
+
+  city String?
+
+  /// Baseline procedural stage. The EFFECTIVE stage is derived from the latest
+  /// held hearing (see cases service stageOf); this is the manual floor.
+  stage   ProcStage    @default(FIRST_INSTANCE)
+  status  CaseStatus   @default(ACTIVE)
   outcome CaseOutcome?
+
+  /// Lawyer-authored fact summary (fed into AI context in Phase 5).
+  factSummary String? @map("fact_summary")
+
+  /// Judgment pronouncement date — the source for the objection deadline.
+  judgmentDate DateTime? @map("judgment_date")
 
   /// Objection deadline = judgment date + 30 days (docs/06 §1). Nullable until
   /// judgment is recorded; computed by the service layer, never the UI.
   objectionDueAt DateTime? @map("objection_due_at")
+
+  /// Power-of-attorney (الوكالة الشرعية) expiry — surfaced as a deadline.
+  poaExpiresAt DateTime? @map("poa_expires_at")
+
+  // ── closing / lifecycle ──
+  clientSatisfactionScore Int?    @map("client_satisfaction_score")
+  referralRequested       Boolean @default(false) @map("referral_requested")
+  /// Business archive (5-year retention) — DISTINCT from deletedAt soft delete.
+  isArchived              Boolean @default(false) @map("is_archived")
+  procEnded               Boolean @default(false) @map("proc_ended")
+  procResult              String? @map("proc_result")
+
+  // ── conflict-of-interest denormalized cache (docs/06 §4) ──
+  /// Highest ACTIVE conflict severity; null = no active conflict. Drives the
+  /// case-card ⚠ badge without recomputing detection per row.
+  conflictSeverity  ConflictSeverity? @map("conflict_severity")
+  conflictCheckedAt DateTime?         @map("conflict_checked_at")
 
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   createdById String?   @map("created_by") @db.Uuid
   deletedAt   DateTime? @map("deleted_at")
 
-  assignees CaseAssignee[]
+  assignees     CaseAssignee[]
+  hearings      Hearing[]
+  events        CaseEvent[]
+  reminders     CaseReminder[]
+  tasks         Task[]
+  conflictFlags ConflictFlag[] @relation("ConflictCase")
+  convertedFrom Lead[]         @relation("LeadConvertedCase")
 
   @@index([officeId])
   @@index([officeId, clientId])
+  @@index([officeId, deletedAt])
   @@map("cases")
 }
 
@@ -330,4 +526,257 @@ model AuditLog {
   @@index([officeId, createdAt])
   @@index([officeId, actorId])
   @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase 2 — operational core: hearings, timeline, reminders, CRM, tasks,
+// appointments, conflict flags, Najiz reference.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// A single court session under a case (prototype case.hearings[]).
+model Hearing {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  /// Sequential number among HELD hearings; null while upcoming (docs BR-CASE-03).
+  sequenceNo  Int?          @map("sequence_no")
+  hearingDate DateTime      @map("hearing_date")
+  status      HearingStatus @default(UPCOMING)
+  /// Litigation stage index 0..4 (RECONCILIATION..EXECUTION); drives derived stage.
+  stageIndex  Int?          @map("stage_index")
+  kind        HearingKind?
+  minutes     String?
+  result      String?
+
+  // Client-facing report + approval gate (published to portal in Phase 8).
+  clientReport       String? @map("client_report")
+  reportSentToClient Boolean @default(false) @map("report_sent_to_client")
+  reportApproved     Boolean @default(false) @map("report_approved")
+
+  // Pending (incomplete) hearing → recurring reminder (docs BR-CASE-11).
+  isPending         Boolean @default(false) @map("is_pending")
+  pendingItems      Json?   @map("pending_items")
+  reminderRecurDays Int?    @map("reminder_recur_days")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  reminders CaseReminder[]
+
+  @@index([officeId, caseId])
+  @@index([officeId, hearingDate])
+  @@index([officeId, status])
+  @@map("hearings")
+}
+
+/// Append-only case activity log — the "timeline" (prototype logEvent/events[]).
+model CaseEvent {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  type        CaseEventType
+  description String
+  /// Free actor label (المحامي/الخصم/المحكمة/النظام); internal actor by FK.
+  actor       String?
+  actorUserId String?       @map("actor_user_id") @db.Uuid
+
+  occurredAt DateTime @default(now()) @map("occurred_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([officeId, caseId, occurredAt])
+  @@index([officeId, caseId, type])
+  @@map("case_events")
+}
+
+/// Free-form dated reminder attached to a case — the custom-deadline source.
+model CaseReminder {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  text              String
+  dueOn             DateTime       @map("due_on")
+  /// Recurrence interval in days; null = one-shot (docs BR-CAL-recurringReminder).
+  recurIntervalDays Int?           @map("recur_interval_days")
+  source            ReminderSource @default(MANUAL)
+  isTaskLinked      Boolean        @default(false) @map("is_task_linked")
+
+  hearingId String?  @map("hearing_id") @db.Uuid
+  hearing   Hearing? @relation(fields: [hearingId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, caseId])
+  @@index([officeId, dueOn])
+  @@map("case_reminders")
+}
+
+/// CRM pipeline prospect (prototype LEADS). Flat table with a stage column.
+model Lead {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  name          String
+  type          ClientType @default(INDIVIDUAL)
+  source        LeadSource @default(OTHER)
+  stage         LeadStage  @default(PROSPECT)
+  /// Expected deal value in halalas (integer minor units).
+  expectedValue Int        @default(0) @map("expected_value")
+  nextAction    String?    @map("next_action")
+  phone         String?
+
+  // Conversion provenance (set by convertLead).
+  convertedClientId String? @map("converted_client_id") @db.Uuid
+  convertedClient   Client? @relation("LeadConvertedClient", fields: [convertedClientId], references: [id])
+  convertedCaseId   String? @map("converted_case_id") @db.Uuid
+  convertedCase     Case?   @relation("LeadConvertedCase", fields: [convertedCaseId], references: [id])
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  conflictFlags ConflictFlag[] @relation("ConflictMatchedLead")
+
+  @@index([officeId, stage])
+  @@index([officeId])
+  @@map("leads")
+}
+
+/// Kanban task (prototype TASKS).
+model Task {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  title String
+
+  assigneeId String? @map("assignee_id") @db.Uuid
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  priority      TaskPriority  @default(NORMAL)
+  dueAt         DateTime?     @map("due_at")
+  category      TaskCategory?
+  status        TaskColumn    @default(NEW)
+  /// Stable ordering within a column.
+  position      Int           @default(0)
+  origin        TaskSource    @default(MANUAL)
+  /// Idempotency key for system-generated tasks ("prep:caseId:date" / "obj:caseId:due").
+  autoSignature String?       @map("auto_signature")
+  completedAt   DateTime?     @map("completed_at")
+
+  caseId String? @map("case_id") @db.Uuid
+  case   Case?   @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  // Dedupe auto-tasks per office (nullable ⇒ manual tasks are unconstrained).
+  @@unique([officeId, autoSignature])
+  @@index([officeId, status])
+  @@index([officeId, assigneeId])
+  @@index([officeId, caseId])
+  @@map("tasks")
+}
+
+/// Standalone appointment (prototype APPTS) — NOT tied to a case.
+model Appointment {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  /// Denormalized contact name (may be a client or a lead).
+  contactName String @map("contact_name")
+
+  clientId String? @map("client_id") @db.Uuid
+  client   Client? @relation(fields: [clientId], references: [id])
+  leadId   String? @map("lead_id") @db.Uuid
+
+  scheduledOn   DateTime          @map("scheduled_on")
+  scheduledTime String?           @map("scheduled_time")
+  type          AppointmentType   @default(FIRST_CONSULTATION)
+  status        AppointmentStatus @default(SCHEDULED)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, scheduledOn])
+  @@map("appointments")
+}
+
+/// A materialized conflict-of-interest detection (docs/06 §4). Recomputed on
+/// case create/edit and on reverse triggers (new client/lead). Persisted so
+/// list badges are cheap and waivers are trackable + auditable.
+model ConflictFlag {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation("ConflictCase", fields: [caseId], references: [id], onDelete: Cascade)
+
+  severity      ConflictSeverity
+  conflictType  ConflictType     @map("conflict_type")
+  /// i18n key + params — NEVER store the Arabic literal (guardrail 6).
+  messageKey    String           @map("message_key")
+  messageParams Json?            @map("message_params")
+  matchedName   String?          @map("matched_name")
+
+  matchedClientId String? @map("matched_client_id") @db.Uuid
+  matchedClient   Client? @relation("ConflictMatchedClient", fields: [matchedClientId], references: [id])
+  matchedLeadId   String? @map("matched_lead_id") @db.Uuid
+  matchedLead     Lead?   @relation("ConflictMatchedLead", fields: [matchedLeadId], references: [id])
+  /// Case IDs matched in rules 3 & 4 (can be several).
+  matchedCaseIds  Json?   @map("matched_case_ids")
+
+  status     ConflictStatus @default(ACTIVE)
+  waiverNote String?        @map("waiver_note")
+  waivedById String?        @map("waived_by_id") @db.Uuid
+  waivedBy   User?          @relation("ConflictWaivedBy", fields: [waivedById], references: [id])
+  waivedAt   DateTime?      @map("waived_at")
+
+  detectedAt DateTime @default(now()) @map("detected_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // One flag per (case, rule, matched name) — supports reconcile-on-rescan.
+  @@unique([caseId, conflictType, matchedName])
+  @@index([officeId, caseId])
+  @@index([officeId, status])
+  @@map("conflict_flags")
+}
+
+/// Najiz classification taxonomy (main → sub → leaf). Global reference data,
+/// NOT tenant-scoped: the taxonomy is identical for every office. Seeded from
+/// src/lib/najiz.ts.
+model NajizClassification {
+  id        String @id @default(uuid()) @db.Uuid
+  mainClass String @map("main_class")
+  subClass  String @map("sub_class")
+  caseType  String @map("case_type")
+
+  @@unique([mainClass, subClass, caseType])
+  @@index([mainClass])
+  @@map("najiz_classifications")
 }
