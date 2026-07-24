@@ -8,18 +8,23 @@ import {
   DocParty,
   DocSource,
   DocumentTemplateCategory,
+  ExpenseCategory,
+  FeeType,
   HearingKind,
   HearingStatus,
   LeadSource,
   LeadStage,
   PartyRole,
+  PaymentMethod,
   PermModule,
   ProcStage,
   Role,
   TaskCategory,
   TaskColumn,
   TaskPriority,
+  TrustTxnType,
 } from "@prisma/client";
+import type { EffectiveInvoiceStatus } from "@/lib/finance/core";
 import { t, type MessageKey } from "@/lib/i18n";
 
 /** Enum → i18n key maps, so enum values never leak into the UI untranslated. */
@@ -77,3 +82,8 @@ export const docKindLabel = (v: DocKind) => t(`docKind.${v}` as MessageKey);
 export const docSourceLabel = (v: DocSource) => t(`docSource.${v}` as MessageKey);
 export const docPartyLabel = (v: DocParty) => t(`docParty.${v}` as MessageKey);
 export const docCategoryLabel = (v: DocumentTemplateCategory) => t(`docCategory.${v}` as MessageKey);
+export const invoiceStatusLabel = (v: EffectiveInvoiceStatus) => t(`invStatus.${v}` as MessageKey);
+export const feeTypeLabel = (v: FeeType) => t(`feeType.${v}` as MessageKey);
+export const payMethodLabel = (v: PaymentMethod) => t(`payMethod.${v}` as MessageKey);
+export const expenseCategoryLabel = (v: ExpenseCategory) => t(`expCat.${v}` as MessageKey);
+export const trustTypeLabel = (v: TrustTxnType) => t(`trustType.${v}` as MessageKey);

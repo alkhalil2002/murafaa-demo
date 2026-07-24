@@ -26,6 +26,27 @@ import { najizLeaves } from "../src/lib/najiz";
 import { dateInDays } from "../src/lib/dates";
 import { recomputeCaseConflicts } from "../src/lib/conflict/service";
 import { TEMPLATE_DEFS } from "../src/lib/documents/template-defs";
+import { AccountType, FeeType, PaymentMethod, ExpenseCategory } from "@prisma/client";
+import { createInvoice, recordPayment } from "../src/server/invoices";
+import { saveFeeAgreement, generateInvoiceFromFee } from "../src/server/fees";
+import { createExpense } from "../src/server/expenses";
+import { trustDeposit } from "../src/server/trust";
+import { riyalsToHalalas } from "../src/lib/money";
+import type { AppSession } from "../src/lib/auth/types";
+
+const COA_SEED: Array<{ code: string; name: string; type: AccountType }> = [
+  { code: "1000", name: "النقد والبنك", type: AccountType.ASSET },
+  { code: "1100", name: "الذمم المدينة", type: AccountType.ASSET },
+  { code: "1200", name: "حسابات عهدة العملاء", type: AccountType.ASSET },
+  { code: "1500", name: "الأصول الثابتة", type: AccountType.ASSET },
+  { code: "2000", name: "الذمم الدائنة", type: AccountType.LIABILITY },
+  { code: "2100", name: "أمانات العملاء (عهدة)", type: AccountType.LIABILITY },
+  { code: "2200", name: "ضريبة القيمة المضافة المستحقة", type: AccountType.LIABILITY },
+  { code: "3000", name: "رأس المال", type: AccountType.EQUITY },
+  { code: "4000", name: "إيرادات الأتعاب", type: AccountType.REVENUE },
+  { code: "5000", name: "تكلفة الخدمات المباشرة", type: AccountType.EXPENSE },
+  { code: "5100", name: "المصروفات التشغيلية", type: AccountType.EXPENSE },
+];
 
 const prisma = new PrismaClient();
 
@@ -218,8 +239,49 @@ async function main() {
   }
 
   const flags = await prisma.conflictFlag.count({ where: { officeId: office.id } });
+
+  // ── Finance: chart of accounts + sample invoice/payment/expense/trust ──
+  await prisma.chartOfAccount.createMany({
+    data: COA_SEED.map((a) => ({ officeId: office.id, ...a })),
+  });
+  const finSession: AppSession = {
+    userId: partner.id,
+    officeId: office.id,
+    name: partner.name,
+    phone: partner.phone,
+    role: partner.role,
+  };
+  // Fee agreement on caseA (flat 15,000 SAR) → generate its invoice.
+  await saveFeeAgreement(finSession, caseA.id, {
+    type: FeeType.FLAT,
+    feeValueMinor: riyalsToHalalas(15000),
+  });
+  await generateInvoiceFromFee(finSession, caseA.id);
+  // A manual invoice + partial payment.
+  const inv = await createInvoice(finSession, {
+    clientId: imdad.id,
+    caseId: caseA.id,
+    items: [{ description: "أتعاب مرافعة", quantity: 1, unitPrice: riyalsToHalalas(6000) }],
+    basis: "أتعاب المرحلة الأولى",
+  });
+  await recordPayment(finSession, inv.id, {
+    amountMinor: riyalsToHalalas(3000),
+    method: PaymentMethod.BANK_TRANSFER,
+  });
+  // A billable expense + a client trust deposit.
+  await createExpense(finSession, {
+    grossAmount: riyalsToHalalas(1150),
+    category: ExpenseCategory.COURT_FEES,
+    vendor: "وزارة العدل",
+    billable: true,
+    clientId: imdad.id,
+    caseId: caseA.id,
+  });
+  await trustDeposit(finSession, { clientId: imdad.id, amountMinor: riyalsToHalalas(20000), note: "عهدة رسوم ومصاريف" });
+
+  const invCount = await prisma.invoice.count({ where: { officeId: office.id } });
   console.info(
-    `Seeded office ${office.id}: ${users.length} users, 2 clients, 4 leads, 4 cases, ${flags} conflict flags.`,
+    `Seeded office ${office.id}: ${users.length} users, 2 clients, 4 leads, 4 cases, ${flags} conflict flags, ${COA_SEED.length} accounts, ${invCount} invoices.`,
   );
 }
 

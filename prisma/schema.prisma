@@ -243,6 +243,94 @@ enum DocumentTemplateCategory {
   EXECUTION // تنفيذ
 }
 
+// ── Finance (Phase 4) ──
+// Money is INTEGER HALALAS (docs/02 §4). Columns are Int; app-layer Zod guards
+// reject amounts above the int4 ceiling (~21.4M SAR/amount) and Postgres errors
+// loudly on overflow — no silent corruption. Upgrade to BigInt if large-award
+// handling is needed.
+
+/// Stored base status of an invoice; the EFFECTIVE status is DERIVED (docs/06 §7).
+enum InvoiceBaseStatus {
+  DUE // مستحقة
+  PAID // مدفوعة
+  OVERDUE // متأخرة
+}
+
+/// How an invoice was created (provenance).
+enum InvoiceOrigin {
+  MANUAL
+  FEE_AGREEMENT
+  EXPENSE_REIMBURSEMENT
+  TIME_ENTRY
+}
+
+/// Payment method (prototype payMethod). FROM_TRUST moves money out of the
+/// client trust ledger and MUST create a paired trust transaction.
+enum PaymentMethod {
+  BANK_TRANSFER // تحويل بنكي
+  MADA // شبكة (مدى)
+  CASH // نقداً
+  CHEQUE // شيك
+  FROM_TRUST // من العهدة
+}
+
+/// The four fee-agreement types (docs/06 §3).
+enum FeeType {
+  FLAT // مبلغ مقطوع
+  RETAINER // أتعاب شهرية
+  HOURLY // بالساعة
+  PERCENTAGE // نسبة من المحكوم به
+}
+
+/// Expense categories (prototype EXP_CATS, 10).
+enum ExpenseCategory {
+  SALARIES // الرواتب
+  OFFICE_RENT // إيجار المكتب
+  MARKETING // تسويق وإعلان
+  SUBSCRIPTIONS // اشتراكات وبرامج
+  GOVERNMENT_FEES // رسوم حكومية
+  COURT_FEES // رسوم محكمة
+  EXPERT_FEES // رسوم خبير
+  ADMIN_EXPENSES // مصاريف إدارية
+  HOSPITALITY_TRANSPORT // ضيافة وانتقالات
+  OTHER // أخرى
+}
+
+enum ExpensePaymentMethod {
+  BANK_TRANSFER // تحويل بنكي
+  MADA // شبكة (مدى)
+  CASH // نقداً
+  CHEQUE // شيك
+}
+
+/// Client-trust movement type (prototype). Only TRANSFER_TO_FEES touches revenue.
+enum TrustTxnType {
+  DEPOSIT // إيداع
+  WITHDRAWAL // سحب
+  TRANSFER_TO_FEES // تحويل لأتعاب
+}
+
+/// Accounting account class (drives the normal balance side).
+enum AccountType {
+  ASSET // أصول (normal debit)
+  LIABILITY // خصوم (normal credit)
+  EQUITY // حقوق ملكية (normal credit)
+  REVENUE // إيرادات (normal credit)
+  EXPENSE // مصروفات (normal debit)
+}
+
+/// What generated a journal entry.
+enum JournalSourceType {
+  INVOICE
+  PAYMENT
+  CREDIT_NOTE
+  EXPENSE
+  TRUST_DEPOSIT
+  TRUST_WITHDRAWAL
+  TRUST_TRANSFER
+  MANUAL
+}
+
 /// Litigation stages (docs/06 §10 PROC_STAGES).
 enum ProcStage {
   RECONCILIATION // الصلح
@@ -272,14 +360,16 @@ enum CaseOutcome {
 
 /// A law office = one tenant. Every business row hangs off an Office.
 model Office {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String
   /// Letterhead / branding used by all generated PDFs (name, tagline, contact,
   /// license, colors, confidentiality notice, logo key). Null → code defaults.
-  branding  Json?
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  branding        Json?
+  /// Governance: when on, new payments/expenses await partner approval.
+  requireApproval Boolean   @default(false) @map("require_approval")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
 
   users             User[]
   clients           Client[]
@@ -293,6 +383,17 @@ model Office {
   conflictFlags     ConflictFlag[]
   documents         Document[]
   documentTemplates DocumentTemplate[]
+  invoices          Invoice[]
+  payments          Payment[]
+  creditNotes       CreditNote[]
+  expenses          Expense[]
+  timeEntries       TimeEntry[]
+  feeAgreements     CaseFeeAgreement[]
+  trustAccounts     TrustAccount[]
+  trustTransactions TrustTransaction[]
+  chartOfAccounts   ChartOfAccount[]
+  journalEntries    JournalEntry[]
+  accountingPeriods AccountingPeriod[]
   permissions       Permission[]
   fieldDenies       FieldPermission[]
   caseScopes        RoleCaseScope[]
@@ -327,6 +428,7 @@ model User {
   auditLogs       AuditLog[]
   tasks           Task[]         @relation("TaskAssignee")
   waivedConflicts ConflictFlag[] @relation("ConflictWaivedBy")
+  timeEntries     TimeEntry[]    @relation("TimeEntryLawyer")
 
   @@unique([officeId, phone])
   @@index([officeId])
@@ -432,6 +534,10 @@ model Client {
 
   cases         Case[]
   appointments  Appointment[]
+  invoices      Invoice[]
+  creditNotes   CreditNote[]
+  expenses      Expense[]
+  trustAccount  TrustAccount?
   convertedFrom Lead[]         @relation("LeadConvertedClient")
   conflictFlags ConflictFlag[] @relation("ConflictMatchedClient")
 
@@ -514,8 +620,12 @@ model Case {
   reminders     CaseReminder[]
   tasks         Task[]
   documents     Document[]
-  conflictFlags ConflictFlag[] @relation("ConflictCase")
-  convertedFrom Lead[]         @relation("LeadConvertedCase")
+  invoices      Invoice[]
+  expenses      Expense[]
+  timeEntries   TimeEntry[]
+  feeAgreement  CaseFeeAgreement?
+  conflictFlags ConflictFlag[]    @relation("ConflictCase")
+  convertedFrom Lead[]            @relation("LeadConvertedCase")
 
   @@index([officeId])
   @@index([officeId, clientId])
@@ -914,4 +1024,354 @@ model Document {
   @@index([officeId, source])
   @@index([officeId, clientVisible])
   @@map("documents")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase 4 — finance: invoices, fees, expenses, time, trust, ledgers.
+// All money is INTEGER HALALAS. Every write runs in a DB transaction that also
+// posts a balanced journal entry. Client trust (أمانات) is a SEPARATE ledger.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Fee agreement per case (docs/06 §3). 1:1 with Case (prototype c.fee).
+model CaseFeeAgreement {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @unique @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  type          FeeType @default(FLAT)
+  /// FLAT lump sum / RETAINER periodic / HOURLY quoted rate — halalas. Null for PERCENTAGE.
+  feeValueMinor Int?    @map("fee_value_minor")
+  /// PERCENTAGE only: basis points (10% = 1000). Null otherwise.
+  percentageBps Int?    @map("percentage_bps")
+  /// PERCENTAGE only: court-awarded amount the percentage applies to — halalas.
+  awardedMinor  Int?    @map("awarded_minor")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId])
+  @@map("case_fee_agreements")
+}
+
+/// A tax invoice (فاتورة ضريبية). Effective status is DERIVED (docs/06 §7), not
+/// stored; `baseStatus` only feeds the OVERDUE branch.
+model Invoice {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  number String
+
+  clientId String  @map("client_id") @db.Uuid
+  client   Client  @relation(fields: [clientId], references: [id])
+  caseId   String? @map("case_id") @db.Uuid
+  case     Case?   @relation(fields: [caseId], references: [id])
+
+  issueDate DateTime @map("issue_date")
+
+  netAmount   Int @map("net_amount")
+  vatAmount   Int @map("vat_amount")
+  totalAmount Int @map("total_amount")
+
+  baseStatus InvoiceBaseStatus @default(DUE) @map("base_status")
+  origin     InvoiceOrigin     @default(MANUAL)
+  basis      String?
+
+  isBadDebt  Boolean @default(false) @map("is_bad_debt")
+  isCredited Boolean @default(false) @map("is_credited")
+
+  /// Provenance (plain columns, no back-relation).
+  fromExpenseId   String? @map("from_expense_id") @db.Uuid
+  fromTimeEntryId String? @map("from_time_entry_id") @db.Uuid
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  items      InvoiceItem[]
+  payments   Payment[]
+  creditNote CreditNote?
+
+  @@unique([officeId, number])
+  @@index([officeId, clientId])
+  @@index([officeId, caseId])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id        String  @id @default(uuid()) @db.Uuid
+  invoiceId String  @map("invoice_id") @db.Uuid
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description String
+  quantity    Int    @default(1) // whole units/hours (not money)
+  unitPrice   Int    @map("unit_price") // halalas
+  lineNet     Int    @map("line_net") // = quantity × unitPrice (halalas)
+  sortOrder   Int    @default(0) @map("sort_order")
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+/// A receipt (سند قبض) against an invoice.
+model Payment {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  number String
+
+  invoiceId String  @map("invoice_id") @db.Uuid
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  paymentDate DateTime      @map("payment_date")
+  amount      Int // halalas
+  method      PaymentMethod
+  reference   String?
+
+  isApproved   Boolean   @default(true) @map("is_approved")
+  approvedById String?   @map("approved_by") @db.Uuid
+  approvedAt   DateTime? @map("approved_at")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@unique([officeId, number])
+  @@index([officeId, invoiceId])
+  @@map("payments")
+}
+
+/// A credit note (إشعار دائن) fully cancelling an invoice (never deletion).
+model CreditNote {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  number String
+
+  invoiceId String  @unique @map("invoice_id") @db.Uuid
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  clientId  String   @map("client_id") @db.Uuid
+  client    Client   @relation(fields: [clientId], references: [id])
+  issueDate DateTime @map("issue_date")
+  amount    Int // halalas (= invoice total)
+  vatAmount Int      @map("vat_amount") // halalas (= invoice vat)
+  reason    String
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@unique([officeId, number])
+  @@map("credit_notes")
+}
+
+/// An office expense (prototype EXPENSES). `netAmount` is VAT-exclusive.
+model Expense {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  expenseDate DateTime             @map("expense_date")
+  category    ExpenseCategory      @default(OTHER)
+  vendor      String?
+  netAmount   Int                  @map("net_amount") // halalas (VAT-exclusive)
+  inputVat    Int                  @map("input_vat") // halalas (recoverable)
+  method      ExpensePaymentMethod @default(BANK_TRANSFER)
+  documentNo  String?              @map("document_no")
+
+  billable  Boolean @default(false)
+  billed    Boolean @default(false)
+  recurring Boolean @default(false)
+  approved  Boolean @default(true)
+
+  clientId               String? @map("client_id") @db.Uuid
+  client                 Client? @relation(fields: [clientId], references: [id])
+  caseId                 String? @map("case_id") @db.Uuid
+  case                   Case?   @relation(fields: [caseId], references: [id])
+  /// Reimbursement invoice this expense was billed into (plain column).
+  reimbursementInvoiceId String? @map("reimbursement_invoice_id") @db.Uuid
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, category])
+  @@index([officeId, caseId])
+  @@map("expenses")
+}
+
+/// A billable/internal time entry (prototype TIME_ENTRIES). Duration in MINUTES
+/// (int) to avoid float hours; rate is halalas per hour.
+model TimeEntry {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  lawyerId String @map("lawyer_id") @db.Uuid
+  lawyer   User   @relation("TimeEntryLawyer", fields: [lawyerId], references: [id])
+  caseId   String @map("case_id") @db.Uuid
+  case     Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  description String?
+  minutes     Int // duration in minutes
+  hourlyRate  Int      @map("hourly_rate") // halalas per hour
+  workDate    DateTime @map("work_date")
+  billable    Boolean  @default(true)
+  invoiced    Boolean  @default(false)
+  /// Invoice this entry was billed into (plain column).
+  invoiceId   String?  @map("invoice_id") @db.Uuid
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, caseId])
+  @@index([officeId, lawyerId])
+  @@map("time_entries")
+}
+
+/// Client trust (أمانات / عهدة) account — one per client. Ring-fenced client
+/// money, SEPARATE from office revenue (guardrail 5). Balance is derived from
+/// transactions but cached here for cheap reads + a non-negative guard.
+model TrustAccount {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  clientId String @unique @map("client_id") @db.Uuid
+  client   Client @relation(fields: [clientId], references: [id])
+
+  /// Cached balance in halalas (= Σ deposits − Σ withdrawals/transfers). Never negative.
+  balanceMinor Int @default(0) @map("balance_minor")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  transactions TrustTransaction[]
+
+  @@index([officeId])
+  @@map("trust_accounts")
+}
+
+/// An immutable trust movement. Never updated/deleted to change money — post a
+/// compensating reverse movement instead (highest-integrity area).
+model TrustTransaction {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  trustAccountId String       @map("trust_account_id") @db.Uuid
+  trustAccount   TrustAccount @relation(fields: [trustAccountId], references: [id], onDelete: Cascade)
+
+  type             TrustTxnType
+  amountMinor      Int          @map("amount_minor") // halalas, always > 0
+  date             DateTime
+  note             String?
+  /// Cross-links (plain columns).
+  relatedInvoiceId String?      @map("related_invoice_id") @db.Uuid
+  relatedCaseId    String?      @map("related_case_id") @db.Uuid
+  journalEntryId   String?      @map("journal_entry_id") @db.Uuid
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  createdById String?  @map("created_by") @db.Uuid
+
+  @@index([officeId, trustAccountId])
+  @@map("trust_transactions")
+}
+
+/// Chart of accounts (prototype COA). Balance is DERIVED from journal lines.
+model ChartOfAccount {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  code     String
+  name     String
+  type     AccountType
+  isActive Boolean     @default(true) @map("is_active")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  journalLines JournalLine[]
+
+  @@unique([officeId, code])
+  @@index([officeId])
+  @@map("chart_of_accounts")
+}
+
+/// A balanced double-entry voucher. INVARIANT: Σ debit = Σ credit (>= 2 lines).
+model JournalEntry {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  entryNo     String            @map("entry_no")
+  entryDate   DateTime          @map("entry_date")
+  description String
+  sourceType  JournalSourceType @default(MANUAL) @map("source_type")
+  sourceId    String?           @map("source_id") @db.Uuid
+  periodKey   String            @map("period_key") // YYYY-MM
+  postedById  String?           @map("posted_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lines JournalLine[]
+
+  @@unique([officeId, entryNo])
+  @@index([officeId, periodKey])
+  @@index([officeId, sourceType, sourceId])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id             String       @id @default(uuid()) @db.Uuid
+  journalEntryId String       @map("journal_entry_id") @db.Uuid
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  accountId String         @map("account_id") @db.Uuid
+  account   ChartOfAccount @relation(fields: [accountId], references: [id])
+
+  debit  Int     @default(0) // halalas
+  credit Int     @default(0) // halalas
+  lineNo Int     @map("line_no")
+  memo   String?
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@map("journal_lines")
+}
+
+/// A monthly accounting period; when locked, postings dated within it are rejected.
+model AccountingPeriod {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  periodKey  String    @map("period_key") // YYYY-MM
+  locked     Boolean   @default(false)
+  lockedById String?   @map("locked_by") @db.Uuid
+  lockedAt   DateTime? @map("locked_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([officeId, periodKey])
+  @@map("accounting_periods")
 }

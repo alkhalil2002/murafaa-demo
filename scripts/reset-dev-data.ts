@@ -8,6 +8,20 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  // Finance (children → parents).
+  await prisma.journalLine.deleteMany();
+  await prisma.journalEntry.deleteMany();
+  await prisma.trustTransaction.deleteMany();
+  await prisma.trustAccount.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.creditNote.deleteMany();
+  await prisma.invoiceItem.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.expense.deleteMany();
+  await prisma.timeEntry.deleteMany();
+  await prisma.caseFeeAgreement.deleteMany();
+  await prisma.chartOfAccount.deleteMany();
+  await prisma.accountingPeriod.deleteMany();
   await prisma.document.deleteMany();
   await prisma.documentTemplate.deleteMany({ where: { officeId: { not: null } } });
   await prisma.conflictFlag.deleteMany();
