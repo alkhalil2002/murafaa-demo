@@ -26,6 +26,8 @@ import { najizLeaves } from "../src/lib/najiz";
 import { dateInDays } from "../src/lib/dates";
 import { recomputeCaseConflicts } from "../src/lib/conflict/service";
 import { TEMPLATE_DEFS } from "../src/lib/documents/template-defs";
+import { KB_SEED } from "../src/lib/ai/kb-seed";
+import { getEmbedder } from "../src/lib/ai/embed";
 import { AccountType, FeeType, PaymentMethod, ExpenseCategory } from "@prisma/client";
 import { createInvoice, recordPayment } from "../src/server/invoices";
 import { saveFeeAgreement, generateInvoiceFromFee } from "../src/server/fees";
@@ -60,6 +62,7 @@ const prisma = new PrismaClient();
 async function main() {
   await seedNajiz();
   await seedDocumentTemplates();
+  await seedKnowledgeBase();
 
   const OFFICE_NAME = "مكتب مُرافعة التجريبي";
   const existing = await prisma.office.findFirst({ where: { name: OFFICE_NAME } });
@@ -290,6 +293,35 @@ async function seedNajiz() {
   if (count > 0) return;
   await prisma.najizClassification.createMany({ data: najizLeaves() });
   console.info(`Seeded ${najizLeaves().length} Najiz classification rows.`);
+}
+
+/** Seed the closed legal knowledge base (global) with embedded chunks. */
+async function seedKnowledgeBase() {
+  const count = await prisma.knowledgeSource.count();
+  if (count > 0) return;
+  const embedder = getEmbedder();
+  for (const src of KB_SEED) {
+    await prisma.knowledgeSource.create({
+      data: {
+        type: src.type,
+        title: src.title,
+        citationKey: src.citationKey,
+        officialRef: src.officialRef ?? null,
+        chunks: {
+          create: await Promise.all(
+            src.chunks.map(async (ch, i) => ({
+              articleNumber: ch.articleNumber ?? null,
+              content: ch.content,
+              ord: i,
+              embedding: await embedder.embed(`${src.title} ${ch.articleNumber ?? ""} ${ch.content}`),
+            })),
+          ),
+        },
+      },
+    });
+  }
+  const chunks = KB_SEED.reduce((n, s) => n + s.chunks.length, 0);
+  console.info(`Seeded ${KB_SEED.length} KB sources (${chunks} chunks).`);
 }
 
 /** Seed the 8 global system document templates (officeId null, isSystem). */

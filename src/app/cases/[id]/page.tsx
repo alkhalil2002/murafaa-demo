@@ -52,6 +52,12 @@ export default async function CaseDetailPage({
           <Link href="/cases" className="text-sm text-ink-soft hover:underline">
             → {t("cases.title")}
           </Link>
+          <Link
+            href={`/ai/arena/${c.id}`}
+            className="rounded-lg border border-gold px-2.5 py-1 text-xs text-warn hover:bg-gold/5"
+          >
+            ⚖ {t("ai.arena")}
+          </Link>
         </div>
         <h1 className="font-serif text-3xl text-bench">{c.title}</h1>
         <p className="mt-1 text-ink-soft">

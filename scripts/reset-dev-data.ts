@@ -8,6 +8,9 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  // AI interactions (tenant data; the KB corpus is global reference — kept).
+  await prisma.aiCitation.deleteMany();
+  await prisma.aiInteraction.deleteMany();
   // Finance (children → parents).
   await prisma.journalLine.deleteMany();
   await prisma.journalEntry.deleteMany();

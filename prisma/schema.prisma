@@ -331,6 +331,55 @@ enum JournalSourceType {
   MANUAL
 }
 
+// ── Legal AI (Phase 5) ──
+
+/// Which AI surface produced a generation (docs/02 §6 — the gate covers all).
+enum AiSurface {
+  ASSISTANT // المساعد
+  CASE_ANALYSIS // تحليل القضية
+  ARENA // ساحة المرافعة
+}
+
+/// Arena role (prototype ARENA_ROLES) — set only when surface = ARENA.
+enum ArenaRole {
+  OURS // محامينا
+  OPPONENT // محامي الخصم
+  JUDGE // القاضي
+}
+
+/// A source in the CLOSED knowledge base — the ONLY citable corpus (docs/02 §6).
+enum KnowledgeSourceType {
+  STATUTE // نظام
+  REGULATION // لائحة
+  PRECEDENT // سابقة/مبدأ
+}
+
+/// Kind of a citation extracted from generated text.
+enum CitationType {
+  ARTICLE // مادة
+  STATUTE // نظام
+  PRECEDENT // سابقة
+}
+
+enum CitationMatchStatus {
+  MATCHED
+  UNMATCHED
+}
+
+/// What the gate did with a citation.
+enum CitationAction {
+  KEPT // matched → shown as a verified source link
+  BLOCKED // unmatched → removed from output
+  FLAGGED // unmatched → kept with a visible warning (config)
+}
+
+/// Aggregate gate verdict for a generation.
+enum GateVerdict {
+  PASSED
+  FLAGGED
+  BLOCKED
+}
+
 /// Litigation stages (docs/06 §10 PROC_STAGES).
 enum ProcStage {
   RECONCILIATION // الصلح
@@ -394,6 +443,7 @@ model Office {
   chartOfAccounts   ChartOfAccount[]
   journalEntries    JournalEntry[]
   accountingPeriods AccountingPeriod[]
+  aiInteractions    AiInteraction[]
   permissions       Permission[]
   fieldDenies       FieldPermission[]
   caseScopes        RoleCaseScope[]
@@ -614,18 +664,19 @@ model Case {
   createdById String?   @map("created_by") @db.Uuid
   deletedAt   DateTime? @map("deleted_at")
 
-  assignees     CaseAssignee[]
-  hearings      Hearing[]
-  events        CaseEvent[]
-  reminders     CaseReminder[]
-  tasks         Task[]
-  documents     Document[]
-  invoices      Invoice[]
-  expenses      Expense[]
-  timeEntries   TimeEntry[]
-  feeAgreement  CaseFeeAgreement?
-  conflictFlags ConflictFlag[]    @relation("ConflictCase")
-  convertedFrom Lead[]            @relation("LeadConvertedCase")
+  assignees      CaseAssignee[]
+  hearings       Hearing[]
+  events         CaseEvent[]
+  reminders      CaseReminder[]
+  tasks          Task[]
+  documents      Document[]
+  invoices       Invoice[]
+  expenses       Expense[]
+  timeEntries    TimeEntry[]
+  feeAgreement   CaseFeeAgreement?
+  aiInteractions AiInteraction[]
+  conflictFlags  ConflictFlag[]    @relation("ConflictCase")
+  convertedFrom  Lead[]            @relation("LeadConvertedCase")
 
   @@index([officeId])
   @@index([officeId, clientId])
@@ -1374,4 +1425,120 @@ model AccountingPeriod {
 
   @@unique([officeId, periodKey])
   @@map("accounting_periods")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase 5 — legal AI: closed knowledge base + interaction/citation audit.
+// The KnowledgeSource/Chunk corpus is GLOBAL shared reference (like Najiz);
+// AiInteraction/AiCitation are tenant-scoped audit of every AI generation.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// An authoritative Saudi legal source — the ONLY citable corpus (docs/02 §6).
+model KnowledgeSource {
+  id          String              @id @default(uuid()) @db.Uuid
+  type        KnowledgeSourceType
+  title       String
+  /// Normalized canonical key — the deterministic match target for parsed law names.
+  citationKey String              @unique @map("citation_key")
+  officialRef String?             @map("official_ref")
+  issuer      String?
+  issueDate   DateTime?           @map("issue_date")
+  /// Only active (non-repealed) sources are citable; repealed → UNMATCHED.
+  isActive    Boolean             @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  chunks    KnowledgeChunk[]
+  citations AiCitation[]     @relation("CitationMatchedSource")
+
+  @@index([citationKey])
+  @@map("knowledge_sources")
+}
+
+/// A chunked + embedded passage of a KnowledgeSource (docs/02 §6 pgvector).
+/// Embedding is stored as Float[] in dev (app-layer cosine) and swapped to a
+/// pgvector `vector` column + `<=>` ANN index in production (adapter seam).
+model KnowledgeChunk {
+  id       String          @id @default(uuid()) @db.Uuid
+  sourceId String          @map("source_id") @db.Uuid
+  source   KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  /// The precise citable anchor within the source (مادة رقم).
+  articleNumber String? @map("article_number")
+  sectionRef    String? @map("section_ref")
+  content       String
+  /// Dev: app-layer cosine over this vector. Prod: pgvector column.
+  embedding     Float[]
+  ord           Int?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  citations AiCitation[] @relation("CitationMatchedChunk")
+
+  @@index([sourceId])
+  @@map("knowledge_chunks")
+}
+
+/// One AI generation (assistant / case-analysis / a single arena turn). Carries
+/// the gate verdict (docs/02 §6 "تُسجَّل نتيجة التحقق"). Tenant-scoped + audited.
+model AiInteraction {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  surface   AiSurface
+  arenaRole ArenaRole? @map("arena_role")
+  /// Groups a chat/arena session (plain column).
+  threadId  String?    @map("thread_id")
+
+  caseId String? @map("case_id") @db.Uuid
+  case   Case?   @relation(fields: [caseId], references: [id])
+
+  question          String
+  /// KnowledgeChunk ids the generator was constrained to (Json string array).
+  retrievedChunkIds Json        @map("retrieved_chunk_ids")
+  /// Model output BEFORE the gate (retained for audit/diffing).
+  rawDraft          String      @map("raw_draft")
+  /// Post-gate text actually shown (unmatched citations stripped).
+  finalOutput       String      @map("final_output")
+  verdict           GateVerdict
+  groundingNote     String?     @map("grounding_note")
+  disclaimerShown   Boolean     @default(true) @map("disclaimer_shown")
+  model             String?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  createdById String?  @map("created_by") @db.Uuid
+
+  citations AiCitation[]
+
+  @@index([officeId, caseId])
+  @@index([officeId, surface])
+  @@map("ai_interactions")
+}
+
+/// One citation extracted from a generation + its verification outcome — the
+/// granular gate record (docs/02 §6: each citation matched to a real source).
+model AiCitation {
+  id            String        @id @default(uuid()) @db.Uuid
+  interactionId String        @map("interaction_id") @db.Uuid
+  interaction   AiInteraction @relation(fields: [interactionId], references: [id], onDelete: Cascade)
+
+  rawText             String       @map("raw_text")
+  type                CitationType
+  parsedLawName       String?      @map("parsed_law_name")
+  parsedArticleNumber String?      @map("parsed_article_number")
+
+  matchedSourceId String?          @map("matched_source_id") @db.Uuid
+  matchedSource   KnowledgeSource? @relation("CitationMatchedSource", fields: [matchedSourceId], references: [id])
+  matchedChunkId  String?          @map("matched_chunk_id") @db.Uuid
+  matchedChunk    KnowledgeChunk?  @relation("CitationMatchedChunk", fields: [matchedChunkId], references: [id])
+
+  matchStatus CitationMatchStatus @map("match_status")
+  action      CitationAction
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([interactionId])
+  @@map("ai_citations")
 }

@@ -275,6 +275,35 @@ export const ar = {
   "docCategory.EXECUTION": "تنفيذ",
   "nav.documents": "المستندات",
   "nav.finance": "المالية",
+  "nav.ai": "المحاكمة الذكية",
+
+  // ── Legal AI (Phase 5) ──
+  "ai.title": "المحاكمة الذكية",
+  "ai.assistant": "المساعد القانوني",
+  "ai.arena": "ساحة المرافعة",
+  "ai.kb": "القاعدة المعرفية",
+  "ai.ask": "اطرح سؤالك القانوني…",
+  "ai.send": "إرسال",
+  "ai.emptyChat": "اطرح سؤالاً ليبدأ المساعد بالتحليل مستنداً إلى القاعدة المعرفية.",
+  "ai.disclaimer":
+    "استرشادي للتحضير لا فتوى، ولا تُعتمد أرقام أنظمة أو أحكام إلا بعد التحقق من القاعدة المعرفية.",
+  "ai.groundingEmpty":
+    "لا يوجد سند في القاعدة المعرفية لهذا السؤال — التحليل منطقي دون إسناد نظامي.",
+  "ai.sources": "المصادر الموثّقة",
+  "ai.blockedNote": "حُجبت {n} استشهادات غير موثّقة قبل العرض.",
+  "ai.verdict.PASSED": "موثّق",
+  "ai.verdict.FLAGGED": "بحاجة لمراجعة",
+  "ai.verdict.BLOCKED": "حُجبت استشهادات",
+  "ai.startArena": "ابدأ المرافعة",
+  "ai.arenaHint": "كل دور (محامينا / الخصم / القاضي) يمرّ عبر بوابة تحقق الاستشهاد نفسها.",
+  "ai.article": "المادة",
+  "arenaRole.OURS": "محامينا",
+  "arenaRole.OPPONENT": "محامي الخصم",
+  "arenaRole.JUDGE": "القاضي",
+  "kbType.STATUTE": "نظام",
+  "kbType.REGULATION": "لائحة",
+  "kbType.PRECEDENT": "سابقة/مبدأ",
+  "kb.chunks": "{n} مقطع",
 
   // ── Finance ──
   "finance.title": "المالية",

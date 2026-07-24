@@ -22,6 +22,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   const items: NavItem[] = [
     { href: "/today", label: t("nav.today") },
     ...(can(PermModule.CASES) ? [{ href: "/cases", label: t("nav.cases") }] : []),
+    ...(can(PermModule.AI) ? [{ href: "/ai", label: t("nav.ai") }] : []),
     ...(can(PermModule.CLIENTS)
       ? [
           { href: "/clients", label: t("nav.clients") },
