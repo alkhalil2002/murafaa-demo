@@ -79,3 +79,17 @@ export function canViewCase(
   if (caseScopeOf(policy, role) === CaseScope.ALL) return true;
   return caseAssigneeIds.includes(userId);
 }
+
+/**
+ * الصلاحيات guard: demoting a user away from PARTNER must never strand the
+ * office with zero partners (no one left able to manage this very screen).
+ * True means the demotion should be BLOCKED.
+ */
+export function wouldStrandLastPartner(
+  currentRole: Role,
+  nextRole: Role,
+  partnerCountInOffice: number,
+): boolean {
+  if (currentRole !== Role.PARTNER || nextRole === Role.PARTNER) return false;
+  return partnerCountInOffice <= 1;
+}

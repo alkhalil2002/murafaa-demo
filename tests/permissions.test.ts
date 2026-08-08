@@ -5,6 +5,7 @@ import {
   canModule,
   canViewCase,
   caseScopeOf,
+  wouldStrandLastPartner,
   type OfficePolicy,
 } from "@/lib/permissions/engine";
 import {
@@ -131,5 +132,23 @@ describe("level ordering", () => {
   it("seedLevel resolves partner default to FULL and others to NONE", () => {
     expect(seedLevel(Role.PARTNER, PermModule.PULSE)).toBe(PermLevel.FULL);
     expect(seedLevel(Role.RECEPTION, PermModule.FINANCE)).toBe(PermLevel.NONE);
+  });
+});
+
+describe("الصلاحيات admin — last-partner protection", () => {
+  it("blocks demoting the sole partner in the office", () => {
+    expect(wouldStrandLastPartner(Role.PARTNER, Role.LAWYER, 1)).toBe(true);
+  });
+
+  it("allows demoting a partner when another partner remains", () => {
+    expect(wouldStrandLastPartner(Role.PARTNER, Role.LAWYER, 2)).toBe(false);
+  });
+
+  it("allows reassigning a partner to partner (no-op) regardless of count", () => {
+    expect(wouldStrandLastPartner(Role.PARTNER, Role.PARTNER, 1)).toBe(false);
+  });
+
+  it("is irrelevant when the user being changed isn't currently a partner", () => {
+    expect(wouldStrandLastPartner(Role.LAWYER, Role.ASSISTANT, 1)).toBe(false);
   });
 });

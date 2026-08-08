@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import type { AppSession } from "@/lib/auth/types";
 import { logAudit } from "@/lib/audit";
 import { invalidateOfficePolicy } from "@/lib/permissions/policy";
+import { wouldStrandLastPartner } from "@/lib/permissions/engine";
 import { ALL_MODULES, ALL_ROLES } from "@/lib/permissions/matrix";
 
 /**
@@ -105,11 +106,9 @@ export async function setUserRole(session: AppSession, raw: z.infer<typeof setUs
   const target = await prisma.user.findFirstOrThrow({
     where: { id: input.userId, officeId: session.officeId },
   });
-  // The last PARTNER in an office can't be demoted — would strand the office
-  // with no one able to manage this very screen.
   if (target.role === Role.PARTNER && input.role !== Role.PARTNER) {
     const partnerCount = await prisma.user.count({ where: { officeId: session.officeId, role: Role.PARTNER } });
-    if (partnerCount <= 1) throw new Error("LAST_PARTNER");
+    if (wouldStrandLastPartner(target.role, input.role, partnerCount)) throw new Error("LAST_PARTNER");
   }
   await prisma.user.update({ where: { id: input.userId }, data: { role: input.role } });
   await logAudit({
