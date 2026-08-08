@@ -1,5 +1,7 @@
+import { Role } from "@prisma/client";
 import { auth } from "./index";
 import type { AppSession } from "./types";
+import { getRolePreviewCookie } from "./role-preview";
 
 /**
  * Resolve the current request's session as an AppSession, or null when
@@ -10,12 +12,16 @@ export async function getSession(): Promise<AppSession | null> {
   const session = await auth();
   const u = session?.user;
   if (!u?.id || !u.officeId || !u.role) return null;
+  // Only a real PARTNER may activate a role preview — a tampered cookie on
+  // any other role is simply ignored (see role-preview.ts).
+  const previewRole = u.role === Role.PARTNER ? await getRolePreviewCookie() : null;
   return {
     userId: u.id,
     officeId: u.officeId,
     name: u.name ?? "",
     phone: u.phone,
     role: u.role,
+    previewRole,
   };
 }
 

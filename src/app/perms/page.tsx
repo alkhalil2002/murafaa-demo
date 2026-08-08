@@ -5,8 +5,8 @@ import { PermsTabs } from "@/components/perms-tabs";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { getSession } from "@/lib/auth/session";
 import { getRoleMatrix } from "@/server/permissions-admin";
-import { setModuleLevelAction, setRoleCaseScopeAction } from "./actions";
-import { ALL_MODULES } from "@/lib/permissions/matrix";
+import { setModuleLevelAction, setRoleCaseScopeAction, setRolePreviewAction } from "./actions";
+import { ALL_MODULES, ALL_ROLES } from "@/lib/permissions/matrix";
 import { roleLabel, moduleLabel, permLevelLabel } from "@/lib/labels";
 import { t } from "@/lib/i18n";
 
@@ -28,6 +28,23 @@ export default async function PermsRolesPage() {
   try {
     const rows = await getRoleMatrix(session);
     content = (
+      <>
+      <div className="panel">
+        <h2 style={{ marginTop: 0 }}>{t("perms.roles.preview.title")}</h2>
+        <div className="sub" style={{ marginBottom: 12 }}>{t("perms.roles.preview.hint")}</div>
+        <form action={setRolePreviewAction} style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+          <select name="role" defaultValue={ALL_ROLES[1]}>
+            {ALL_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {roleLabel(r)}
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="act b-add">
+            {t("perms.roles.preview.start")}
+          </button>
+        </form>
+      </div>
       <div className="panel" style={{ overflowX: "auto" }}>
         <div className="sub" style={{ marginBottom: 12 }}>{t("perms.roles.hint")}</div>
         <table className="ptable">
@@ -69,6 +86,7 @@ export default async function PermsRolesPage() {
           </tbody>
         </table>
       </div>
+      </>
     );
   } catch {
     content = (

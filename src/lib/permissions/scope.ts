@@ -1,6 +1,6 @@
 import { CaseScope, type Prisma } from "@prisma/client";
 import type { AppSession } from "@/lib/auth/types";
-import { caseScopeOf } from "./engine";
+import { caseScopeOf, effectiveRole } from "./engine";
 import { loadOfficePolicy } from "./policy";
 
 /**
@@ -14,7 +14,7 @@ export async function caseScopeWhere(
 ): Promise<Prisma.CaseWhereInput> {
   const policy = await loadOfficePolicy(session.officeId);
   const base: Prisma.CaseWhereInput = { officeId: session.officeId, deletedAt: null };
-  if (caseScopeOf(policy, session.role) === CaseScope.ALL) return base;
+  if (caseScopeOf(policy, effectiveRole(session)) === CaseScope.ALL) return base;
   return { ...base, assignees: { some: { userId: session.userId } } };
 }
 
@@ -25,6 +25,6 @@ export async function isCaseVisible(
   assigneeUserIds: readonly string[],
 ): Promise<boolean> {
   const policy = await loadOfficePolicy(session.officeId);
-  if (caseScopeOf(policy, session.role) === CaseScope.ALL) return true;
+  if (caseScopeOf(policy, effectiveRole(session)) === CaseScope.ALL) return true;
   return assigneeUserIds.includes(session.userId);
 }

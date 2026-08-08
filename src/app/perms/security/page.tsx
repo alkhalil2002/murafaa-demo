@@ -4,6 +4,7 @@ import { Role } from "@prisma/client";
 import { AppShell, DeniedPanel } from "@/components/app-shell";
 import { PermsTabs } from "@/components/perms-tabs";
 import { getSession } from "@/lib/auth/session";
+import { effectiveRole } from "@/lib/permissions/engine";
 import { t } from "@/lib/i18n";
 
 export default async function PermsSecurityPage() {
@@ -17,7 +18,7 @@ export default async function PermsSecurityPage() {
         <span className="pill">{t("perms.pill")}</span>
       </div>
       <PermsTabs />
-      {session.role !== Role.PARTNER ? (
+      {effectiveRole(session) !== Role.PARTNER ? (
         <DeniedPanel />
       ) : (
         <div className="panel">

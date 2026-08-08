@@ -5,6 +5,7 @@ import {
   canModule,
   canViewCase,
   caseScopeOf,
+  effectiveRole,
   wouldStrandLastPartner,
   type OfficePolicy,
 } from "@/lib/permissions/engine";
@@ -150,5 +151,23 @@ describe("الصلاحيات admin — last-partner protection", () => {
 
   it("is irrelevant when the user being changed isn't currently a partner", () => {
     expect(wouldStrandLastPartner(Role.LAWYER, Role.ASSISTANT, 1)).toBe(false);
+  });
+});
+
+describe("معاينة حسب الدور — effectiveRole", () => {
+  it("returns the real role when not previewing", () => {
+    expect(effectiveRole({ role: Role.PARTNER, previewRole: null })).toBe(Role.PARTNER);
+    expect(effectiveRole({ role: Role.PARTNER })).toBe(Role.PARTNER);
+  });
+
+  it("returns the preview role when one is set", () => {
+    expect(effectiveRole({ role: Role.PARTNER, previewRole: Role.RECEPTION })).toBe(Role.RECEPTION);
+  });
+
+  it("previewed role's own module grants apply to view-level access", () => {
+    const policy = seedPolicy();
+    const viewerRole = effectiveRole({ role: Role.PARTNER, previewRole: Role.RECEPTION });
+    expect(canModule(policy, viewerRole, PermModule.WHATSAPP, "view")).toBe(true);
+    expect(canModule(policy, viewerRole, PermModule.FINANCE, "view")).toBe(false);
   });
 });

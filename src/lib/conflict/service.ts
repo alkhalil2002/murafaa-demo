@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { t, type MessageKey } from "@/lib/i18n";
 import type { AppSession } from "@/lib/auth/types";
+import { effectiveRole } from "@/lib/permissions/engine";
 import { caseScopeWhere } from "@/lib/permissions/scope";
 import {
   detectConflicts,
@@ -224,7 +225,7 @@ export async function waiveConflict(
   flagId: string,
   note: string,
 ): Promise<void> {
-  if (session.role !== Role.PARTNER) {
+  if (effectiveRole(session) !== Role.PARTNER) {
     throw new Error("PERM_DENIED: only a partner may waive a conflict");
   }
   const flag = await prisma.conflictFlag.findFirst({

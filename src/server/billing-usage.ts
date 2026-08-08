@@ -1,6 +1,7 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { AppSession } from "@/lib/auth/types";
+import { effectiveRole } from "@/lib/permissions/engine";
 
 /**
  * الباقات (docs/05) — Murafaa's own subscription plans/payment methods have
@@ -19,7 +20,7 @@ export type BillingUsage = {
 };
 
 export async function getBillingUsage(session: AppSession): Promise<BillingUsage> {
-  if (session.role !== Role.PARTNER) throw new Error("PARTNER_ONLY");
+  if (effectiveRole(session) !== Role.PARTNER) throw new Error("PARTNER_ONLY");
   const [seats, cases, clients, documents, office] = await Promise.all([
     prisma.user.count({ where: { officeId: session.officeId, isActive: true } }),
     prisma.case.count({ where: { officeId: session.officeId, deletedAt: null } }),

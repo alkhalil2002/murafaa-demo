@@ -109,6 +109,11 @@ export const ar = {
   "perms.security.hint": "إدارة المصادقة الثنائية الشخصية وقيود عناوين IP على مستوى المكتب من صفحة أمان الحساب.",
   "perms.security.link": "الذهاب إلى إعدادات الأمان",
   "perms.denied": "هذه الصفحة متاحة للشريك فقط.",
+  "perms.roles.preview.title": "معاينة حسب الدور",
+  "perms.roles.preview.hint": "شاهد كيف يبدو النظام لكل دور — عرض فقط، لا يمكن تنفيذ أي إجراء أثناء المعاينة.",
+  "perms.roles.preview.start": "بدء المعاينة",
+  "rolePreview.banner": "تُعرض الواجهة بصلاحيات الدور: {role} — عرض فقط",
+  "rolePreview.exit": "العودة للعرض الكامل",
 
   // ── Office dashboard (لوحة المعلومات) ──
   "dashboard.title": "لوحة المعلومات",

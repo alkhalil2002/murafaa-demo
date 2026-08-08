@@ -10,4 +10,10 @@ export type AppSession = {
   name: string;
   phone: string;
   role: Role;
+  /**
+   * "معاينة حسب الدور" (docs/05, الصلاحيات screen). Set only when the real
+   * `role` is PARTNER and a preview cookie is active — see
+   * src/lib/permissions/engine.ts#effectiveRole for how this is applied.
+   */
+  previewRole?: Role | null;
 };

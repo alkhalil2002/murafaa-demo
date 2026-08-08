@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { getSession } from "@/lib/auth/session";
 import { getSecurityStatus, beginTotpEnroll, getOfficeIpAllowlist } from "@/server/security";
 import { confirmTotpEnrollAction, disableTotpAction, setOfficeIpAllowlistAction } from "../actions";
+import { effectiveRole } from "@/lib/permissions/engine";
 import { t } from "@/lib/i18n";
 
 export default async function AccountSecurityPage({
@@ -16,7 +17,7 @@ export default async function AccountSecurityPage({
 
   const status = await getSecurityStatus(session);
   const enrollment = status.totpEnabled ? null : await beginTotpEnroll(session);
-  const ipAllowlist = session.role === "PARTNER" ? await getOfficeIpAllowlist(session) : null;
+  const ipAllowlist = effectiveRole(session) === "PARTNER" ? await getOfficeIpAllowlist(session) : null;
 
   return (
     <AppShell>

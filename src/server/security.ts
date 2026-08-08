@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import type { AppSession } from "@/lib/auth/types";
 import { generateTotpSecret, totpUri, verifyTotpCode } from "@/lib/auth/totp";
+import { effectiveRole } from "@/lib/permissions/engine";
 
 /**
  * Personal account security (٢FA enrollment). Every staff user manages their
@@ -55,7 +56,7 @@ export async function getOfficeIpAllowlist(session: AppSession) {
 }
 
 export async function setOfficeIpAllowlist(session: AppSession, entries: string[]) {
-  if (session.role !== "PARTNER") throw new Error("PARTNER_ONLY");
+  if (effectiveRole(session) !== "PARTNER") throw new Error("PARTNER_ONLY");
   const cleaned = entries.map((e) => e.trim()).filter(Boolean);
   await prisma.office.update({ where: { id: session.officeId }, data: { ipAllowlist: cleaned } });
   await logAudit({ session, action: "security.ipAllowlist.update", resource: "offices", targetId: session.officeId, detail: `${cleaned.length} entries` });

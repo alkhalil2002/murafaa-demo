@@ -1,10 +1,29 @@
 "use server";
 
-import { PermLevel, CaseScope } from "@prisma/client";
+import { PermLevel, CaseScope, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/session";
 import { setModuleLevel, setRoleCaseScope, setUserRole } from "@/server/permissions-admin";
+import { setRolePreviewCookie, clearRolePreviewCookie } from "@/lib/auth/role-preview";
+
+/**
+ * "معاينة حسب الدور" — checks the REAL session.role (not effectiveRole),
+ * so a partner can always start or end a preview regardless of whatever
+ * role is currently being previewed.
+ */
+export async function setRolePreviewAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (session.role !== Role.PARTNER) throw new Error("PARTNER_ONLY");
+  await setRolePreviewCookie(formData.get("role") as Role);
+  redirect("/today");
+}
+
+export async function clearRolePreviewAction(): Promise<void> {
+  await clearRolePreviewCookie();
+  redirect("/today");
+}
 
 export async function setModuleLevelAction(formData: FormData): Promise<void> {
   const session = await getSession();

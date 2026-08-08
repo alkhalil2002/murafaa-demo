@@ -5,6 +5,7 @@ import {
   canField,
   canModule,
   canViewCase,
+  effectiveRole,
   type OfficePolicy,
   type PermAction,
 } from "./engine";
@@ -39,8 +40,21 @@ export async function requireModule(
   module: PermModule,
   action: PermAction,
 ): Promise<void> {
+  // While previewing another role (docs/05 "معاينة حسب الدور"), every
+  // mutation is blocked outright regardless of either role's real grants —
+  // preview is view-only by design, never a way to act as the previewed role.
+  if (session.previewRole && action !== "view") {
+    await logAudit({
+      session,
+      action: `access.${module}.${action}`,
+      resource: module,
+      decision: "DENY",
+      detail: "blocked: role preview is view-only",
+    });
+    throw new PermissionError("module");
+  }
   const policy = await policyFor(session);
-  if (canModule(policy, session.role, module, action)) return;
+  if (canModule(policy, effectiveRole(session), module, action)) return;
   await logAudit({
     session,
     action: `access.${module}.${action}`,
@@ -58,7 +72,7 @@ export async function requireField(
   field: string,
 ): Promise<void> {
   const policy = await policyFor(session);
-  if (canField(policy, session.role, resource, field)) return;
+  if (canField(policy, effectiveRole(session), resource, field)) return;
   await logAudit({
     session,
     action: `field.${resource}.${field}`,
@@ -79,8 +93,9 @@ export async function canAction(
   module: PermModule,
   action: PermAction,
 ): Promise<boolean> {
+  if (session.previewRole && action !== "view") return false;
   const policy = await policyFor(session);
-  return canModule(policy, session.role, module, action);
+  return canModule(policy, effectiveRole(session), module, action);
 }
 
 /** Layer 2 — non-throwing check, for filtering fields out of a response. */
@@ -90,7 +105,7 @@ export async function mayViewField(
   field: string,
 ): Promise<boolean> {
   const policy = await policyFor(session);
-  return canField(policy, session.role, resource, field);
+  return canField(policy, effectiveRole(session), resource, field);
 }
 
 /** Layer 3 — require the user may see a specific case; audit + throw. */
@@ -100,7 +115,7 @@ export async function requireCaseAccess(
   assigneeIds: readonly string[],
 ): Promise<void> {
   const policy = await policyFor(session);
-  if (canViewCase(policy, session.role, session.userId, assigneeIds)) return;
+  if (canViewCase(policy, effectiveRole(session), session.userId, assigneeIds)) return;
   await logAudit({
     session,
     action: "case.view",

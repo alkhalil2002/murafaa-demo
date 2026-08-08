@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import type { AppSession } from "@/lib/auth/types";
 import { logAudit } from "@/lib/audit";
 import { invalidateOfficePolicy } from "@/lib/permissions/policy";
-import { wouldStrandLastPartner } from "@/lib/permissions/engine";
+import { effectiveRole, wouldStrandLastPartner } from "@/lib/permissions/engine";
 import { ALL_MODULES, ALL_ROLES } from "@/lib/permissions/matrix";
 
 /**
@@ -18,7 +18,7 @@ import { ALL_MODULES, ALL_ROLES } from "@/lib/permissions/matrix";
  */
 
 function assertPartner(session: AppSession): void {
-  if (session.role !== Role.PARTNER) throw new Error("PARTNER_ONLY");
+  if (effectiveRole(session) !== Role.PARTNER) throw new Error("PARTNER_ONLY");
 }
 
 export type RoleMatrixRow = {

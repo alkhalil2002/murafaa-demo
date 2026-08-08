@@ -81,6 +81,18 @@ export function canViewCase(
 }
 
 /**
+ * "معاينة حسب الدور" (docs/05): the role used for every permission decision
+ * while a partner is previewing another role. Falls back to the real role
+ * when not previewing. Callers that need the REAL role for an
+ * admin-identity check (e.g. "is this actually the office's partner") must
+ * use `session.role` directly instead — this is only for what the viewer
+ * may see/do right now.
+ */
+export function effectiveRole(session: { role: Role; previewRole?: Role | null }): Role {
+  return session.previewRole ?? session.role;
+}
+
+/**
  * الصلاحيات guard: demoting a user away from PARTNER must never strand the
  * office with zero partners (no one left able to manage this very screen).
  * True means the demotion should be BLOCKED.

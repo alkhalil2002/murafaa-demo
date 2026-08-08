@@ -1,6 +1,7 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { AppSession } from "@/lib/auth/types";
+import { effectiveRole } from "@/lib/permissions/engine";
 
 /**
  * Security-scoped audit view (docs/04 §6, الصلاحيات → سجل التدقيق) — a
@@ -20,7 +21,7 @@ export type SecurityAuditRow = {
 };
 
 export async function listSecurityAudit(session: AppSession, take = 100): Promise<SecurityAuditRow[]> {
-  if (session.role !== Role.PARTNER) throw new Error("PARTNER_ONLY");
+  if (effectiveRole(session) !== Role.PARTNER) throw new Error("PARTNER_ONLY");
 
   const rows = await prisma.auditLog.findMany({
     where: { officeId: session.officeId },

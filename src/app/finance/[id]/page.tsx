@@ -5,6 +5,7 @@ import { AppShell, DeniedPanel } from "@/components/app-shell";
 import { getSession } from "@/lib/auth/session";
 import { getInvoice } from "@/server/invoices";
 import { PermissionError } from "@/lib/permissions/guard";
+import { effectiveRole } from "@/lib/permissions/engine";
 import { invoiceStatusLabel, payMethodLabel } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { t } from "@/lib/i18n";
@@ -19,7 +20,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   try {
     const inv = await getInvoice(session, id);
     const d = inv.dto;
-    const canManage = session.role === Role.PARTNER || session.role === Role.ACCOUNTANT;
+    const viewerRole = effectiveRole(session);
+    const canManage = viewerRole === Role.PARTNER || viewerRole === Role.ACCOUNTANT;
     const settled = d.status === "PAID" || d.status === "CANCELLED" || d.status === "BAD_DEBT";
 
     content = (
@@ -105,7 +107,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
               </button>
             </form>
 
-            {session.role === Role.PARTNER && (
+            {viewerRole === Role.PARTNER && (
               <div className="mt-4 flex flex-wrap gap-2 border-t border-parch-line pt-4">
                 <form action={creditNoteAction}>
                   <input type="hidden" name="invoiceId" value={inv.id} />

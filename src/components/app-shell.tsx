@@ -10,6 +10,8 @@ import { loadOfficePolicy } from "@/lib/permissions/policy";
 import { roleLabel } from "@/lib/labels";
 import { isIpAllowed, clientIpFromHeaders } from "@/lib/security/ip";
 import { getNotifications } from "@/server/notifications";
+import { effectiveRole } from "@/lib/permissions/engine";
+import { clearRolePreviewAction } from "@/app/perms/actions";
 import { t } from "@/lib/i18n";
 import { SideNav, type NavItem, type NavSection } from "./side-nav";
 import { ShellFrame } from "./shell-frame";
@@ -68,7 +70,8 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   const policy = await loadOfficePolicy(session.officeId);
   const notifications = await getNotifications(session);
 
-  const can = (m: PermModule) => canModule(policy, session.role, m, "view");
+  const viewerRole = effectiveRole(session);
+  const can = (m: PermModule) => canModule(policy, viewerRole, m, "view");
   const only = (allowed: boolean, item: NavItem): NavItem[] => (allowed ? [item] : []);
 
   const sections: NavSection[] = [
@@ -148,7 +151,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           icon: <IconFinance />,
         }),
         ...only(can(PermModule.HR), { href: "/hr", label: t("nav.hr"), icon: <IconHr /> }),
-        ...only(session.role === "PARTNER", {
+        ...only(viewerRole === "PARTNER", {
           href: "/perms",
           label: t("nav.permissions"),
           icon: <IconShield />,
@@ -167,7 +170,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           icon: <IconActivity />,
         }),
         ...only(can(PermModule.AI), { href: "/ai/kb", label: t("nav.kb"), icon: <IconKb /> }),
-        ...only(session.role === "PARTNER", {
+        ...only(viewerRole === "PARTNER", {
           href: "/billing",
           label: t("nav.billing"),
           icon: <IconFinance />,
@@ -191,7 +194,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
 
       <SideNav sections={sections} />
 
-      {canModule(policy, session.role, PermModule.CASES, "edit") && (
+      {!session.previewRole && canModule(policy, viewerRole, PermModule.CASES, "edit") && (
         <Link href="/cases/new" className="newbtn">
           {t("cases.new.button")}
         </Link>
@@ -234,6 +237,18 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       bellCount={notifications.length}
     >
       <IdleLogout />
+      {session.previewRole && (
+        <div className="panel" style={{ background: "var(--gold-10, #fdf5e6)", display: "flex", alignItems: "center", gap: 10 }}>
+          <span className="sub" style={{ marginBottom: 0 }}>
+            {t("rolePreview.banner", { role: roleLabel(session.previewRole) })}
+          </span>
+          <form action={clearRolePreviewAction} style={{ marginInlineStart: "auto" }}>
+            <button type="submit" className="tinybtn">
+              {t("rolePreview.exit")}
+            </button>
+          </form>
+        </div>
+      )}
       {children}
     </ShellFrame>
   );

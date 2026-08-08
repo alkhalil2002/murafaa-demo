@@ -2,6 +2,7 @@ import { Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { AppSession } from "@/lib/auth/types";
 import { logAudit } from "@/lib/audit";
+import { effectiveRole } from "@/lib/permissions/engine";
 
 /**
  * الإعدادات — recycle bin (docs/05) over the soft-delete convention every
@@ -65,7 +66,7 @@ export async function restoreRecycleItem(session: AppSession, kind: RecycleKind,
 }
 
 export async function purgeRecycleBin(session: AppSession): Promise<number> {
-  if (session.role !== Role.PARTNER) throw new Error("PARTNER_ONLY");
+  if (effectiveRole(session) !== Role.PARTNER) throw new Error("PARTNER_ONLY");
   const officeId = session.officeId;
   const [c, l, d, e] = await Promise.all([
     prisma.case.deleteMany({ where: { officeId, deletedAt: { not: null } } }),
