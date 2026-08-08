@@ -102,6 +102,15 @@ export function IconBell() {
   );
 }
 
+export function IconKb() {
+  return (
+    <Outline>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13z" />
+      <path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20" />
+    </Outline>
+  );
+}
+
 export function IconAlerts() {
   return (
     <Outline>

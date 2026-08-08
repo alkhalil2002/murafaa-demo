@@ -27,6 +27,7 @@ import {
   IconDocuments,
   IconFinance,
   IconHr,
+  IconKb,
   IconLeads,
   IconPulse,
   IconShield,
@@ -165,6 +166,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           label: t("nav.activity"),
           icon: <IconActivity />,
         }),
+        ...only(can(PermModule.AI), { href: "/ai/kb", label: t("nav.kb"), icon: <IconKb /> }),
         ...only(session.role === "PARTNER", {
           href: "/billing",
           label: t("nav.billing"),
@@ -194,6 +196,12 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           {t("cases.new.button")}
         </Link>
       )}
+      <Link href="/portal/login" className="newbtn" target="_blank">
+        {t("nav.clientPortalLink")}
+      </Link>
+      <Link href="/emp-portal/login" className="newbtn" target="_blank">
+        {t("nav.empPortalLink")}
+      </Link>
 
       <div className="suser">
         <Link href="/account/security" className="u">

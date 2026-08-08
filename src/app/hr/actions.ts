@@ -61,6 +61,7 @@ export async function createEmployeeAction(formData: FormData): Promise<void> {
   await run(session, "/hr", (s) =>
     createEmployee(s, {
       name: String(formData.get("name") ?? "").trim(),
+      phone: str(formData, "phone"),
       department: str(formData, "department"),
       jobTitle: str(formData, "jobTitle"),
       nationality: (str(formData, "nationality") ?? "سعودي"),

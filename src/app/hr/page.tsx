@@ -96,6 +96,7 @@ export default async function HrPage({ searchParams }: { searchParams: Promise<{
           <summary className="cursor-pointer font-serif text-lg text-bench">{t("hr.action.newEmployee")}</summary>
           <form action={createEmployeeAction} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
             <TextField name="name" label={t("hr.col.name")} required />
+            <TextField name="phone" label={t("hr.phone")} dir="ltr" />
             <TextField name="department" label={t("hr.department")} />
             <TextField name="jobTitle" label={t("hr.jobTitle")} />
             <TextField name="nationality" label={t("hr.nationality")} defaultValue="سعودي" />
@@ -135,13 +136,13 @@ export default async function HrPage({ searchParams }: { searchParams: Promise<{
 const INPUT = "w-full rounded-lg border border-line bg-parch px-3 py-2 text-sm";
 const BTN = "rounded-lg bg-bench px-4 py-2 text-sm font-medium text-white hover:bg-bench-2";
 
-function TextField({ name, label, required, defaultValue, placeholder }: {
-  name: string; label: string; required?: boolean; defaultValue?: string; placeholder?: string;
+function TextField({ name, label, required, defaultValue, placeholder, dir }: {
+  name: string; label: string; required?: boolean; defaultValue?: string; placeholder?: string; dir?: "ltr" | "rtl";
 }) {
   return (
     <label className="text-sm">
       <span className="mb-1 block text-ink-soft">{label}</span>
-      <input type="text" name={name} required={required} defaultValue={defaultValue} placeholder={placeholder} className={INPUT} />
+      <input type="text" name={name} required={required} defaultValue={defaultValue} placeholder={placeholder} dir={dir} className={INPUT} />
     </label>
   );
 }

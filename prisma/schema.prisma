@@ -1665,6 +1665,10 @@ model Employee {
   user   User?   @relation("EmployeeUser", fields: [userId], references: [id])
 
   name        String
+  /// E.164 phone for بوابة الموظف (employee self-service portal) OTP login —
+  /// distinct from User.phone, which only exists once a system account is
+  /// explicitly granted (docs/04: employees have no system role by default).
+  phone       String?
   department  String?        @map("department")
   jobTitle    String?        @map("job_title")
   nationality String         @default("سعودي") // EMP_EXTRA.nat — isSaudi() compares to this

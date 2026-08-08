@@ -19,6 +19,7 @@ const money = z.number().int().nonnegative().max(MAX_HALALAS);
 
 const employeeSchema = z.object({
   name: z.string().min(1),
+  phone: z.string().nullish(),
   department: z.string().nullish(),
   jobTitle: z.string().nullish(),
   nationality: z.string().min(1).default("سعودي"),
@@ -47,11 +48,15 @@ export async function createEmployee(session: AppSession, raw: CreateEmployeeInp
     if (!u) throw new PermissionError("scope");
   }
 
+  const phone = input.phone ? normalizeSaudiPhone(input.phone) : null;
+  if (input.phone && !phone) throw new Error("PHONE_INVALID");
+
   const employee = await prisma.employee.create({
     data: {
       officeId: session.officeId,
       createdById: session.userId,
       name: input.name,
+      phone,
       department: input.department ?? null,
       jobTitle: input.jobTitle ?? null,
       nationality: input.nationality,
@@ -143,10 +148,17 @@ export async function updateEmployee(session: AppSession, employeeId: string, ra
   });
   if (!existing) throw new PermissionError("scope");
 
+  let normalizedPhone: string | null | undefined;
+  if (input.phone !== undefined) {
+    normalizedPhone = input.phone ? normalizeSaudiPhone(input.phone) : null;
+    if (input.phone && !normalizedPhone) throw new Error("PHONE_INVALID");
+  }
+
   const employee = await prisma.employee.update({
     where: { id: employeeId },
     data: {
       ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.phone !== undefined ? { phone: normalizedPhone } : {}),
       ...(input.department !== undefined ? { department: input.department ?? null } : {}),
       ...(input.jobTitle !== undefined ? { jobTitle: input.jobTitle ?? null } : {}),
       ...(input.nationality !== undefined ? { nationality: input.nationality } : {}),
