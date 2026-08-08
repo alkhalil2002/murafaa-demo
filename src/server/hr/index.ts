@@ -5,3 +5,6 @@ export * from "./requests";
 export * from "./payroll";
 export * from "./saudization";
 export * from "./wps";
+export * from "./attendance";
+export * from "./recruitment";
+export * from "./integrations";

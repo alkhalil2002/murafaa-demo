@@ -504,6 +504,9 @@ model Office {
   employees            Employee[]
   advances             Advance[]
   leaves               Leave[]
+  attendance           Attendance[]
+  candidates           Candidate[]
+  integrationConnections IntegrationConnection[]
   employeeRequests     EmployeeRequest[]
   payrollRuns          PayrollRun[]
   performanceEvents    PerformanceEvent[]
@@ -1693,6 +1696,7 @@ model Employee {
 
   advances     Advance[]
   leaves       Leave[]
+  attendance   Attendance[]
   requests     EmployeeRequest[]
   payrollLines PayrollLine[]
 
@@ -1753,6 +1757,104 @@ model Leave {
 
   @@index([officeId, employeeId])
   @@map("leaves")
+}
+
+enum IntegrationKey {
+  GOSI // التأمينات الاجتماعية
+  QIWA // منصة قوى
+  MUDAD // مدد (WPS)
+  ZATCA // هيئة الزكاة والضريبة
+  ABSHER // أبشر أعمال
+  MUQEEM // مقيم
+}
+
+/// التكاملات (docs/03 `INTEGRATIONS`) — "محاكاة بصرية، بلا ربط API فعلي"
+/// per docs itself: a real per-office connect/disconnect/sync-now toggle,
+/// honestly presented as simulated status (no actual government API calls).
+/// Starts disconnected for every office — never seeded as pre-connected,
+/// since that would misrepresent a fresh office's real state.
+model IntegrationConnection {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  key          IntegrationKey
+  connected    Boolean   @default(false)
+  lastSyncedAt DateTime? @map("last_synced_at")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([officeId, key])
+  @@map("integration_connections")
+}
+
+enum CandidateStage {
+  APPLIED // متقدّم
+  INTERVIEW // مقابلة
+  OFFER // عرض وظيفي
+  HIRED // تعيين
+}
+
+/// التوظيف (docs/03 `RECRUIT`): job candidates, mirroring the Lead pipeline's
+/// shape and move semantics. Reaching HIRED is just the pipeline's terminal
+/// stage — creating the actual Employee record stays a separate, explicit
+/// action on the Employees tab (a hire needs salary/hireDate/department a
+/// candidate record doesn't carry), same way a CONTRACTED lead still needs
+/// an explicit convert step to become a Client + Case.
+model Candidate {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  name     String
+  roleTitle String? @map("role_title")
+  source   LeadSource @default(OTHER)
+  stage    CandidateStage @default(APPLIED)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, stage])
+  @@map("candidates")
+}
+
+enum AttendanceStatus {
+  PRESENT // حاضر
+  LATE // متأخر
+  ABSENT // غائب
+  LEAVE // إجازة
+}
+
+/// Daily attendance (docs/05 hrAtt, docs/01 "الموارد البشرية الكاملة").
+/// One row per (employee, day); the monthly summary is aggregated live from
+/// these rows, not stored separately. No absence/lateness deduction formula
+/// is documented in docs/06, so this deliberately stops at raw day counts —
+/// feeding a halalas figure into payroll would mean inventing a business
+/// rule, not implementing one.
+model Attendance {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  employeeId String   @map("employee_id") @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  /// Calendar day, time-of-day zeroed — one record per employee per day.
+  date     DateTime
+  status   AttendanceStatus @default(PRESENT)
+  checkIn  DateTime?        @map("check_in")
+  checkOut DateTime?        @map("check_out")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@unique([officeId, employeeId, date])
+  @@index([officeId, date])
+  @@map("attendance")
 }
 
 /// A self-service employee request (prototype EMP_REQUESTS): leave, advance,

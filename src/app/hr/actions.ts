@@ -2,18 +2,24 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { LeaveType, Role, RequestKind, RequestStatus } from "@prisma/client";
+import { AttendanceStatus, IntegrationKey, LeaveType, Role, RequestKind, RequestStatus } from "@prisma/client";
 import { getSession } from "@/lib/auth/session";
 import { riyalsToHalalas } from "@/lib/money";
 import {
+  clockOut,
+  connectIntegration,
   createAdvance,
   createEmployee,
   createLeave,
   createRequest,
   decideRequest,
+  disconnectIntegration,
   grantEmployeeAccount,
   runPayroll,
+  setTodayStatus,
+  syncIntegrationNow,
   terminateEmployee,
+  updateEmployee,
 } from "@/server/hr";
 import type { AppSession } from "@/lib/auth/types";
 
@@ -143,4 +149,42 @@ export async function decideRequestAction(formData: FormData): Promise<void> {
     | typeof RequestStatus.APPROVED
     | typeof RequestStatus.REJECTED;
   await run(session, "/hr/requests", (s) => decideRequest(s, id, { status }));
+}
+
+export async function setTodayStatusAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  const employeeId = String(formData.get("employeeId") ?? "");
+  const status = String(formData.get("status") ?? "") as AttendanceStatus;
+  await run(session, "/hr/attendance", (s) => setTodayStatus(s, employeeId, status));
+}
+
+export async function clockOutAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  const employeeId = String(formData.get("employeeId") ?? "");
+  await run(session, "/hr/attendance", (s) => clockOut(s, employeeId));
+}
+
+export async function setPerformanceScoreAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  const employeeId = String(formData.get("employeeId") ?? "");
+  const score = Number(formData.get("performanceScore"));
+  await run(session, "/hr/performance", (s) => updateEmployee(s, employeeId, { performanceScore: score }));
+}
+
+export async function connectIntegrationAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  const key = formData.get("key") as IntegrationKey;
+  await run(session, "/hr/integrations", (s) => connectIntegration(s, key));
+}
+
+export async function disconnectIntegrationAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  const key = formData.get("key") as IntegrationKey;
+  await run(session, "/hr/integrations", (s) => disconnectIntegration(s, key));
+}
+
+export async function syncIntegrationNowAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  const key = formData.get("key") as IntegrationKey;
+  await run(session, "/hr/integrations", (s) => syncIntegrationNow(s, key));
 }

@@ -12,6 +12,10 @@ export function HrTabs() {
     { href: "/hr/payroll", label: t("hr.tab.payroll") },
     { href: "/hr/advances", label: t("hr.tab.advances") },
     { href: "/hr/leaves", label: t("hr.tab.leaves") },
+    { href: "/hr/attendance", label: t("hr.tab.attendance") },
+    { href: "/hr/recruitment", label: t("hr.tab.recruitment") },
+    { href: "/hr/performance", label: t("hr.tab.performance") },
+    { href: "/hr/integrations", label: t("hr.tab.integrations") },
     { href: "/hr/requests", label: t("hr.tab.requests") },
     { href: "/hr/saudization", label: t("hr.tab.saudization") },
   ];
