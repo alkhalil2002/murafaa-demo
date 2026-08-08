@@ -674,6 +674,18 @@ export default async function CaseDetailPage({
                     <a href="#record-hearing-form" className="tinybtn" style={{ background: "var(--bench)", color: "#fff" }}>
                       {t("cases.hearings.recordNow")}
                     </a>
+                    <details style={{ display: "inline-block" }}>
+                      <summary className="tinybtn" style={{ display: "inline-block", cursor: "pointer" }}>
+                        {t("cases.hearings.editDate")}
+                      </summary>
+                      <form action={setNextHearingAction} style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                        <input type="hidden" name="caseId" value={id} />
+                        <input type="date" name="date" defaultValue={fmt(upcoming.hearingDate)} required />
+                        <button type="submit" className="tinybtn" style={{ background: "var(--bench)", color: "#fff" }}>
+                          {t("common.save")}
+                        </button>
+                      </form>
+                    </details>
                     <form action={deleteHearingAction}>
                       <input type="hidden" name="caseId" value={id} />
                       <input type="hidden" name="hearingId" value={upcoming.id} />
@@ -750,13 +762,44 @@ export default async function CaseDetailPage({
                       </div>
                     }
                     step3={
-                      <div className="field">
-                        <label>{t("cases.hearings.nextDate")}</label>
-                        <input type="date" name="nextHearingDate" />
+                      <>
+                        <div className="field">
+                          <label>{t("cases.hearings.nextDate")}</label>
+                          <input type="date" name="nextHearingDate" />
+                        </div>
+                        <div className="two">
+                          <div className="field">
+                            <label>{t("cases.hearings.addReminder").replace("＋ ", "")}</label>
+                            <input type="text" name="actionReminderText" placeholder={t("cases.hearings.addReminder").replace("＋ ", "")} />
+                          </div>
+                          <div className="field">
+                            <label>{t("tasks.dueAt")}</label>
+                            <input type="date" name="actionReminderDueOn" />
+                          </div>
+                          <div className="field">
+                            <label>{t("cases.hearings.addTask").replace("＋ ", "")}</label>
+                            <input type="text" name="actionTaskTitle" placeholder={t("cases.hearings.addTask").replace("＋ ", "")} />
+                          </div>
+                          <div className="field">
+                            <label>{t("tasks.assignee")}</label>
+                            <select name="actionTaskAssigneeId" defaultValue="">
+                              <option value="">{t("tasks.unassigned")}</option>
+                              {assignableUsers.map((u) => (
+                                <option key={u.id} value={u.id}>
+                                  {u.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="field">
+                            <label>{t("tasks.dueAt")}</label>
+                            <input type="date" name="actionTaskDueAt" />
+                          </div>
+                        </div>
                         <div className="sub" style={{ marginTop: 8, marginBottom: 0 }}>
                           {t("cases.hearings.actionsAfterSaveHint")}
                         </div>
-                      </div>
+                      </>
                     }
                     step4={
                       <>

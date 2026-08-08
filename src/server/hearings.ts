@@ -48,6 +48,12 @@ const recordSchema = z.object({
   isPending: z.boolean().optional(),
   pendingItems: z.array(z.enum(HEARING_PENDING_ITEMS)).optional(),
   reminderRecurDays: z.number().int().positive().nullish(),
+  /** Optional follow-up action added in the wizard's step 3, closed out with the hearing itself. */
+  actionReminderText: z.string().trim().min(1).nullish(),
+  actionReminderDueOn: z.coerce.date().nullish(),
+  actionTaskTitle: z.string().trim().min(1).nullish(),
+  actionTaskAssigneeId: z.string().uuid().nullish(),
+  actionTaskDueAt: z.coerce.date().nullish(),
 });
 export type RecordHearingInput = z.infer<typeof recordSchema>;
 
@@ -113,6 +119,38 @@ export async function recordHearing(session: AppSession, caseId: string, raw: Re
         reminderRecurDays: input.isPending ? (input.reminderRecurDays ?? null) : null,
       },
     });
+
+    // Optional follow-up reminder/task logged in the same wizard pass that
+    // closes out the hearing (docs BR-CASE-11) instead of a separate trip
+    // back into the hearing's edit form afterward.
+    if (input.actionReminderText) {
+      await tx.caseReminder.create({
+        data: {
+          officeId: session.officeId,
+          createdById: session.userId,
+          caseId,
+          hearingId: hearing.id,
+          text: input.actionReminderText,
+          dueOn: input.actionReminderDueOn ?? input.hearingDate,
+        },
+      });
+    }
+    if (input.actionTaskTitle) {
+      await tx.task.create({
+        data: {
+          officeId: session.officeId,
+          createdById: session.userId,
+          caseId,
+          hearingId: hearing.id,
+          title: input.actionTaskTitle,
+          assigneeId: input.actionTaskAssigneeId ?? null,
+          dueAt: input.actionTaskDueAt ?? null,
+          category: TaskCategory.PROCEDURAL_FOLLOWUP,
+          origin: TaskSource.HEARING_ACTION,
+        },
+      });
+    }
+
     await logCaseEvent(tx, {
       officeId: session.officeId,
       caseId,
