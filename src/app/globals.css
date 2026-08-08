@@ -40,7 +40,7 @@
        scale), so a uniform zoom is the only way to bump text site-wide
        without touching hundreds of individual rules. Reflows layout
        (unlike transform: scale), so spacing/click targets stay correct. */
-    zoom: 1.12;
+    zoom: 1.25;
   }
 
   h1,
