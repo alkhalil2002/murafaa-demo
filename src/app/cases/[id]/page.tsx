@@ -90,7 +90,7 @@ import {
 } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { daysLeft, daysAgo } from "@/lib/dates";
-import { t } from "@/lib/i18n";
+import { t, type MessageKey } from "@/lib/i18n";
 
 const HEARING_KINDS = Object.values(HearingKind);
 const PROC_STAGES = Object.values(ProcStage);
@@ -790,6 +790,17 @@ export default async function CaseDetailPage({
                         {h.isPending && <span className="chip" style={{ color: "var(--gold)", borderColor: "var(--gold)" }}>{t("cases.hearings.pendingBadge")}</span>}
                       </summary>
                     <div style={{ marginTop: 10 }}>
+                    {h.isPending && Array.isArray(h.pendingItems) && h.pendingItems.length > 0 && (
+                      <div className="docnote" style={{ marginBottom: 10 }}>
+                        ⏳ {t("cases.hearings.pendingItems.awaiting")}:{" "}
+                        {(h.pendingItems as string[])
+                          .map((k) => t(`cases.hearings.pendingItems.${k}` as MessageKey))
+                          .join("، ")}
+                        {h.reminderRecurDays ? (
+                          <> — {t("cases.hearings.recurLabel")} {h.reminderRecurDays.toLocaleString("ar-SA")} {t("cases.hearings.recurUnit")}</>
+                        ) : null}
+                      </div>
+                    )}
                     {h.minutes && <div style={{ fontSize: 13.5, lineHeight: 1.85, whiteSpace: "pre-wrap", marginBottom: 10 }}>{h.minutes}</div>}
                     {h.clientReport && (
                       <div className="docnote">
@@ -1056,12 +1067,57 @@ export default async function CaseDetailPage({
                             <label>{t("cases.hearings.clientReport")}</label>
                             <textarea name="clientReport" rows={2} defaultValue={h.clientReport ?? ""} />
                           </div>
-                          <div className="field">
-                            <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <input type="checkbox" name="isPending" defaultChecked={h.isPending} />
-                              {t("cases.hearings.markPending")}
-                            </label>
-                          </div>
+                          {(() => {
+                            const existingPendingItems = Array.isArray(h.pendingItems) ? (h.pendingItems as string[]) : [];
+                            return (
+                              <div
+                                className="field"
+                                style={{
+                                  border: `1px solid ${h.isPending ? "var(--gold)" : "var(--line)"}`,
+                                  borderRadius: 12,
+                                  padding: 12,
+                                  background: h.isPending ? "rgba(194,151,75,.05)" : "#fff",
+                                }}
+                              >
+                                <label style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+                                  <input type="checkbox" name="isPending" defaultChecked={h.isPending} />
+                                  {t("cases.hearings.pendingHint")}
+                                </label>
+                                <div style={{ marginTop: 10 }}>
+                                  <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                                    {t("cases.hearings.pendingItems.title")}
+                                  </div>
+                                  <label style={{ display: "inline-flex", alignItems: "center", gap: 5, marginInlineEnd: 14 }}>
+                                    <input
+                                      type="checkbox"
+                                      name="pendingItem_minutes"
+                                      defaultChecked={existingPendingItems.includes("minutes")}
+                                    />
+                                    {t("cases.hearings.pendingItems.minutes")}
+                                  </label>
+                                  <label style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                                    <input
+                                      type="checkbox"
+                                      name="pendingItem_nextHearing"
+                                      defaultChecked={existingPendingItems.includes("nextHearing")}
+                                    />
+                                    {t("cases.hearings.pendingItems.nextHearing")}
+                                  </label>
+                                  <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                    <span className="sub">{t("cases.hearings.recurLabel")}</span>
+                                    <input
+                                      type="number"
+                                      name="reminderRecurDays"
+                                      min={1}
+                                      defaultValue={h.reminderRecurDays ?? 7}
+                                      style={{ width: 70, textAlign: "center" }}
+                                    />
+                                    <span className="sub">{t("cases.hearings.recurUnit")}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
                           <div className="actions">
                             <button type="submit" className="act b-add">
                               {t("cases.hearings.saveEdit")}

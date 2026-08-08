@@ -60,6 +60,9 @@ export async function updateHearingAction(formData: FormData): Promise<void> {
   const stageIndexRaw = String(formData.get("stageIndex") ?? "");
   const hearingDateRaw = String(formData.get("hearingDate") ?? "");
   const recurDaysRaw = String(formData.get("reminderRecurDays") ?? "");
+  const pendingItems = (["minutes", "nextHearing"] as const).filter(
+    (k) => formData.get(`pendingItem_${k}`) === "on",
+  );
 
   await updateHearing(session, caseId, hearingId, {
     hearingDate: hearingDateRaw ? new Date(hearingDateRaw) : undefined,
@@ -69,6 +72,7 @@ export async function updateHearingAction(formData: FormData): Promise<void> {
     result: String(formData.get("result") ?? "") || null,
     clientReport: String(formData.get("clientReport") ?? "") || null,
     isPending: formData.get("isPending") === "on",
+    pendingItems,
     reminderRecurDays: recurDaysRaw ? Number(recurDaysRaw) : null,
   });
 

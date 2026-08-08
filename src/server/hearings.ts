@@ -254,6 +254,10 @@ async function loadOwnHearing(session: AppSession, caseId: string, hearingId: st
   return h;
 }
 
+/** The two pending-item kinds from the prototype's wizard step 4 (docs BR-CASE-11). */
+export const HEARING_PENDING_ITEMS = ["minutes", "nextHearing"] as const;
+export type HearingPendingItem = (typeof HEARING_PENDING_ITEMS)[number];
+
 const updateSchema = z.object({
   hearingDate: z.coerce.date().optional(),
   kind: z.nativeEnum(HearingKind).nullish(),
@@ -262,6 +266,7 @@ const updateSchema = z.object({
   result: z.string().nullish(),
   clientReport: z.string().nullish(),
   isPending: z.boolean().optional(),
+  pendingItems: z.array(z.enum(HEARING_PENDING_ITEMS)).optional(),
   reminderRecurDays: z.number().int().positive().nullish(),
 });
 export type UpdateHearingInput = z.infer<typeof updateSchema>;
@@ -287,7 +292,10 @@ export async function updateHearing(
       result: input.result,
       clientReport: input.clientReport,
       isPending: input.isPending,
-      reminderRecurDays: input.reminderRecurDays,
+      pendingItems: input.isPending
+        ? ((input.pendingItems ?? []) as unknown as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
+      reminderRecurDays: input.isPending ? input.reminderRecurDays : null,
     },
   });
   await logCaseEvent(prisma, {
