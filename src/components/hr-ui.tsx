@@ -15,6 +15,7 @@ const ERR_KEYS = new Set([
   "EMPLOYEE_ALREADY_TERMINATED",
   "REQUEST_ALREADY_DECIDED",
   "PERIOD_LOCKED",
+  "JOURNAL_UNBALANCED",
 ]);
 
 /** Localized banner for an action error surfaced via `?err=<code>`. */

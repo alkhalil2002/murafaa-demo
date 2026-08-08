@@ -8,10 +8,17 @@ import { t } from "@/lib/i18n";
 export function FinanceTabs() {
   const pathname = usePathname();
   const tabs = [
+    { href: "/finance/dashboard", label: t("finance.dashboard") },
     { href: "/finance", label: t("finance.invoices") },
     { href: "/finance/expenses", label: t("finance.expenses") },
     { href: "/finance/trust", label: t("finance.trust") },
     { href: "/finance/ledger", label: t("finance.ledger") },
+    { href: "/finance/coa", label: t("finance.coa") },
+    { href: "/finance/journal", label: t("finance.journal") },
+    { href: "/finance/profitability", label: t("finance.profit") },
+    { href: "/finance/bank", label: t("finance.bank") },
+    { href: "/finance/statements", label: t("finance.statements") },
+    { href: "/finance/governance", label: t("finance.governance") },
   ];
   return (
     <div className="ftabs">

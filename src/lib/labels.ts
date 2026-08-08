@@ -20,6 +20,7 @@ import {
   HearingKind,
   HearingStatus,
   LeadSource,
+  AccountType,
   CandidateStage,
   IntegrationKey,
   LeadStage,
@@ -92,6 +93,7 @@ export const clientStatusLabel = (v: ClientStatus) => t(`clientStatus.${v}` as M
 export const leadStageLabel = (v: LeadStage) => t(`leadStage.${v}` as MessageKey);
 export const candidateStageLabel = (v: CandidateStage) => t(`hr.recruit.stage.${v}` as MessageKey);
 export const integrationLabel = (v: IntegrationKey) => t(`hr.integ.name.${v}` as MessageKey);
+export const accountTypeLabel = (v: AccountType) => t(`accType.${v}` as MessageKey);
 export const integrationDescLabel = (v: IntegrationKey) => t(`hr.integ.desc.${v}` as MessageKey);
 export const leadSourceLabel = (v: LeadSource) => t(`leadSource.${v}` as MessageKey);
 export const taskColumnLabel = (v: TaskColumn) => t(`taskColumn.${v}` as MessageKey);

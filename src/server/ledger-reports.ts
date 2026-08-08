@@ -1,8 +1,11 @@
-import { AccountType, PermModule } from "@prisma/client";
+import { AccountType, JournalSourceType, PermModule } from "@prisma/client";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { AppSession } from "@/lib/auth/types";
 import { requireModule } from "@/lib/permissions/guard";
+import { logAudit } from "@/lib/audit";
 import { agingBucket, paidOf, remainingOf, type AgingBucket } from "@/lib/finance/core";
+import { postJournal } from "@/lib/finance/ledger";
 
 /**
  * Derived accounting reports (docs BR-LED-3/4, FIN-VAT-RETURN). All balances
@@ -107,4 +110,75 @@ export async function listJournal(session: AppSession) {
     take: 100,
     include: { lines: { include: { account: { select: { code: true, name: true } } }, orderBy: { lineNo: "asc" } } },
   });
+}
+
+export type FinancialStatements = {
+  revenueMinor: number;
+  expensesMinor: number;
+  netIncomeMinor: number;
+  assetsMinor: number;
+  liabilitiesMinor: number;
+  equityMinor: number;
+};
+
+/** Income statement + balance sheet, both derived live from postJournal-created lines. */
+export async function getFinancialStatements(session: AppSession): Promise<FinancialStatements> {
+  const rows = await trialBalance(session);
+  const sumOf = (type: AccountType, side: "debit" | "credit") =>
+    rows.filter((r) => r.type === type).reduce((s, r) => s + r[side], 0);
+
+  const revenueMinor = sumOf(AccountType.REVENUE, "credit");
+  const expensesMinor = sumOf(AccountType.EXPENSE, "debit");
+  const assetsMinor = sumOf(AccountType.ASSET, "debit");
+  const liabilitiesMinor = sumOf(AccountType.LIABILITY, "credit");
+  const equityMinor = sumOf(AccountType.EQUITY, "credit");
+
+  return {
+    revenueMinor,
+    expensesMinor,
+    netIncomeMinor: revenueMinor - expensesMinor,
+    assetsMinor,
+    liabilitiesMinor,
+    equityMinor,
+  };
+}
+
+export async function listAccounts(session: AppSession) {
+  await requireModule(session, PermModule.FINANCE, "view");
+  return prisma.chartOfAccount.findMany({
+    where: { officeId: session.officeId, deletedAt: null, isActive: true },
+    orderBy: { code: "asc" },
+  });
+}
+
+const manualEntrySchema = z.object({
+  entryDate: z.coerce.date(),
+  description: z.string().trim().min(1),
+  lines: z
+    .array(
+      z.object({
+        code: z.string().min(1),
+        debit: z.number().int().min(0).default(0),
+        credit: z.number().int().min(0).default(0),
+      }),
+    )
+    .min(2),
+});
+export type CreateManualJournalEntryInput = z.input<typeof manualEntrySchema>;
+
+/** "قيد يومية جديد" — a manual balanced entry, gated FULL (docs FIN-LED-1/2). */
+export async function createManualJournalEntry(session: AppSession, raw: CreateManualJournalEntryInput) {
+  await requireModule(session, PermModule.FINANCE, "delete");
+  const input = manualEntrySchema.parse(raw);
+  const entry = await prisma.$transaction((tx) =>
+    postJournal(tx, session.officeId, {
+      entryDate: input.entryDate,
+      description: input.description,
+      sourceType: JournalSourceType.MANUAL,
+      postedById: session.userId,
+      lines: input.lines,
+    }),
+  );
+  await logAudit({ session, action: "journal.manualEntry", resource: "finance", targetId: entry.id, detail: entry.entryNo });
+  return entry;
 }
