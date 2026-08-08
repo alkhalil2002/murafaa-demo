@@ -36,6 +36,11 @@
     font-family: var(--font-plex-arabic), system-ui, sans-serif;
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
+    /* Every font-size in this file is a fixed px value (no rem base to
+       scale), so a uniform zoom is the only way to bump text site-wide
+       without touching hundreds of individual rules. Reflows layout
+       (unlike transform: scale), so spacing/click targets stay correct. */
+    zoom: 1.12;
   }
 
   h1,
