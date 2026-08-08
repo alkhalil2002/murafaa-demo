@@ -80,6 +80,7 @@ import {
 import { NajizPicker, NajizFieldLabel } from "@/components/cases/najiz-picker";
 import { RolePicker } from "@/components/cases/role-picker";
 import { HearingWizard } from "@/components/cases/hearing-wizard";
+import { AiDraftHearingButton } from "@/components/cases/ai-draft-hearing-button";
 import { CLOSING_CHECKLIST_ITEMS } from "@/server/cases";
 import { SAUDI_CITIES } from "@/lib/cities";
 import {
@@ -737,6 +738,7 @@ export default async function CaseDetailPage({
                         <div className="field">
                           <label>{t("cases.hearings.rawNotes")}</label>
                           <textarea name="minutes" rows={4} />
+                          <AiDraftHearingButton />
                         </div>
                       </>
                     }
