@@ -648,6 +648,30 @@
     color: var(--ink-soft);
   }
 
+  .ptable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .ptable th,
+  .ptable td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    text-align: center;
+  }
+  .ptable th:first-child,
+  .ptable td:first-child {
+    text-align: start;
+  }
+  .permSelect {
+    font-size: 12.5px;
+    padding: 3px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+  }
+
   /* ---------- lead pipeline (leads) ---------- */
   .pipe {
     display: grid;

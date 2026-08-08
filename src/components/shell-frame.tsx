@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { IconBell } from "./icons";
 
 /**
@@ -14,6 +15,7 @@ export function ShellFrame({
   searchLabel,
   menuLabel,
   bellLabel,
+  bellCount = 0,
   children,
 }: {
   sidebar: React.ReactNode;
@@ -21,6 +23,7 @@ export function ShellFrame({
   searchLabel: string;
   menuLabel: string;
   bellLabel: string;
+  bellCount?: number;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -49,9 +52,14 @@ export function ShellFrame({
             <input placeholder={searchPlaceholder} autoComplete="off" aria-label={searchLabel} />
             <button type="button">{searchLabel}</button>
           </div>
-          <button type="button" className="bell" aria-label={bellLabel}>
+          <Link href="/notifications" className="bell" aria-label={bellLabel} style={{ position: "relative" }}>
             <IconBell />
-          </button>
+            {bellCount > 0 ? (
+              <span className="cnt" style={{ position: "absolute", top: -4, insetInlineEnd: -4 }}>
+                {bellCount.toLocaleString("ar-SA")}
+              </span>
+            ) : null}
+          </Link>
         </div>
         {children}
       </main>

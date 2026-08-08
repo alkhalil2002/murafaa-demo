@@ -9,24 +9,31 @@ import { canModule } from "@/lib/permissions/engine";
 import { loadOfficePolicy } from "@/lib/permissions/policy";
 import { roleLabel } from "@/lib/labels";
 import { isIpAllowed, clientIpFromHeaders } from "@/lib/security/ip";
+import { getNotifications } from "@/server/notifications";
 import { t } from "@/lib/i18n";
 import { SideNav, type NavItem, type NavSection } from "./side-nav";
 import { ShellFrame } from "./shell-frame";
 import { IdleLogout } from "./idle-logout";
 import {
   BrandMark,
+  IconActivity,
   IconAi,
+  IconAlerts,
+  IconBell,
   IconCases,
   IconClients,
+  IconDashboard,
   IconDeadlines,
   IconDocuments,
   IconFinance,
   IconHr,
   IconLeads,
   IconPulse,
+  IconShield,
   IconTasks,
   IconToday,
   IconUser,
+  IconWhatsapp,
 } from "./icons";
 
 /**
@@ -58,6 +65,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const policy = await loadOfficePolicy(session.officeId);
+  const notifications = await getNotifications(session);
 
   const can = (m: PermModule) => canModule(policy, session.role, m, "view");
   const only = (allowed: boolean, item: NavItem): NavItem[] => (allowed ? [item] : []);
@@ -68,7 +76,17 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       title: t("nav.group.main"),
       items: [
         { href: "/today", label: t("nav.today"), icon: <IconToday /> },
+        ...only(can(PermModule.REPORTS), {
+          href: "/dashboard",
+          label: t("nav.dashboard"),
+          icon: <IconDashboard />,
+        }),
         ...only(can(PermModule.AI), { href: "/ai", label: t("nav.ai"), icon: <IconAi /> }),
+        ...only(can(PermModule.REPORTS), {
+          href: "/journey",
+          label: t("nav.journey"),
+          icon: <IconClients />,
+        }),
         ...only(can(PermModule.PULSE), { href: "/pulse", label: t("nav.pulse"), icon: <IconPulse /> }),
       ],
     },
@@ -90,6 +108,16 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           href: "/leads",
           label: t("nav.leads"),
           icon: <IconLeads />,
+        }),
+        ...only(can(PermModule.ALERTS), {
+          href: "/alerts",
+          label: t("nav.alerts"),
+          icon: <IconAlerts />,
+        }),
+        ...only(can(PermModule.WHATSAPP), {
+          href: "/whatsapp",
+          label: t("nav.whatsapp"),
+          icon: <IconWhatsapp />,
         }),
         ...only(can(PermModule.TASKS), {
           href: "/tasks",
@@ -119,6 +147,30 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           icon: <IconFinance />,
         }),
         ...only(can(PermModule.HR), { href: "/hr", label: t("nav.hr"), icon: <IconHr /> }),
+        ...only(session.role === "PARTNER", {
+          href: "/perms",
+          label: t("nav.permissions"),
+          icon: <IconShield />,
+        }),
+      ],
+    },
+    {
+      id: "grp-system",
+      title: t("nav.group.system"),
+      collapsed: true,
+      items: [
+        { href: "/notifications", label: t("nav.notifications"), icon: <IconBell /> },
+        ...only(can(PermModule.REPORTS), {
+          href: "/activity",
+          label: t("nav.activity"),
+          icon: <IconActivity />,
+        }),
+        ...only(session.role === "PARTNER", {
+          href: "/billing",
+          label: t("nav.billing"),
+          icon: <IconFinance />,
+        }),
+        { href: "/settings", label: t("nav.settings"), icon: <IconUser /> },
       ],
     },
   ].filter((s) => s.items.length > 0);
@@ -171,6 +223,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       searchLabel={t("search.action")}
       menuLabel={t("nav.menu")}
       bellLabel={t("notif.title")}
+      bellCount={notifications.length}
     >
       <IdleLogout />
       {children}

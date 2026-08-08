@@ -102,6 +102,38 @@ export function IconBell() {
   );
 }
 
+export function IconAlerts() {
+  return (
+    <Outline>
+      <path d="M12 2L2 20h20L12 2zM12 9v5M12 17h.01" />
+    </Outline>
+  );
+}
+
+export function IconDashboard() {
+  return (
+    <Outline>
+      <path d="M4 4h7v9H4zM13 4h7v5h-7zM13 12h7v8h-7zM4 16h7v4H4z" />
+    </Outline>
+  );
+}
+
+export function IconShield() {
+  return (
+    <Outline>
+      <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" />
+    </Outline>
+  );
+}
+
+export function IconActivity() {
+  return (
+    <Outline>
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </Outline>
+  );
+}
+
 export function IconChevron() {
   return <Outline width={2.5}><path d="M6 9l6 6 6-6" /></Outline>;
 }

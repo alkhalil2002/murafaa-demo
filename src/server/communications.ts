@@ -6,7 +6,7 @@ import { logCaseEvent } from "@/lib/case-events";
 import { t } from "@/lib/i18n";
 import type { AppSession } from "@/lib/auth/types";
 import { PermissionError, requireModule } from "@/lib/permissions/guard";
-import { isCaseVisible } from "@/lib/permissions/scope";
+import { isCaseVisible, caseScopeWhere } from "@/lib/permissions/scope";
 
 /**
  * Client communication log (prototype "سجل التواصل مع العميل") — a running
@@ -77,5 +77,27 @@ export async function listClientCommunications(session: AppSession, caseId: stri
   return prisma.clientCommunication.findMany({
     where: { officeId: session.officeId, caseId, deletedAt: null },
     orderBy: { createdAt: "desc" },
+  });
+}
+
+/**
+ * واتساب (docs/05) — a real, cross-case log of MESSAGE-kind touchpoints,
+ * scoped to cases visible to the caller. This is genuinely all we have: no
+ * WhatsApp Business API integration exists yet (docs/02 Phase 7), so there
+ * is no live inbox/auto-responder to show — only what staff already log via
+ * a case's "سجل التواصل" tab. Deliberately NOT a fabricated chat UI.
+ */
+export async function listMessageCommunications(session: AppSession) {
+  await requireModule(session, PermModule.WHATSAPP, "view");
+  const caseWhere = await caseScopeWhere(session);
+  return prisma.clientCommunication.findMany({
+    where: {
+      officeId: session.officeId,
+      deletedAt: null,
+      type: ClientCommunicationType.MESSAGE,
+      case: caseWhere,
+    },
+    orderBy: { createdAt: "desc" },
+    include: { case: { select: { id: true, title: true, client: { select: { name: true, phone: true } } } } },
   });
 }

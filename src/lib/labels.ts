@@ -24,6 +24,7 @@ import {
   LeaveType,
   PartyRole,
   PaymentMethod,
+  PermLevel,
   PermModule,
   ProcStage,
   ProcedureRequestStatus,
@@ -64,6 +65,8 @@ const MODULE_KEY: Record<PermModule, MessageKey> = {
   [PermModule.ALERTS]: "module.alerts",
   [PermModule.PULSE]: "module.pulse",
 };
+
+export const permLevelLabel = (v: PermLevel) => t(`permLevel.${v}` as MessageKey);
 
 export function roleLabel(role: Role): string {
   return t(ROLE_KEY[role]);

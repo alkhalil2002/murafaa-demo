@@ -84,7 +84,7 @@ export type TodaySummary = {
 };
 
 /** Win-rate KPI (docs/06 §10): (won + partial×0.5) / cases-with-a-recorded-outcome, as a rounded percentage. */
-async function computeWinRate(officeId: string): Promise<number | null> {
+export async function computeWinRate(officeId: string): Promise<number | null> {
   const rows = await prisma.case.groupBy({
     by: ["outcome"],
     where: { officeId, deletedAt: null, outcome: { not: null } },
