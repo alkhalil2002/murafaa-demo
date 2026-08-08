@@ -51,8 +51,10 @@ export async function reimburseExpenseAction(formData: FormData): Promise<void> 
   const session = await getSession();
   if (!session) redirect("/login");
   const expenseId = String(formData.get("expenseId") ?? "");
+  const caseId = String(formData.get("caseId") ?? "");
   await reimburseExpense(session, expenseId);
   revalidatePath("/finance/expenses");
+  if (caseId) revalidatePath(`/cases/${caseId}`);
 }
 
 export async function createManualJournalEntryAction(formData: FormData): Promise<void> {

@@ -48,6 +48,7 @@ import {
   deleteProcedureRequestAction,
 } from "../procedure-request-actions";
 import { setOutcomeAction, generateFeeInvoiceAction, saveFeeAgreementAction } from "../actions";
+import { reimburseExpenseAction } from "@/app/finance/actions";
 import { createApprovalAction, advanceApprovalAction, rejectApprovalAction, deleteApprovalAction } from "../approvals-actions";
 import {
   recordHearingAction,
@@ -147,12 +148,18 @@ export default async function CaseDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; evf?: string; docsrc?: string; docparty?: string }>;
+  searchParams: Promise<{ tab?: string; evf?: string; docsrc?: string; docparty?: string; docgroup?: string }>;
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
   const { id } = await params;
-  const { tab: tabParam, evf: eventFilterParam, docsrc: docSrcParam, docparty: docPartyParam } = await searchParams;
+  const {
+    tab: tabParam,
+    evf: eventFilterParam,
+    docsrc: docSrcParam,
+    docparty: docPartyParam,
+    docgroup: docGroupParam,
+  } = await searchParams;
   const tab: TabKey = (TABS.find((x) => x.key === tabParam)?.key ?? "overview") as TabKey;
 
   let content: React.ReactNode;
@@ -164,6 +171,7 @@ export default async function CaseDetailPage({
     const canEditCase = await canAction(session, PermModule.CASES, "edit");
     const canApproveReports = await canAction(session, PermModule.CASES, "delete");
     const canViewFinance = await canAction(session, PermModule.FINANCE, "view");
+    const canEditFinance = await canAction(session, PermModule.FINANCE, "edit");
     const canEditDocuments = await canAction(session, PermModule.DOCUMENTS, "edit");
     const upcoming = c.hearings.filter((h) => h.status === "UPCOMING").slice(0, 1)[0];
     const opponentRole = c.clientRole === "PLAINTIFF" ? "DEFENDANT" : c.clientRole === "DEFENDANT" ? "PLAINTIFF" : null;
@@ -1501,6 +1509,13 @@ export default async function CaseDetailPage({
         } catch {
           documents = null;
         }
+        const heldHearings = c.hearings
+          .filter((h) => h.status === "HELD")
+          .sort((a, b) => b.hearingDate.getTime() - a.hearingDate.getTime());
+        const hearingLabelById = new Map(
+          heldHearings.map((h) => [h.id, t("cases.hearings.sessionNo", { no: (h.sequenceNo ?? 0).toLocaleString("ar-SA") })]),
+        );
+        const groupBySession = docGroupParam === "session";
         tabBody = !documents ? (
           <DeniedPanel />
         ) : (
@@ -1533,15 +1548,28 @@ export default async function CaseDetailPage({
                       <input type="text" name="docType" />
                     </div>
                   </div>
-                  <div className="field">
-                    <label>{t("documents.source")}</label>
-                    <select name="source" defaultValue={DocSource.UPLOAD}>
-                      {DOC_SOURCES.map((s) => (
-                        <option key={s} value={s}>
-                          {docSourceLabel(s)}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="two">
+                    <div className="field">
+                      <label>{t("documents.source")}</label>
+                      <select name="source" defaultValue={DocSource.UPLOAD}>
+                        {DOC_SOURCES.map((s) => (
+                          <option key={s} value={s}>
+                            {docSourceLabel(s)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>{t("documents.linkHearing")}</label>
+                      <select name="hearingId" defaultValue="">
+                        <option value="">{t("documents.noHearingLink")}</option>
+                        {heldHearings.map((h) => (
+                          <option key={h.id} value={h.id}>
+                            {hearingLabelById.get(h.id)} · {fmt(h.hearingDate)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div className="actions">
                     <button type="submit" className="act b-add">
@@ -1574,9 +1602,72 @@ export default async function CaseDetailPage({
                 params.set("tab", "documents");
                 const src = "docsrc" in over ? over.docsrc : activeSrc;
                 const party = "docparty" in over ? over.docparty : activeParty;
+                const grp = "docgroup" in over ? over.docgroup : groupBySession ? "session" : null;
                 if (src) params.set("docsrc", src);
                 if (party) params.set("docparty", party);
+                if (grp) params.set("docgroup", grp);
                 return `/cases/${id}?${params.toString()}`;
+              };
+              const renderDocRow = (d: (typeof documents)[number]) => (
+                <div className="approve-row" key={d.id} style={{ flexWrap: "wrap" }}>
+                  <span className="ndot" style={{ background: "var(--bench)" }} />
+                  <span className="at">
+                    📄 {d.fileName}
+                    <span className="chip"> {docSourceLabel(d.source)}</span>
+                    {d.party && <span className="chip"> {docPartyLabel(d.party)}</span>}
+                    {d.clientVisible && <span className="chip st"> {t("documents.shared")}</span>}
+                  </span>
+                  <a href={`/api/documents/${d.id}/download`} className="tinybtn">
+                    {t("documents.download")}
+                  </a>
+                  {canEditDocuments && (
+                    <>
+                      <form action={shareDocumentAction}>
+                        <input type="hidden" name="id" value={d.id} />
+                        <input type="hidden" name="caseId" value={c.id} />
+                        <button type="submit" className="tinybtn">
+                          {d.clientVisible ? t("documents.unshare") : t("documents.share")}
+                        </button>
+                      </form>
+                      <form action={deleteDocumentAction}>
+                        <input type="hidden" name="id" value={d.id} />
+                        <input type="hidden" name="caseId" value={c.id} />
+                        <button type="submit" className="tinybtn del">
+                          {t("documents.delete")}
+                        </button>
+                      </form>
+                    </>
+                  )}
+                  {d.extractedText && (
+                    <details style={{ width: "100%", marginTop: 6 }}>
+                      <summary style={{ cursor: "pointer", fontSize: 12, color: "var(--bench)" }}>
+                        {t("documents.extractedText")}
+                      </summary>
+                      <div className="sub" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
+                        {d.extractedText}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              );
+              const groupedBySession = () => {
+                const groups = new Map<string, typeof filteredDocs>();
+                for (const d of filteredDocs) {
+                  const key = d.hearingId ?? "none";
+                  const list = groups.get(key) ?? [];
+                  list.push(d);
+                  groups.set(key, list);
+                }
+                const orderedKeys = [...heldHearings.map((h) => h.id), "none"].filter((k) => groups.has(k));
+                return orderedKeys.map((key) => (
+                  <div key={key} style={{ marginBottom: 14 }}>
+                    <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                      {key === "none" ? t("documents.noSession") : hearingLabelById.get(key)} (
+                      {(groups.get(key) ?? []).length.toLocaleString("ar-SA")})
+                    </div>
+                    {(groups.get(key) ?? []).map(renderDocRow)}
+                  </div>
+                ));
               };
               return (
                 <>
@@ -1590,7 +1681,7 @@ export default async function CaseDetailPage({
                       </Link>
                     ))}
                   </div>
-                  <div className="chips" style={{ marginBottom: 12 }}>
+                  <div className="chips" style={{ marginBottom: 8 }}>
                     <Link href={qs({ docparty: null })} className={`chip${!activeParty ? " st done" : ""}`}>
                       {t("events.filterAll")}
                     </Link>
@@ -1600,40 +1691,20 @@ export default async function CaseDetailPage({
                       </Link>
                     ))}
                   </div>
+                  <div className="chips" style={{ marginBottom: 12 }}>
+                    <Link href={qs({ docgroup: null })} className={`chip${!groupBySession ? " st done" : ""}`}>
+                      {t("documents.flatView")}
+                    </Link>
+                    <Link href={qs({ docgroup: "session" })} className={`chip${groupBySession ? " st done" : ""}`}>
+                      {t("documents.groupBySession")}
+                    </Link>
+                  </div>
                   {filteredDocs.length === 0 ? (
                     <Empty>{t("documents.empty")}</Empty>
+                  ) : groupBySession ? (
+                    groupedBySession()
                   ) : (
-                    filteredDocs.map((d) => (
-                      <div className="approve-row" key={d.id}>
-                        <span className="ndot" style={{ background: "var(--bench)" }} />
-                        <span className="at">
-                          📄 {d.fileName}
-                          <span className="chip"> {docSourceLabel(d.source)}</span>
-                          {d.clientVisible && <span className="chip st"> {t("documents.shared")}</span>}
-                        </span>
-                        <a href={`/api/documents/${d.id}/download`} className="tinybtn">
-                          {t("documents.download")}
-                        </a>
-                        {canEditDocuments && (
-                          <>
-                            <form action={shareDocumentAction}>
-                              <input type="hidden" name="id" value={d.id} />
-                              <input type="hidden" name="caseId" value={c.id} />
-                              <button type="submit" className="tinybtn">
-                                {d.clientVisible ? t("documents.unshare") : t("documents.share")}
-                              </button>
-                            </form>
-                            <form action={deleteDocumentAction}>
-                              <input type="hidden" name="id" value={d.id} />
-                              <input type="hidden" name="caseId" value={c.id} />
-                              <button type="submit" className="tinybtn del">
-                                {t("documents.delete")}
-                              </button>
-                            </form>
-                          </>
-                        )}
-                      </div>
-                    ))
+                    filteredDocs.map(renderDocRow)
                   )}
                 </>
               );
@@ -1830,6 +1901,19 @@ export default async function CaseDetailPage({
                       {e.vendor ? <span className="chip"> {e.vendor}</span> : null}
                     </span>
                     <span className="chip">{formatSar(e.netAmount)}</span>
+                    {e.billed ? (
+                      <span className="chip" style={{ color: "var(--ok)", borderColor: "var(--ok)" }}>
+                        ✓ {t("exp.billed")}
+                      </span>
+                    ) : e.billable && e.clientId && canEditFinance ? (
+                      <form action={reimburseExpenseAction}>
+                        <input type="hidden" name="expenseId" value={e.id} />
+                        <input type="hidden" name="caseId" value={id} />
+                        <button type="submit" className="tinybtn">
+                          {t("exp.reimburse")}
+                        </button>
+                      </form>
+                    ) : null}
                   </div>
                 ))
               )}
