@@ -2,6 +2,7 @@ import { MessageSenderType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logSystemAudit } from "@/lib/audit";
+import { getStorage } from "@/lib/storage";
 import type { PortalSession } from "@/lib/auth/portal-session";
 
 /**
@@ -46,6 +47,24 @@ export async function listPortalDocuments(session: PortalSession, caseId: string
     where: { officeId: session.officeId, caseId, clientVisible: true, deletedAt: null },
     orderBy: { createdAt: "desc" },
   });
+}
+
+/**
+ * Portal-safe document download. Mirrors documents.ts#getDocumentForDownload
+ * but checks the fixed client scope + clientVisible instead of staff module
+ * permissions — the download route previously only accepted a staff
+ * AppSession, so a client-visible document (e.g. an approved hearing
+ * report) had no way to actually be downloaded from the portal.
+ */
+export async function getPortalDocumentForDownload(session: PortalSession, id: string) {
+  const doc = await prisma.document.findFirst({
+    where: { id, officeId: session.officeId, clientVisible: true, deletedAt: null },
+  });
+  if (!doc || !doc.caseId) throw new Error("PORTAL_SCOPE");
+  await loadOwnPortalCase(session, doc.caseId);
+  const bytes = await getStorage().get(doc.storageKey);
+  await logSystemAudit(session.officeId, "portal.document.download", `client=${session.clientId} doc=${doc.id}`);
+  return { fileName: doc.fileName, mimeType: doc.mimeType, bytes };
 }
 
 export async function listPortalMessages(session: PortalSession, caseId: string) {

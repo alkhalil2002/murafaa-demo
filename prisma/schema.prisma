@@ -846,9 +846,12 @@ model Hearing {
   result      String?
 
   // Client-facing report + approval gate (published to portal in Phase 8).
-  clientReport       String? @map("client_report")
-  reportSentToClient Boolean @default(false) @map("report_sent_to_client")
-  reportApproved     Boolean @default(false) @map("report_approved")
+  // A real request/decide workflow (prototype hrRequestReportApproval/
+  // approveReportApproval/rejectReportApproval) — not a self-service toggle.
+  clientReport            String?  @map("client_report")
+  reportApprovalRequested Boolean  @default(false) @map("report_approval_requested")
+  reportSentToClient      Boolean  @default(false) @map("report_sent_to_client")
+  reportApproved          Boolean  @default(false) @map("report_approved")
 
   // Pending (incomplete) hearing → recurring reminder (docs BR-CASE-11).
   isPending         Boolean @default(false) @map("is_pending")

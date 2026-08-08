@@ -1,24 +1,33 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { getPortalSession } from "@/lib/auth/portal-session";
 import { getDocumentForDownload } from "@/server/documents";
+import { getPortalDocumentForDownload } from "@/server/portal";
 import { PermissionError } from "@/lib/permissions/guard";
 
 /**
  * Authorized document download. Bytes are streamed through this route (never a
  * public bucket URL) so every download is permission-checked, row-scoped, and
  * audited (docs/02 §9 PDPL). Content-Disposition uses RFC 5987 for the Arabic
- * filename.
+ * filename. Accepts either a staff AppSession or a client-portal session —
+ * the latter is scoped to clientVisible documents on the client's own cases
+ * only (src/server/portal.ts#getPortalDocumentForDownload).
  */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ data: null, error: "UNAUTHENTICATED" }, { status: 401 });
+  const staffSession = await getSession();
+  const portalSession = staffSession ? null : await getPortalSession();
+  if (!staffSession && !portalSession) {
+    return NextResponse.json({ data: null, error: "UNAUTHENTICATED" }, { status: 401 });
+  }
 
   const { id } = await params;
   try {
-    const { fileName, mimeType, bytes } = await getDocumentForDownload(session, id);
+    const { fileName, mimeType, bytes } = staffSession
+      ? await getDocumentForDownload(staffSession, id)
+      : await getPortalDocumentForDownload(portalSession!, id);
     const encoded = encodeURIComponent(fileName);
     return new NextResponse(new Uint8Array(bytes), {
       status: 200,

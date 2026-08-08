@@ -16,7 +16,9 @@ import {
   updateHearingTask,
   deleteHearingTask,
   escalateHearingReminder,
-  toggleHearingReportFlag,
+  requestReportApproval,
+  cancelReportApprovalRequest,
+  decideReportApproval,
 } from "@/server/hearings";
 import { generateHearingReportPdf } from "@/server/documents";
 
@@ -177,21 +179,39 @@ export async function escalateHearingReminderAction(formData: FormData): Promise
   revalidatePath(`/cases/${caseId}`);
 }
 
-export async function toggleHearingReportApprovedAction(formData: FormData): Promise<void> {
+export async function requestReportApprovalAction(formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session) redirect("/login");
   const caseId = String(formData.get("caseId") ?? "");
   const hearingId = String(formData.get("hearingId") ?? "");
-  await toggleHearingReportFlag(session, caseId, hearingId, "reportApproved");
+  await requestReportApproval(session, caseId, hearingId);
   revalidatePath(`/cases/${caseId}`);
 }
 
-export async function toggleHearingReportSentAction(formData: FormData): Promise<void> {
+export async function cancelReportApprovalRequestAction(formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session) redirect("/login");
   const caseId = String(formData.get("caseId") ?? "");
   const hearingId = String(formData.get("hearingId") ?? "");
-  await toggleHearingReportFlag(session, caseId, hearingId, "reportSentToClient");
+  await cancelReportApprovalRequest(session, caseId, hearingId);
+  revalidatePath(`/cases/${caseId}`);
+}
+
+export async function approveReportAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const caseId = String(formData.get("caseId") ?? "");
+  const hearingId = String(formData.get("hearingId") ?? "");
+  await decideReportApproval(session, caseId, hearingId, true);
+  revalidatePath(`/cases/${caseId}`);
+}
+
+export async function rejectReportAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const caseId = String(formData.get("caseId") ?? "");
+  const hearingId = String(formData.get("hearingId") ?? "");
+  await decideReportApproval(session, caseId, hearingId, false);
   revalidatePath(`/cases/${caseId}`);
 }
 

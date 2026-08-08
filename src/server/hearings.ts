@@ -20,6 +20,7 @@ import type { AppSession } from "@/lib/auth/types";
 import { PermissionError, requireModule } from "@/lib/permissions/guard";
 import { isCaseVisible } from "@/lib/permissions/scope";
 import { createAutoTask } from "./tasks";
+import { generateHearingReportPdf } from "./documents";
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
@@ -400,20 +401,91 @@ async function loadOwnHearingTask(session: AppSession, caseId: string, hearingId
   return tsk;
 }
 
-/** Toggle manager-approval / sent-to-client-portal state on a hearing's client report. */
-export async function toggleHearingReportFlag(
+/**
+ * Client-report approval — a real request/decide workflow (prototype
+ * hrRequestReportApproval → hrOwnerApprove/rejectReportApproval), not a
+ * self-service toggle. Requesting is a normal case-edit action (any lawyer
+ * finishing a hearing); deciding requires FULL-level access on القضايا
+ * (the office's partner tier by default) — matching how other high-stakes
+ * case actions (credit notes, write-offs) are gated one level above edit.
+ */
+export async function requestReportApproval(session: AppSession, caseId: string, hearingId: string) {
+  await requireModule(session, PermModule.CASES, "edit");
+  const h = await loadOwnHearing(session, caseId, hearingId);
+  if (!h.clientReport) throw new Error("HEARING_HAS_NO_REPORT");
+  if (h.reportSentToClient) throw new Error("REPORT_ALREADY_SENT");
+  const updated = await prisma.hearing.update({
+    where: { id: hearingId },
+    data: { reportApprovalRequested: true },
+  });
+  await logCaseEvent(prisma, {
+    officeId: session.officeId,
+    caseId,
+    type: CaseEventType.SYSTEM,
+    description: t("event.hearingReportApprovalRequested", { no: h.sequenceNo ?? 0 }),
+    actorUserId: session.userId,
+  });
+  await logAudit({ session, action: "hearing.report.requestApproval", resource: "cases", targetId: caseId, detail: hearingId });
+  return updated;
+}
+
+export async function cancelReportApprovalRequest(session: AppSession, caseId: string, hearingId: string) {
+  await requireModule(session, PermModule.CASES, "edit");
+  await loadOwnHearing(session, caseId, hearingId);
+  const updated = await prisma.hearing.update({
+    where: { id: hearingId },
+    data: { reportApprovalRequested: false },
+  });
+  await logAudit({ session, action: "hearing.report.cancelApproval", resource: "cases", targetId: caseId, detail: hearingId });
+  return updated;
+}
+
+/** Partner-tier decision. On approve: auto-generates the report PDF if needed and publishes it to the client portal. */
+export async function decideReportApproval(
   session: AppSession,
   caseId: string,
   hearingId: string,
-  flag: "reportApproved" | "reportSentToClient",
+  approve: boolean,
 ) {
-  await requireModule(session, PermModule.CASES, "edit");
+  await requireModule(session, PermModule.CASES, "delete");
   const h = await loadOwnHearing(session, caseId, hearingId);
+  if (!h.reportApprovalRequested) throw new Error("REPORT_APPROVAL_NOT_REQUESTED");
+
+  if (!approve) {
+    const updated = await prisma.hearing.update({
+      where: { id: hearingId },
+      data: { reportApprovalRequested: false },
+    });
+    await logCaseEvent(prisma, {
+      officeId: session.officeId,
+      caseId,
+      type: CaseEventType.SYSTEM,
+      description: t("event.hearingReportRejected", { no: h.sequenceNo ?? 0 }),
+      actorUserId: session.userId,
+    });
+    await logAudit({ session, action: "hearing.report.reject", resource: "cases", targetId: caseId, detail: hearingId });
+    return updated;
+  }
+
+  let doc = await prisma.document.findFirst({
+    where: { officeId: session.officeId, caseId, hearingId, deletedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!doc) doc = await generateHearingReportPdf(session, caseId, hearingId);
+  await prisma.document.update({ where: { id: doc.id }, data: { clientVisible: true } });
+
   const updated = await prisma.hearing.update({
     where: { id: hearingId },
-    data: { [flag]: !h[flag] },
+    data: { reportApprovalRequested: false, reportApproved: true, reportSentToClient: true },
   });
-  await logAudit({ session, action: `hearing.toggle.${flag}`, resource: "cases", targetId: caseId, detail: hearingId });
+  await logCaseEvent(prisma, {
+    officeId: session.officeId,
+    caseId,
+    type: CaseEventType.SYSTEM,
+    description: t("event.hearingReportApproved", { no: h.sequenceNo ?? 0 }),
+    actorUserId: session.userId,
+  });
+  await logAudit({ session, action: "hearing.report.approve", resource: "cases", targetId: caseId, detail: hearingId });
   return updated;
 }
 

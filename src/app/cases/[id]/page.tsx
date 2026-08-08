@@ -61,8 +61,10 @@ import {
   updateHearingTaskAction,
   deleteHearingTaskAction,
   escalateHearingReminderAction,
-  toggleHearingReportApprovedAction,
-  toggleHearingReportSentAction,
+  requestReportApprovalAction,
+  cancelReportApprovalRequestAction,
+  approveReportAction,
+  rejectReportAction,
   generateHearingReportPdfAction,
 } from "../hearing-actions";
 import { updateCaseAction, assignUserAction, unassignUserAction } from "../edit-actions";
@@ -159,6 +161,7 @@ export default async function CaseDetailPage({
     const anyHigh = activeFlags.some((f) => f.severity === ConflictSeverity.HIGH);
     const messages = await Promise.all(activeFlags.map((f) => renderConflictMessage(session, f)));
     const canEditCase = await canAction(session, PermModule.CASES, "edit");
+    const canApproveReports = await canAction(session, PermModule.CASES, "delete");
     const canViewFinance = await canAction(session, PermModule.FINANCE, "view");
     const canEditDocuments = await canAction(session, PermModule.DOCUMENTS, "edit");
     const upcoming = c.hearings.filter((h) => h.status === "UPCOMING").slice(0, 1)[0];
@@ -809,23 +812,49 @@ export default async function CaseDetailPage({
                           <div style={{ marginTop: 6, color: "var(--ok)", fontSize: 12.5, fontWeight: 600 }}>
                             {t("cases.hearings.reportApprovedBadge")}
                           </div>
+                        ) : h.reportApprovalRequested ? (
+                          <div style={{ marginTop: 8 }}>
+                            <div style={{ color: "var(--gold)", fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>
+                              {t("cases.hearings.reportPendingApproval")}
+                            </div>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              {canApproveReports && (
+                                <>
+                                  <form action={approveReportAction}>
+                                    <input type="hidden" name="caseId" value={id} />
+                                    <input type="hidden" name="hearingId" value={h.id} />
+                                    <button type="submit" className="tinybtn" style={{ color: "var(--ok)", borderColor: "var(--ok)" }}>
+                                      {t("cases.hearings.approveReport")}
+                                    </button>
+                                  </form>
+                                  <form action={rejectReportAction}>
+                                    <input type="hidden" name="caseId" value={id} />
+                                    <input type="hidden" name="hearingId" value={h.id} />
+                                    <button type="submit" className="tinybtn del">
+                                      {t("cases.hearings.rejectReport")}
+                                    </button>
+                                  </form>
+                                </>
+                              )}
+                              {canEditCase && (
+                                <form action={cancelReportApprovalRequestAction}>
+                                  <input type="hidden" name="caseId" value={id} />
+                                  <input type="hidden" name="hearingId" value={h.id} />
+                                  <button type="submit" className="tinybtn">
+                                    {t("cases.hearings.cancelApprovalRequest")}
+                                  </button>
+                                </form>
+                              )}
+                            </div>
+                          </div>
                         ) : (
                           canEditCase && (
-                            <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                              <form action={toggleHearingReportApprovedAction}>
+                            <div style={{ marginTop: 8 }}>
+                              <form action={requestReportApprovalAction}>
                                 <input type="hidden" name="caseId" value={id} />
                                 <input type="hidden" name="hearingId" value={h.id} />
                                 <button type="submit" className="tinybtn">
-                                  {h.reportApproved ? "✓ " : ""}
-                                  {t("cases.hearings.reportApproved")}
-                                </button>
-                              </form>
-                              <form action={toggleHearingReportSentAction}>
-                                <input type="hidden" name="caseId" value={id} />
-                                <input type="hidden" name="hearingId" value={h.id} />
-                                <button type="submit" className="tinybtn">
-                                  {h.reportSentToClient ? "✓ " : ""}
-                                  {t("cases.hearings.reportSentToClient")}
+                                  {t("cases.hearings.requestApproval")}
                                 </button>
                               </form>
                             </div>
