@@ -31,6 +31,10 @@ type Db = Prisma.TransactionClient | typeof prisma;
  * the القضايا module + case row-scope.
  */
 
+/** The two pending-item kinds from the prototype's wizard step 4 (docs BR-CASE-11). */
+export const HEARING_PENDING_ITEMS = ["minutes", "nextHearing"] as const;
+export type HearingPendingItem = (typeof HEARING_PENDING_ITEMS)[number];
+
 const recordSchema = z.object({
   hearingDate: z.coerce.date(),
   kind: z.nativeEnum(HearingKind).optional(),
@@ -41,6 +45,9 @@ const recordSchema = z.object({
   clientReport: z.string().nullish(),
   /** If set, schedule the (single) next upcoming hearing on this date. */
   nextHearingDate: z.coerce.date().nullish(),
+  isPending: z.boolean().optional(),
+  pendingItems: z.array(z.enum(HEARING_PENDING_ITEMS)).optional(),
+  reminderRecurDays: z.number().int().positive().nullish(),
 });
 export type RecordHearingInput = z.infer<typeof recordSchema>;
 
@@ -101,6 +108,9 @@ export async function recordHearing(session: AppSession, caseId: string, raw: Re
         minutes: input.minutes ?? null,
         result: input.result ?? null,
         clientReport: input.clientReport ?? null,
+        isPending: input.isPending ?? false,
+        pendingItems: input.isPending ? (input.pendingItems ?? []) : Prisma.JsonNull,
+        reminderRecurDays: input.isPending ? (input.reminderRecurDays ?? null) : null,
       },
     });
     await logCaseEvent(tx, {
@@ -254,10 +264,6 @@ async function loadOwnHearing(session: AppSession, caseId: string, hearingId: st
   if (!h) throw new PermissionError("scope");
   return h;
 }
-
-/** The two pending-item kinds from the prototype's wizard step 4 (docs BR-CASE-11). */
-export const HEARING_PENDING_ITEMS = ["minutes", "nextHearing"] as const;
-export type HearingPendingItem = (typeof HEARING_PENDING_ITEMS)[number];
 
 const updateSchema = z.object({
   hearingDate: z.coerce.date().optional(),

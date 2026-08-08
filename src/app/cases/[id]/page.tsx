@@ -759,10 +759,39 @@ export default async function CaseDetailPage({
                       </div>
                     }
                     step4={
-                      <div className="field">
-                        <label>{t("cases.hearings.clientReport")}</label>
-                        <textarea name="clientReport" rows={3} />
-                      </div>
+                      <>
+                        <div className="field">
+                          <label>{t("cases.hearings.clientReport")}</label>
+                          <textarea name="clientReport" rows={3} />
+                        </div>
+                        <div
+                          className="field"
+                          style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}
+                        >
+                          <label style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+                            <input type="checkbox" name="isPending" />
+                            {t("cases.hearings.pendingHint")}
+                          </label>
+                          <div style={{ marginTop: 10 }}>
+                            <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                              {t("cases.hearings.pendingItems.title")}
+                            </div>
+                            <label style={{ display: "inline-flex", alignItems: "center", gap: 5, marginInlineEnd: 14 }}>
+                              <input type="checkbox" name="pendingItem_minutes" />
+                              {t("cases.hearings.pendingItems.minutes")}
+                            </label>
+                            <label style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                              <input type="checkbox" name="pendingItem_nextHearing" />
+                              {t("cases.hearings.pendingItems.nextHearing")}
+                            </label>
+                            <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <span className="sub">{t("cases.hearings.recurLabel")}</span>
+                              <input type="number" name="reminderRecurDays" min={1} defaultValue={7} style={{ width: 70 }} />
+                              <span className="sub">{t("cases.hearings.recurUnit")}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
                     }
                   />
                 </form>

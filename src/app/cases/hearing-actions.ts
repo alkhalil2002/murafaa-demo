@@ -30,6 +30,10 @@ export async function recordHearingAction(formData: FormData): Promise<void> {
   const kindRaw = String(formData.get("kind") ?? "");
   const stageIndexRaw = String(formData.get("stageIndex") ?? "");
   const nextHearingDateRaw = String(formData.get("nextHearingDate") ?? "");
+  const recurDaysRaw = String(formData.get("reminderRecurDays") ?? "");
+  const pendingItems = (["minutes", "nextHearing"] as const).filter(
+    (k) => formData.get(`pendingItem_${k}`) === "on",
+  );
 
   await recordHearing(session, caseId, {
     hearingDate: new Date(String(formData.get("hearingDate") ?? "")),
@@ -39,6 +43,9 @@ export async function recordHearingAction(formData: FormData): Promise<void> {
     result: String(formData.get("result") ?? "") || null,
     clientReport: String(formData.get("clientReport") ?? "") || null,
     nextHearingDate: nextHearingDateRaw ? new Date(nextHearingDateRaw) : null,
+    isPending: formData.get("isPending") === "on",
+    pendingItems,
+    reminderRecurDays: recurDaysRaw ? Number(recurDaysRaw) : null,
   });
 
   revalidatePath(`/cases/${caseId}`);
