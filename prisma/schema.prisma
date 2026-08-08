@@ -1995,6 +1995,11 @@ model CaseApproval {
   title String
   stage ApprovalStage @default(DRAFT)
 
+  /// If set, reaching APPROVED auto-decides that hearing's pending client-report
+  /// approval request (prototype apprAdvance → hrDoSendReport). Plain soft link,
+  /// mirrors Document.hearingId.
+  hearingId String? @map("hearing_id") @db.Uuid
+
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   createdById String?   @map("created_by") @db.Uuid
@@ -2193,8 +2198,15 @@ model ExecutionProcedure {
   type   String
   status ExecutionProcStatus @default(REQUIRED)
   note   String?
+  /// Which side carried out the step (prototype execAddProc party field).
+  party  DocParty?
+  /// The step's actual/backdatable date, distinct from createdAt (prototype exPDate).
+  date   DateTime?
 
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
 
   @@index([caseExecutionId])
   @@map("execution_procedures")

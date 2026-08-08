@@ -21,7 +21,7 @@ import { askAction } from "@/app/ai/actions";
 import { AiAnswer } from "@/components/ai-answer";
 import { listContracts } from "@/server/contracts";
 import { addContractAction, toggleContractSignedAction, deleteContractAction } from "../contract-actions";
-import { getExecution } from "@/server/execution";
+import { getExecution, EXEC_PROC_TYPES } from "@/server/execution";
 import { getHearingActions } from "@/server/hearings";
 import { listClients } from "@/server/clients";
 import { renderConflictMessage } from "@/lib/conflict/service";
@@ -73,10 +73,14 @@ import { promoteStageAction, remandStageAction, endProcedureAction, reopenProced
 import { toggleChecklistAction, setCsatAction, requestReferralAction, archiveCaseAction } from "../closing-actions";
 import {
   openExecutionAction,
+  updateExecutionAction,
   setExecutionStatusAction,
   recordCollectionAction,
   addExecutionProcedureAction,
+  updateExecutionProcedureAction,
+  deleteExecutionProcedureAction,
   cycleExecutionProcedureAction,
+  closeExecutionAction,
 } from "../execution-actions";
 import { NajizPicker, NajizFieldLabel } from "@/components/cases/najiz-picker";
 import { RolePicker } from "@/components/cases/role-picker";
@@ -1937,6 +1941,11 @@ export default async function CaseDetailPage({
       }
       case "approvals": {
         const approvals = await listApprovals(session, id);
+        const approvalUsers = await listAssignableUsers(session);
+        const approvalUserNameById = new Map(approvalUsers.map((u) => [u.id, u.name]));
+        const approvalActorLabel = (ev: { actorUserId: string | null; actor: string | null }) =>
+          (ev.actorUserId && approvalUserNameById.get(ev.actorUserId)) || ev.actor || t("events.actor.system");
+        const pendingReportHearings = c.hearings.filter((h) => h.reportApprovalRequested);
         tabBody = (
           <>
             <div className="panel">
@@ -1947,6 +1956,16 @@ export default async function CaseDetailPage({
                 <form action={createApprovalAction} className="two">
                   <input type="hidden" name="caseId" value={id} />
                   <input type="text" name="title" placeholder={t("cases.approvals.titlePlaceholder")} required />
+                  {pendingReportHearings.length > 0 && (
+                    <select name="hearingId" defaultValue="" title={t("cases.approvals.linkHearing")}>
+                      <option value="">{t("cases.approvals.noHearingLink")}</option>
+                      {pendingReportHearings.map((h) => (
+                        <option key={h.id} value={h.id}>
+                          {t("cases.hearings.sessionNo", { no: (h.sequenceNo ?? 0).toLocaleString("ar-SA") })}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <button type="submit" className="act b-add">
                     {t("cases.approvals.new")}
                   </button>
@@ -1969,6 +1988,14 @@ export default async function CaseDetailPage({
                         {" "}
                         {approvalStageLabel(a.stage)}
                       </span>
+                      {a.hearingId && (
+                        <span className="chip">
+                          {" "}
+                          {t("cases.hearings.sessionNo", {
+                            no: (c.hearings.find((h) => h.id === a.hearingId)?.sequenceNo ?? 0).toLocaleString("ar-SA"),
+                          })}
+                        </span>
+                      )}
                     </span>
                     {canEditCase && a.stage !== ApprovalStage.APPROVED && (
                       <>
@@ -1980,9 +2007,15 @@ export default async function CaseDetailPage({
                           </button>
                         </form>
                         {a.stage !== ApprovalStage.DRAFT && (
-                          <form action={rejectApprovalAction}>
+                          <form action={rejectApprovalAction} style={{ display: "inline-flex", gap: 4 }}>
                             <input type="hidden" name="id" value={a.id} />
                             <input type="hidden" name="caseId" value={id} />
+                            <input
+                              type="text"
+                              name="note"
+                              placeholder={t("cases.approvals.rejectNotePlaceholder")}
+                              style={{ fontSize: 11.5, width: 140 }}
+                            />
                             <button type="submit" className="tinybtn del">
                               {t("cases.approvals.reject")}
                             </button>
@@ -2008,7 +2041,7 @@ export default async function CaseDetailPage({
                       <div style={{ width: "100%", fontSize: 11.5, color: "var(--ink-soft)" }}>
                         {a.log.map((ev) => (
                           <div key={ev.id}>
-                            · {ev.description} ({relTime(ev.occurredAt)})
+                            · {ev.description} — {approvalActorLabel(ev)} ({relTime(ev.occurredAt)})
                           </div>
                         ))}
                       </div>
@@ -2082,20 +2115,77 @@ export default async function CaseDetailPage({
                   <span className="chip">{t("cases.execution.openedAt")}: {fmt(execution.openedAt)}</span>
                 </div>
                 {canEditCase && (
-                  <form action={setExecutionStatusAction} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                    <input type="hidden" name="caseId" value={id} />
-                    <input type="hidden" name="executionId" value={execution.id} />
-                    <select name="status" defaultValue={execution.status}>
-                      {EXEC_FILE_STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {executionFileStatusLabel(s)}
-                        </option>
-                      ))}
-                    </select>
-                    <button type="submit" className="tinybtn">
-                      {t("common.save")}
-                    </button>
-                  </form>
+                  <details style={{ marginBottom: 12 }}>
+                    <summary style={{ cursor: "pointer", fontSize: 12.5, color: "var(--bench)", fontWeight: 600 }}>
+                      {t("cases.execution.editFile")}
+                    </summary>
+                    <form action={updateExecutionAction} style={{ marginTop: 10 }}>
+                      <input type="hidden" name="caseId" value={id} />
+                      <input type="hidden" name="executionId" value={execution.id} />
+                      <div className="two">
+                        <div className="field">
+                          <label>{t("cases.execution.court")}</label>
+                          <input type="text" name="court" defaultValue={execution.court ?? ""} />
+                        </div>
+                        <div className="field">
+                          <label>{t("cases.execution.requestNo")}</label>
+                          <input type="text" name="requestNo" defaultValue={execution.requestNo ?? ""} />
+                        </div>
+                      </div>
+                      <div className="two">
+                        <div className="field">
+                          <label>{t("cases.execution.amount")}</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            name="amount"
+                            defaultValue={execution.amountMinor != null ? halalasToRiyals(execution.amountMinor) : ""}
+                          />
+                        </div>
+                        <div className="field">
+                          <label>{t("cases.execution.debtor")}</label>
+                          <input type="text" name="debtor" defaultValue={execution.debtor ?? ""} />
+                        </div>
+                      </div>
+                      <div className="field">
+                        <label>{t("cases.execution.basis")}</label>
+                        <input type="text" name="basis" defaultValue={execution.basis ?? ""} />
+                      </div>
+                      <div className="actions">
+                        <button type="submit" className="act b-add">
+                          {t("common.save")}
+                        </button>
+                      </div>
+                    </form>
+                  </details>
+                )}
+                {canEditCase && (
+                  <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
+                    <form action={setExecutionStatusAction} style={{ display: "flex", gap: 8 }}>
+                      <input type="hidden" name="caseId" value={id} />
+                      <input type="hidden" name="executionId" value={execution.id} />
+                      <select name="status" defaultValue={execution.status}>
+                        {EXEC_FILE_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {executionFileStatusLabel(s)}
+                          </option>
+                        ))}
+                      </select>
+                      <button type="submit" className="tinybtn">
+                        {t("common.save")}
+                      </button>
+                    </form>
+                    {execution.status !== ExecutionFileStatus.CLOSED && (
+                      <form action={closeExecutionAction}>
+                        <input type="hidden" name="caseId" value={id} />
+                        <input type="hidden" name="executionId" value={execution.id} />
+                        <button type="submit" className="tinybtn del">
+                          {t("cases.execution.close")}
+                        </button>
+                      </form>
+                    )}
+                  </div>
                 )}
                 {canEditCase && (
                   <form action={recordCollectionAction} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
@@ -2116,7 +2206,25 @@ export default async function CaseDetailPage({
                   <form action={addExecutionProcedureAction} className="two" style={{ marginBottom: 12 }}>
                     <input type="hidden" name="caseId" value={id} />
                     <input type="hidden" name="executionId" value={execution.id} />
-                    <input type="text" name="type" placeholder={t("cases.execution.procedureType")} required />
+                    <select name="type" defaultValue="" required>
+                      <option value="" disabled>
+                        {t("cases.execution.procedureType")}
+                      </option>
+                      {EXEC_PROC_TYPES.map((ty) => (
+                        <option key={ty} value={ty}>
+                          {ty}
+                        </option>
+                      ))}
+                    </select>
+                    <select name="party" defaultValue="">
+                      <option value="">{t("cases.execution.procedureParty")}</option>
+                      {DOC_PARTIES.map((p) => (
+                        <option key={p} value={p}>
+                          {docPartyLabel(p)}
+                        </option>
+                      ))}
+                    </select>
+                    <input type="date" name="date" title={t("cases.execution.procedureDate")} />
                     <input type="text" name="note" placeholder={t("cases.execution.procedureNote")} />
                     <button type="submit" className="act b-add" style={{ gridColumn: "span 2" }}>
                       {t("cases.execution.addProcedure")}
@@ -2127,10 +2235,12 @@ export default async function CaseDetailPage({
                   <Empty>{t("cases.execution.noProcedures")}</Empty>
                 ) : (
                   execution.procedures.map((p) => (
-                    <div className="approve-row" key={p.id}>
+                    <div className="approve-row" key={p.id} style={{ flexWrap: "wrap" }}>
                       <span className="ndot" style={{ background: p.status === "EXECUTED" ? "var(--ok)" : "var(--gold)" }} />
                       <span className="at">
                         {p.type}
+                        {p.party && <span className="chip"> {docPartyLabel(p.party)}</span>}
+                        {p.date && <span className="chip"> {fmt(p.date)}</span>}
                         {p.note ? <span className="chip"> {p.note}</span> : null}
                       </span>
                       <span className="chip">{executionProcStatusLabel(p.status)}</span>
@@ -2142,6 +2252,49 @@ export default async function CaseDetailPage({
                             {t("cases.execution.cycleStatus")}
                           </button>
                         </form>
+                      )}
+                      {canEditCase && (
+                        <form action={deleteExecutionProcedureAction}>
+                          <input type="hidden" name="caseId" value={id} />
+                          <input type="hidden" name="procedureId" value={p.id} />
+                          <button type="submit" className="tinybtn del">
+                            {t("cases.execution.deleteProcedure")}
+                          </button>
+                        </form>
+                      )}
+                      {canEditCase && (
+                        <details style={{ width: "100%" }}>
+                          <summary style={{ cursor: "pointer", fontSize: 11.5, color: "var(--bench)" }}>
+                            {t("cases.execution.editProcedure")}
+                          </summary>
+                          <form action={updateExecutionProcedureAction} className="two" style={{ marginTop: 8 }}>
+                            <input type="hidden" name="caseId" value={id} />
+                            <input type="hidden" name="procedureId" value={p.id} />
+                            <select name="type" defaultValue={p.type} required>
+                              {EXEC_PROC_TYPES.map((ty) => (
+                                <option key={ty} value={ty}>
+                                  {ty}
+                                </option>
+                              ))}
+                              {!(EXEC_PROC_TYPES as readonly string[]).includes(p.type) && (
+                                <option value={p.type}>{p.type}</option>
+                              )}
+                            </select>
+                            <select name="party" defaultValue={p.party ?? ""}>
+                              <option value="">{t("cases.execution.procedureParty")}</option>
+                              {DOC_PARTIES.map((dp) => (
+                                <option key={dp} value={dp}>
+                                  {docPartyLabel(dp)}
+                                </option>
+                              ))}
+                            </select>
+                            <input type="date" name="date" defaultValue={p.date ? fmt(p.date) : ""} />
+                            <input type="text" name="note" defaultValue={p.note ?? ""} placeholder={t("cases.execution.procedureNote")} />
+                            <button type="submit" className="tinybtn" style={{ gridColumn: "span 2" }}>
+                              {t("common.save")}
+                            </button>
+                          </form>
+                        </details>
                       )}
                     </div>
                   ))

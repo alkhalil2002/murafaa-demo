@@ -10,7 +10,8 @@ export async function createApprovalAction(formData: FormData): Promise<void> {
   if (!session) redirect("/login");
   const caseId = String(formData.get("caseId") ?? "");
   const title = String(formData.get("title") ?? "");
-  await createApproval(session, caseId, { title });
+  const hearingId = String(formData.get("hearingId") ?? "") || null;
+  await createApproval(session, caseId, { title, hearingId });
   revalidatePath(`/cases/${caseId}`);
 }
 
@@ -28,7 +29,8 @@ export async function rejectApprovalAction(formData: FormData): Promise<void> {
   if (!session) redirect("/login");
   const id = String(formData.get("id") ?? "");
   const caseId = String(formData.get("caseId") ?? "");
-  await rejectApproval(session, id);
+  const note = String(formData.get("note") ?? "");
+  await rejectApproval(session, id, note || null);
   revalidatePath(`/cases/${caseId}`);
 }
 
