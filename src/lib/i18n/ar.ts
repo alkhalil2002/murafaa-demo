@@ -342,6 +342,8 @@ export const ar = {
   "cases.hearings.wz.next": "التالي ›",
   "cases.hearings.rawNotes": "ملاحظات خام عمّا دار في الجلسة",
   "cases.hearings.actionsAfterSaveHint": "اختياري — يمكنك أيضاً إضافة المزيد من المهام والتذكيرات لاحقاً من ملف الجلسة أدناه.",
+  "cases.hearings.requestHint": "طلب إجرائي صدر في هذه الجلسة (اختياري)",
+  "cases.hearings.requestLinked": "طلب من هذه الجلسة",
   "cases.hearings.recordIntro": "قلب القضية. بعد كل جلسة اكتب ملاحظات خام، فيقودك معالج موجّه لصياغة المحضر ومراجعته، وتوزيع الإجراءات (مهام/تذكيرات)، وإرفاق المستندات، وتجهيز تقرير العميل.",
   "cases.hearings.actionDone": "منجز",
   "cases.hearings.actionSave": "حفظ",

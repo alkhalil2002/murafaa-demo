@@ -863,8 +863,9 @@ model Hearing {
   createdById String?   @map("created_by") @db.Uuid
   deletedAt   DateTime? @map("deleted_at")
 
-  reminders CaseReminder[]
-  tasks     Task[]
+  reminders         CaseReminder[]
+  tasks             Task[]
+  procedureRequests ProcedureRequest[]
 
   @@index([officeId, caseId])
   @@index([officeId, hearingDate])
@@ -2028,6 +2029,10 @@ model ProcedureRequest {
 
   caseId String @map("case_id") @db.Uuid
   case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  /// The hearing this request was raised/decided in, if logged from there (docs BR-CASE-11b).
+  hearingId String?  @map("hearing_id") @db.Uuid
+  hearing   Hearing? @relation(fields: [hearingId], references: [id], onDelete: SetNull)
 
   // 0..4 = RECONCILIATION..EXECUTION (matches STAGE_BY_INDEX in cases.ts).
   stageIndex Int @map("stage_index")

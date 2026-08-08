@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { HearingKind } from "@prisma/client";
+import { DocParty, HearingKind } from "@prisma/client";
+import { PROC_REQUEST_TYPES } from "@/server/procedure-requests";
 import { getSession } from "@/lib/auth/session";
 import {
   recordHearing,
@@ -39,6 +40,12 @@ export async function recordHearingAction(formData: FormData): Promise<void> {
   const taskTitle = String(formData.get("actionTaskTitle") ?? "").trim();
   const taskAssigneeId = String(formData.get("actionTaskAssigneeId") ?? "");
   const taskDueAtRaw = String(formData.get("actionTaskDueAt") ?? "");
+  const requestPartyRaw = String(formData.get("actionRequestParty") ?? "");
+  const requestTypeRaw = String(formData.get("actionRequestType") ?? "");
+  const requestText = String(formData.get("actionRequestText") ?? "").trim();
+  const requestType = (PROC_REQUEST_TYPES as readonly string[]).includes(requestTypeRaw)
+    ? (requestTypeRaw as (typeof PROC_REQUEST_TYPES)[number])
+    : null;
 
   await recordHearing(session, caseId, {
     hearingDate: new Date(String(formData.get("hearingDate") ?? "")),
@@ -56,6 +63,9 @@ export async function recordHearingAction(formData: FormData): Promise<void> {
     actionTaskTitle: taskTitle || null,
     actionTaskAssigneeId: taskAssigneeId || null,
     actionTaskDueAt: taskDueAtRaw ? new Date(taskDueAtRaw) : null,
+    actionRequestParty: requestPartyRaw && requestPartyRaw in DocParty ? (requestPartyRaw as DocParty) : null,
+    actionRequestType: requestType,
+    actionRequestText: requestText || null,
   });
 
   revalidatePath(`/cases/${caseId}`);

@@ -56,6 +56,7 @@ const createSchema = z.object({
   party: z.nativeEnum(DocParty),
   type: z.enum(PROC_REQUEST_TYPES).nullish(),
   text: z.string().trim().min(1),
+  hearingId: z.string().uuid().nullish(),
 });
 
 export async function addProcedureRequest(session: AppSession, caseId: string, raw: z.infer<typeof createSchema>) {
@@ -67,6 +68,7 @@ export async function addProcedureRequest(session: AppSession, caseId: string, r
       officeId: session.officeId,
       createdById: session.userId,
       caseId,
+      hearingId: input.hearingId ?? null,
       stageIndex: input.stageIndex,
       party: input.party,
       type: input.type ?? null,

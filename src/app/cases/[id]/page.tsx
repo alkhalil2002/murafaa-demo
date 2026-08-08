@@ -652,6 +652,15 @@ export default async function CaseDetailPage({
               ),
             )
           : {};
+        const procRequestsByHearing = new Map<string, { id: string; party: string; type: string | null; text: string }[]>();
+        for (const reqs of (await listProcedureRequests(session, id)).values()) {
+          for (const r of reqs) {
+            if (!r.hearingId) continue;
+            const list = procRequestsByHearing.get(r.hearingId) ?? [];
+            list.push({ id: r.id, party: r.party, type: r.type, text: r.text });
+            procRequestsByHearing.set(r.hearingId, list);
+          }
+        }
 
         tabBody = (
           <>
@@ -794,6 +803,29 @@ export default async function CaseDetailPage({
                           <div className="field">
                             <label>{t("tasks.dueAt")}</label>
                             <input type="date" name="actionTaskDueAt" />
+                          </div>
+                        </div>
+                        <div className="field" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}>
+                          <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                            {t("cases.hearings.requestHint")}
+                          </div>
+                          <div className="two">
+                            <select name="actionRequestParty" defaultValue="OURS">
+                              {DOC_PARTIES.filter((p) => p !== "COURT").map((p) => (
+                                <option key={p} value={p}>
+                                  {docPartyLabel(p)}
+                                </option>
+                              ))}
+                            </select>
+                            <select name="actionRequestType" defaultValue="">
+                              <option value="">{t("cases.procRequests.typeLabel")}</option>
+                              {PROC_REQUEST_TYPES.map((ty) => (
+                                <option key={ty} value={ty}>
+                                  {ty}
+                                </option>
+                              ))}
+                            </select>
+                            <input type="text" name="actionRequestText" placeholder={t("cases.procRequests.typeLabel")} style={{ gridColumn: "span 2" }} />
                           </div>
                         </div>
                         <div className="sub" style={{ marginTop: 8, marginBottom: 0 }}>
@@ -941,6 +973,16 @@ export default async function CaseDetailPage({
                             </button>
                           </form>
                         )}
+                      </div>
+                    )}
+
+                    {(procRequestsByHearing.get(h.id) ?? []).length > 0 && (
+                      <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {(procRequestsByHearing.get(h.id) ?? []).map((r) => (
+                          <span className="chip" key={r.id} title={t("cases.hearings.requestLinked")}>
+                            {docPartyLabel(r.party as DocParty)} · {r.type ?? r.text}
+                          </span>
+                        ))}
                       </div>
                     )}
 

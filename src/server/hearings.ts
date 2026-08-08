@@ -1,5 +1,6 @@
 import {
   CaseEventType,
+  DocParty,
   HearingKind,
   HearingStatus,
   PermModule,
@@ -21,6 +22,7 @@ import { PermissionError, requireModule } from "@/lib/permissions/guard";
 import { isCaseVisible } from "@/lib/permissions/scope";
 import { createAutoTask } from "./tasks";
 import { generateHearingReportPdf } from "./documents";
+import { PROC_REQUEST_TYPES } from "./procedure-requests";
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
@@ -54,6 +56,10 @@ const recordSchema = z.object({
   actionTaskTitle: z.string().trim().min(1).nullish(),
   actionTaskAssigneeId: z.string().uuid().nullish(),
   actionTaskDueAt: z.coerce.date().nullish(),
+  /** Optional procedural request (e.g. طلب ندب خبير) raised/decided in this hearing. */
+  actionRequestParty: z.nativeEnum(DocParty).nullish(),
+  actionRequestType: z.enum(PROC_REQUEST_TYPES).nullish(),
+  actionRequestText: z.string().trim().min(1).nullish(),
 });
 export type RecordHearingInput = z.infer<typeof recordSchema>;
 
@@ -148,6 +154,28 @@ export async function recordHearing(session: AppSession, caseId: string, raw: Re
           category: TaskCategory.PROCEDURAL_FOLLOWUP,
           origin: TaskSource.HEARING_ACTION,
         },
+      });
+    }
+    if (input.actionRequestText) {
+      const created = await tx.procedureRequest.create({
+        data: {
+          officeId: session.officeId,
+          createdById: session.userId,
+          caseId,
+          hearingId: hearing.id,
+          stageIndex: input.stageIndex ?? 0,
+          party: input.actionRequestParty ?? DocParty.OURS,
+          type: input.actionRequestType ?? null,
+          text: input.actionRequestText,
+        },
+      });
+      await logCaseEvent(tx, {
+        officeId: session.officeId,
+        caseId,
+        type: CaseEventType.REQUEST,
+        description: t("event.procedureRequestAdded", { text: input.actionRequestType ?? input.actionRequestText }),
+        actorUserId: session.userId,
+        procedureRequestId: created.id,
       });
     }
 
