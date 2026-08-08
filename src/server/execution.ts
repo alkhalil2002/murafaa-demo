@@ -1,4 +1,11 @@
-import { DocParty, ExecutionFileStatus, ExecutionProcStatus, PermModule } from "@prisma/client";
+import {
+  DocParty,
+  ExecutionFileStatus,
+  ExecutionProcStatus,
+  PermModule,
+  TaskCategory,
+  TaskSource,
+} from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
@@ -213,22 +220,60 @@ const addProcSchema = z.object({
   note: z.string().trim().nullish(),
   party: z.nativeEnum(DocParty).nullish(),
   date: z.coerce.date().nullish(),
+  followUpDate: z.coerce.date().nullish(),
+  followUpAssigneeId: z.string().uuid().nullish(),
 });
 export type AddExecutionProcedureInput = z.infer<typeof addProcSchema>;
 
+/** A follow-up date auto-creates a linked reminder (+ a task if an assignee
+ * is given), prototype execSyncFollowReminder/execSyncFollowTask — set once
+ * at creation, so the staff member doesn't have to separately remember to
+ * add a reminder for the enforcement step they just logged. */
 export async function addExecutionProcedure(session: AppSession, executionId: string, raw: AddExecutionProcedureInput) {
   await requireModule(session, PermModule.CASES, "edit");
   const input = addProcSchema.parse(raw);
-  await loadOwnExecution(session, executionId);
-  return prisma.executionProcedure.create({
-    data: {
-      caseExecutionId: executionId,
-      createdById: session.userId,
-      type: input.type,
-      note: input.note ?? null,
-      party: input.party ?? null,
-      date: input.date ?? null,
-    },
+  const ex = await loadOwnExecution(session, executionId);
+
+  return prisma.$transaction(async (tx) => {
+    const created = await tx.executionProcedure.create({
+      data: {
+        caseExecutionId: executionId,
+        createdById: session.userId,
+        type: input.type,
+        note: input.note ?? null,
+        party: input.party ?? null,
+        date: input.date ?? null,
+        followUpDate: input.followUpDate ?? null,
+        followUpAssigneeId: input.followUpAssigneeId ?? null,
+      },
+    });
+    if (input.followUpDate) {
+      const reminder = await tx.caseReminder.create({
+        data: {
+          officeId: session.officeId,
+          createdById: session.userId,
+          caseId: ex.caseId,
+          text: t("cases.execution.followUpReminderText", { type: input.type }),
+          dueOn: input.followUpDate,
+        },
+      });
+      await tx.executionProcedure.update({ where: { id: created.id }, data: { reminderId: reminder.id } });
+      if (input.followUpAssigneeId) {
+        await tx.task.create({
+          data: {
+            officeId: session.officeId,
+            createdById: session.userId,
+            caseId: ex.caseId,
+            title: t("cases.execution.followUpReminderText", { type: input.type }),
+            assigneeId: input.followUpAssigneeId,
+            dueAt: input.followUpDate,
+            category: TaskCategory.PROCEDURAL_FOLLOWUP,
+            origin: TaskSource.AUTO_EXECUTION_FOLLOWUP,
+          },
+        });
+      }
+    }
+    return created;
   });
 }
 

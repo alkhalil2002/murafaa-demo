@@ -164,6 +164,7 @@ enum TaskSource {
   AUTO_HEARING_PREP
   AUTO_OBJECTION
   HEARING_ACTION
+  AUTO_EXECUTION_FOLLOWUP
 }
 
 /// Standalone appointment type (prototype apptType).
@@ -2202,6 +2203,13 @@ model ExecutionProcedure {
   party  DocParty?
   /// The step's actual/backdatable date, distinct from createdAt (prototype exPDate).
   date   DateTime?
+
+  /// Follow-up date + assignee (prototype execSyncFollowReminder/execSyncFollowTask):
+  /// set at creation time, auto-generates a linked CaseReminder (see reminderId).
+  followUpDate       DateTime? @map("follow_up_date")
+  followUpAssigneeId String?   @map("follow_up_assignee_id") @db.Uuid
+  /// The auto-created reminder for followUpDate, plain soft link (mirrors Document.hearingId).
+  reminderId         String?   @map("reminder_id") @db.Uuid
 
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")

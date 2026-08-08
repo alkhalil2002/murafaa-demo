@@ -2056,6 +2056,7 @@ export default async function CaseDetailPage({
       }
       case "execution": {
         const execution = await getExecution(session, id);
+        const executionAssignableUsers = canEditCase ? await listAssignableUsers(session) : [];
         if (!execution) {
           tabBody = (
             <div className="panel">
@@ -2226,6 +2227,15 @@ export default async function CaseDetailPage({
                     </select>
                     <input type="date" name="date" title={t("cases.execution.procedureDate")} />
                     <input type="text" name="note" placeholder={t("cases.execution.procedureNote")} />
+                    <input type="date" name="followUpDate" title={t("cases.execution.followUpDate")} />
+                    <select name="followUpAssigneeId" defaultValue="" title={t("cases.execution.followUpAssignee")}>
+                      <option value="">{t("cases.execution.followUpAssignee")}</option>
+                      {executionAssignableUsers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
                     <button type="submit" className="act b-add" style={{ gridColumn: "span 2" }}>
                       {t("cases.execution.addProcedure")}
                     </button>

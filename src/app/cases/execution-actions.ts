@@ -86,7 +86,13 @@ export async function addExecutionProcedureAction(formData: FormData): Promise<v
   if (!session) redirect("/login");
   const caseId = String(formData.get("caseId") ?? "");
   const executionId = String(formData.get("executionId") ?? "");
-  await addExecutionProcedure(session, executionId, procedureInputFromForm(formData));
+  const followUpDateRaw = String(formData.get("followUpDate") ?? "");
+  const followUpAssigneeId = String(formData.get("followUpAssigneeId") ?? "");
+  await addExecutionProcedure(session, executionId, {
+    ...procedureInputFromForm(formData),
+    followUpDate: followUpDateRaw ? new Date(followUpDateRaw) : null,
+    followUpAssigneeId: followUpAssigneeId || null,
+  });
   revalidatePath(`/cases/${caseId}`);
 }
 

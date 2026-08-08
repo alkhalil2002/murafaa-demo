@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "TaskSource" ADD VALUE 'AUTO_EXECUTION_FOLLOWUP';
+

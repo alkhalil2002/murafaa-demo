@@ -557,6 +557,9 @@ export const ar = {
   "cases.execution.editProcedure": "✎ تعديل",
   "cases.execution.deleteProcedure": "حذف",
   "cases.execution.close": "🔒 إغلاق الملف",
+  "cases.execution.followUpDate": "تاريخ المتابعة (اختياري)",
+  "cases.execution.followUpAssignee": "إسناد المتابعة إلى",
+  "cases.execution.followUpReminderText": "متابعة إجراء تنفيذ: {type}",
   "cases.execution.noProcedures": "لا إجراءات مسجّلة بعد.",
   "cases.execution.cycleStatus": "↻ الحالة",
 
