@@ -1,4 +1,4 @@
-import { Prisma, RequestKind, RequestStatus, PermModule } from "@prisma/client";
+import { LeaveType, Prisma, RequestKind, RequestStatus, PermModule } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
@@ -83,6 +83,38 @@ export async function decideRequest(session: AppSession, requestId: string, raw:
       at: new Date().toISOString(),
       ...(input.note ? { note: input.note } : {}),
     };
+
+    // Approving a LEAVE request must actually take effect — create the real
+    // Leave record (which deducts leaveBalanceDays for ANNUAL type) rather
+    // than just flipping this request's status. Without `days` there is
+    // nothing to deduct, so surface that clearly instead of silently
+    // approving a request that changes nothing.
+    if (input.status === RequestStatus.APPROVED && existing.kind === RequestKind.LEAVE) {
+      if (!existing.days) throw new Error("LEAVE_REQUEST_MISSING_DAYS");
+      const drawn = await tx.employee.updateMany({
+        where: {
+          id: existing.employeeId,
+          officeId: session.officeId,
+          deletedAt: null,
+          leaveBalanceDays: { gte: existing.days },
+        },
+        data: { leaveBalanceDays: { decrement: existing.days } },
+      });
+      if (drawn.count !== 1) throw new Error("LEAVE_BALANCE_INSUFFICIENT");
+      await tx.leave.create({
+        data: {
+          officeId: session.officeId,
+          createdById: session.userId,
+          employeeId: existing.employeeId,
+          type: LeaveType.ANNUAL,
+          days: existing.days,
+          startDate: new Date(),
+          note: existing.detail,
+          deductedBalance: true,
+        },
+      });
+    }
+
     return tx.employeeRequest.update({
       where: { id: requestId },
       data: {

@@ -40,6 +40,11 @@ export function daysLeft(date: Date | string, at: Date = now()): number {
   return Math.round((target.getTime() - today.getTime()) / DAY_MS);
 }
 
+/** Whole calendar days since `date` (Riyadh) — the positive complement of daysLeft, for "قبل N يوماً" timeline captions. */
+export function daysAgo(date: Date | string, at: Date = now()): number {
+  return -daysLeft(date, at);
+}
+
 /** Today (Riyadh) + n days, as a UTC-midnight Date (docs/06 dateInDays). */
 export function dateInDays(n: number, at: Date = now()): Date {
   const base = riyadhCalendarDate(at);

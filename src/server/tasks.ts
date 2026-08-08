@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { logPerformance } from "@/lib/performance";
 import type { AppSession } from "@/lib/auth/types";
 import { PermissionError, requireModule } from "@/lib/permissions/guard";
 import { caseScopeWhere } from "@/lib/permissions/scope";
@@ -86,8 +87,13 @@ export async function moveTask(session: AppSession, id: string, status: TaskColu
     },
   });
   await logAudit({ session, action: "task.move", resource: "tasks", targetId: id, detail: status });
-  // NOTE: completion performance points feed the Pulse module (Phase 6),
-  // credited to task.assigneeId — wired up there.
+  if (status === TaskColumn.DONE && task.assigneeId) {
+    await logPerformance(prisma, {
+      officeId: session.officeId,
+      userId: task.assigneeId,
+      kind: "TASK_COMPLETED",
+    });
+  }
   return updated;
 }
 

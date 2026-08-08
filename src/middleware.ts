@@ -19,7 +19,10 @@ export default auth((req) => {
     pathname === "/login" ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico";
+    pathname === "/favicon.ico" ||
+    // Client portal has its own separate session (src/lib/auth/portal-session.ts),
+    // checked in-page — never gated by the staff Auth.js session here.
+    pathname.startsWith("/portal");
 
   if (!isLoggedIn && !isPublic) {
     const url = new URL("/login", req.nextUrl.origin);

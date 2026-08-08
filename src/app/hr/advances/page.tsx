@@ -53,7 +53,7 @@ export default async function AdvancesPage({ searchParams }: { searchParams: Pro
         {advances.length === 0 ? (
           <p className="text-ink-soft">{t("hr.empty.advances")}</p>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+          <div className="panel overflow-x-auto">
             <table className="w-full text-right text-sm">
               <thead className="border-b border-line text-ink-soft">
                 <tr>
@@ -91,7 +91,7 @@ export default async function AdvancesPage({ searchParams }: { searchParams: Pro
 
   return (
     <AppShell>
-      <h1 className="mb-4 font-serif text-3xl text-bench">{t("hr.title")}</h1>
+      <div className="vhead"><h2>{t("hr.title")}</h2></div>
       <HrTabs />
       <ErrBanner code={err} />
       {content}

@@ -24,37 +24,29 @@ export default async function GenerateDocumentPage({
     const form = await prepareGenerateForm(session, key, caseId ?? null);
     content = (
       <>
-        <div className="mb-4 flex items-center gap-3">
-          <Link href={`/documents${caseId ? `?caseId=${caseId}` : ""}`} className="text-sm text-ink-soft hover:underline">
-            → {t("documents.templates")}
-          </Link>
+        <Link href={`/documents${caseId ? `?caseId=${caseId}` : ""}`} className="backbtn">
+          ‹ {t("documents.templates")}
+        </Link>
+        <div className="vhead">
+          <h2>{form.template.title}</h2>
+          <span className="pill">
+            {form.caseTitle
+              ? t("documents.caseAutofill", { title: form.caseTitle })
+              : t("documents.noCaseAutofill")}
+          </span>
         </div>
-        <h1 className="font-serif text-3xl text-bench">{form.template.title}</h1>
-        <p className="mt-1 mb-6 text-sm text-ink-soft">
-          {form.caseTitle
-            ? t("documents.caseAutofill", { title: form.caseTitle })
-            : t("documents.noCaseAutofill")}
-        </p>
 
-        <form action={generateAction} className="max-w-3xl space-y-4">
+        <form action={generateAction} className="panel">
           <input type="hidden" name="templateKey" value={form.template.key} />
           {form.caseId && <input type="hidden" name="caseId" value={form.caseId} />}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="two">
             {form.fields.map((f) => {
               const value = form.values[f.id] ?? "";
-              const full = f.type === "textarea" ? "md:col-span-2" : "";
               return (
-                <div key={f.id} className={`flex flex-col gap-1 ${full}`}>
-                  <label htmlFor={`field_${f.id}`} className="text-sm font-medium">
-                    {f.label}
-                  </label>
+                <div key={f.id} className="field" style={f.type === "textarea" ? { gridColumn: "span 2" } : undefined}>
+                  <label htmlFor={`field_${f.id}`}>{f.label}</label>
                   {f.type === "select" ? (
-                    <select
-                      id={`field_${f.id}`}
-                      name={`field_${f.id}`}
-                      defaultValue={value}
-                      className="rounded-xl border border-line bg-white px-3 py-2 text-sm"
-                    >
+                    <select id={`field_${f.id}`} name={`field_${f.id}`} defaultValue={value}>
                       {(f.options ?? []).map((o) => (
                         <option key={o} value={o}>
                           {o}
@@ -62,31 +54,24 @@ export default async function GenerateDocumentPage({
                       ))}
                     </select>
                   ) : f.type === "textarea" ? (
-                    <textarea
-                      id={`field_${f.id}`}
-                      name={`field_${f.id}`}
-                      defaultValue={value}
-                      rows={3}
-                      className="rounded-xl border border-line bg-white px-3 py-2 text-sm"
-                    />
+                    <textarea id={`field_${f.id}`} name={`field_${f.id}`} defaultValue={value} rows={3} />
                   ) : (
                     <input
+                      type="text"
                       id={`field_${f.id}`}
                       name={`field_${f.id}`}
                       defaultValue={value}
-                      className="rounded-xl border border-line bg-white px-3 py-2 text-sm"
                     />
                   )}
                 </div>
               );
             })}
           </div>
-          <button
-            type="submit"
-            className="rounded-xl bg-bench px-5 py-2.5 text-sm font-medium text-white hover:bg-bench-2"
-          >
-            {t("documents.generate")}
-          </button>
+          <div className="actions">
+            <button type="submit" className="act b-add">
+              {t("documents.generate")}
+            </button>
+          </div>
         </form>
       </>
     );

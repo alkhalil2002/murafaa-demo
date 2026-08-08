@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AdvanceStatus, EmployeeStatus, PermModule } from "@prisma/client";
+import { AdvanceStatus, EmployeeStatus, PermModule, Role } from "@prisma/client";
 import { AppShell, DeniedPanel } from "@/components/app-shell";
 import { ErrBanner, Pill } from "@/components/hr-ui";
 import { getSession } from "@/lib/auth/session";
@@ -13,10 +13,12 @@ import {
   leaveTypeLabel,
   requestKindLabel,
   requestStatusLabel,
+  roleLabel,
 } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
+import { maskIban } from "@/lib/format";
 import { t } from "@/lib/i18n";
-import { terminateEmployeeAction } from "../actions";
+import { terminateEmployeeAction, grantEmployeeAccountAction } from "../actions";
 
 const fmtDate = (d: Date) => new Date(d).toISOString().slice(0, 10);
 
@@ -45,35 +47,77 @@ export default async function EmployeePage({
 
     content = (
       <>
-        <Link href="/hr" className="text-sm text-ink-soft hover:underline">→ {t("hr.tab.employees")}</Link>
-        <div className="mt-2 flex items-center gap-3">
-          <h1 className="font-serif text-3xl text-bench">{emp.name}</h1>
+        <Link href="/hr" className="backbtn">
+          ‹ {t("hr.tab.employees")}
+        </Link>
+        <div className="vhead">
+          <h2>{emp.name}</h2>
           <Pill tone={terminated ? "muted" : "ok"}>{employeeStatusLabel(emp.status)}</Pill>
+          <span className="pill">{[emp.jobTitle, emp.department].filter(Boolean).join(" · ") || "—"}</span>
         </div>
-        <p className="mt-1 text-ink-soft">
-          {[emp.jobTitle, emp.department].filter(Boolean).join(" · ") || "—"}
-        </p>
 
-        <div className="mt-5 grid grid-cols-2 gap-4 rounded-2xl border border-line bg-white p-5 text-sm md:grid-cols-4">
+        <div className="kpis">
           <Field label={t("hr.nationality")} value={emp.nationality} />
           <Field label={t("hr.hireDate")} value={fmtDate(emp.hireDate)} />
           <Field label={t("hr.basicSalary")} value={formatSar(emp.basicSalary)} />
           <Field label={t("hr.allowances")} value={formatSar(emp.allowances)} />
           <Field label={t("hr.gosi")} value={formatSar(emp.gosiContribution)} />
           <Field label={t("hr.leaveBalance")} value={`${emp.leaveBalanceDays}`} />
-          {emp.iban ? <Field label="IBAN" value={emp.iban} /> : null}
+          {emp.iban ? <Field label="IBAN" value={maskIban(emp.iban)} /> : null}
           {emp.performanceScore != null ? <Field label={t("hr.performance")} value={`${emp.performanceScore}`} /> : null}
         </div>
 
-        {/* End of service */}
-        <div className="mt-4 rounded-2xl border border-line bg-white p-5">
-          <div className="text-xs text-ink-soft">{terminated ? t("hr.eos.due") : t("hr.eos.preview")}</div>
-          <div className="mt-1 font-serif text-2xl text-bench">{formatSar(eos.awardMinor)}</div>
-          <div className="mt-0.5 text-xs text-ink-soft">
+        <div className="panel">
+          <div className="sub" style={{ marginBottom: 4 }}>
+            {terminated ? t("hr.eos.due") : t("hr.eos.preview")}
+          </div>
+          <div style={{ fontFamily: "var(--font-amiri), serif", fontSize: 24, color: "var(--bench)" }}>
+            {formatSar(eos.awardMinor)}
+          </div>
+          <div className="sub" style={{ marginTop: 4, marginBottom: 0 }}>
             {t("hr.serviceYears")}: {eos.years ?? "—"}
             {terminated && emp.terminatedAt ? ` · ${fmtDate(emp.terminatedAt)}` : ""}
           </div>
         </div>
+
+        <Section title={t("hr.account.title")}>
+          {emp.user ? (
+            <div className="panel">
+              <div className="approve-row" style={{ border: "none", padding: 0 }}>
+                <span className="ndot" style={{ background: emp.user.isActive ? "var(--ok)" : "var(--ink-soft)" }} />
+                <span className="at">
+                  {emp.user.name}
+                  <span className="chip"> {roleLabel(emp.user.role)}</span>
+                </span>
+                <span className="chip" dir="ltr">{emp.user.phone}</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-ink-soft">{t("hr.account.none")}</p>
+              {canTerminate && (
+                <form action={grantEmployeeAccountAction} className="mt-2 flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4">
+                  <input type="hidden" name="employeeId" value={emp.id} />
+                  <label className="text-sm">
+                    <span className="mb-1 block text-ink-soft">{t("hr.account.phone")}</span>
+                    <input type="text" name="phone" dir="ltr" placeholder="5XXXXXXXX" required className="w-full rounded-lg border border-line bg-parch px-3 py-2 text-sm" />
+                  </label>
+                  <label className="text-sm">
+                    <span className="mb-1 block text-ink-soft">{t("hr.account.role")}</span>
+                    <select name="role" defaultValue={Role.RECEPTION} className="w-full rounded-lg border border-line bg-parch px-3 py-2 text-sm">
+                      {Object.values(Role).map((r) => (
+                        <option key={r} value={r}>{roleLabel(r)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button type="submit" className="rounded-lg bg-bench px-4 py-2 text-sm font-medium text-white hover:bg-bench-2">
+                    {t("hr.account.grant")}
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+        </Section>
 
         <Section title={t("hr.advances")}>
           <MiniTable
@@ -132,9 +176,11 @@ export default async function EmployeePage({
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <div className="text-xs text-ink-soft">{label}</div>
-      <div className="mt-0.5">{value}</div>
+    <div className="kpi">
+      <div className="v" style={{ fontSize: 18 }}>
+        {value}
+      </div>
+      <div className="l">{label}</div>
     </div>
   );
 }
@@ -151,7 +197,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function MiniTable({ head, rows, empty }: { head: string[]; rows: string[][]; empty: string }) {
   if (rows.length === 0) return <p className="text-sm text-ink-soft">{empty}</p>;
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+    <div className="panel overflow-x-auto">
       <table className="w-full text-right text-sm">
         <thead className="border-b border-line text-ink-soft">
           <tr>{head.map((h) => <th key={h} className="p-3 font-medium">{h}</th>)}</tr>

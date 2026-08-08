@@ -8,6 +8,7 @@ import {
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { logPerformance } from "@/lib/performance";
 import type { AppSession } from "@/lib/auth/types";
 import { PermissionError, requireModule } from "@/lib/permissions/guard";
 import {
@@ -128,6 +129,11 @@ export async function createInvoiceInTx(
       { code: ACC.FEE_REVENUE, credit: net },
       { code: ACC.VAT_PAYABLE, credit: vat },
     ],
+  });
+  await logPerformance(tx, {
+    officeId: session.officeId,
+    userId: session.userId,
+    kind: "INVOICE_CREATED",
   });
   return invoice;
 }
@@ -367,10 +373,10 @@ function toDTO(inv: {
   };
 }
 
-export async function listInvoices(session: AppSession): Promise<InvoiceDTO[]> {
+export async function listInvoices(session: AppSession, caseId?: string): Promise<InvoiceDTO[]> {
   await requireModule(session, PermModule.FINANCE, "view");
   const rows = await prisma.invoice.findMany({
-    where: { officeId: session.officeId, deletedAt: null },
+    where: { officeId: session.officeId, deletedAt: null, ...(caseId ? { caseId } : {}) },
     orderBy: { createdAt: "desc" },
     include: { client: { select: { name: true } }, case: { select: { title: true } }, payments: { select: { amount: true } } },
   });

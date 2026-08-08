@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
   const result = await sendOtp(parsed.data.phone, parsed.data.channel ?? "whatsapp");
   if (result.ok) {
-    return ok({ sent: true });
+    return ok({ sent: true, devCode: result.devCode });
   }
 
   switch (result.code) {

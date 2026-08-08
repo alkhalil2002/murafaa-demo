@@ -6,6 +6,10 @@ const ERR_KEYS = new Set([
   "NO_ACTIVE_EMPLOYEES",
   "NO_PAYABLE_SALARIES",
   "LEAVE_BALANCE_INSUFFICIENT",
+  "LEAVE_REQUEST_MISSING_DAYS",
+  "PHONE_INVALID",
+  "EMPLOYEE_ALREADY_HAS_ACCOUNT",
+  "PHONE_ALREADY_IN_USE",
   "INSTALLMENT_EXCEEDS_AMOUNT",
   "INSTALLMENT_TOO_SMALL",
   "EMPLOYEE_ALREADY_TERMINATED",
@@ -28,13 +32,17 @@ export function ErrBanner({ code }: { code?: string }) {
   );
 }
 
-/** A compact KPI card. */
+/** A compact KPI card, reproducing the prototype's `.kpi`. */
 export function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-white p-4">
-      <div className="text-xs text-ink-soft">{label}</div>
-      <div className="mt-1 font-serif text-2xl text-bench">{value}</div>
-      {hint ? <div className="mt-0.5 text-xs text-ink-soft">{hint}</div> : null}
+    <div className="kpi">
+      <div className="v">{value}</div>
+      <div className="l">{label}</div>
+      {hint ? (
+        <div className="l" style={{ marginTop: 2 }}>
+          {hint}
+        </div>
+      ) : null}
     </div>
   );
 }

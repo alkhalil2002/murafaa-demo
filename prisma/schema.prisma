@@ -465,44 +465,54 @@ model Office {
   branding        Json?
   /// Governance: when on, new payments/expenses await partner approval.
   requireApproval Boolean   @default(false) @map("require_approval")
+  /// Staff login IP allowlist (exact addresses or CIDR-style prefixes as plain
+  /// strings, matched by src/lib/security/ip.ts). Empty = unrestricted (default).
+  ipAllowlist     String[]  @default([]) @map("ip_allowlist")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   deletedAt       DateTime? @map("deleted_at")
 
-  users             User[]
-  clients           Client[]
-  cases             Case[]
-  leads             Lead[]
-  tasks             Task[]
-  appointments      Appointment[]
-  hearings          Hearing[]
-  caseEvents        CaseEvent[]
-  caseReminders     CaseReminder[]
-  conflictFlags     ConflictFlag[]
-  documents         Document[]
-  documentTemplates DocumentTemplate[]
-  invoices          Invoice[]
-  payments          Payment[]
-  creditNotes       CreditNote[]
-  expenses          Expense[]
-  timeEntries       TimeEntry[]
-  feeAgreements     CaseFeeAgreement[]
-  trustAccounts     TrustAccount[]
-  trustTransactions TrustTransaction[]
-  chartOfAccounts   ChartOfAccount[]
-  journalEntries    JournalEntry[]
-  accountingPeriods AccountingPeriod[]
-  aiInteractions    AiInteraction[]
-  permissions       Permission[]
-  fieldDenies       FieldPermission[]
-  caseScopes        RoleCaseScope[]
-  auditLogs         AuditLog[]
-  otps              OtpChallenge[]
-  employees         Employee[]
-  advances          Advance[]
-  leaves            Leave[]
-  employeeRequests  EmployeeRequest[]
-  payrollRuns       PayrollRun[]
+  users                User[]
+  clients              Client[]
+  cases                Case[]
+  leads                Lead[]
+  tasks                Task[]
+  appointments         Appointment[]
+  hearings             Hearing[]
+  caseEvents           CaseEvent[]
+  caseReminders        CaseReminder[]
+  conflictFlags        ConflictFlag[]
+  documents            Document[]
+  documentTemplates    DocumentTemplate[]
+  invoices             Invoice[]
+  payments             Payment[]
+  creditNotes          CreditNote[]
+  expenses             Expense[]
+  timeEntries          TimeEntry[]
+  feeAgreements        CaseFeeAgreement[]
+  trustAccounts        TrustAccount[]
+  trustTransactions    TrustTransaction[]
+  chartOfAccounts      ChartOfAccount[]
+  journalEntries       JournalEntry[]
+  accountingPeriods    AccountingPeriod[]
+  aiInteractions       AiInteraction[]
+  permissions          Permission[]
+  fieldDenies          FieldPermission[]
+  caseScopes           RoleCaseScope[]
+  auditLogs            AuditLog[]
+  otps                 OtpChallenge[]
+  employees            Employee[]
+  advances             Advance[]
+  leaves               Leave[]
+  employeeRequests     EmployeeRequest[]
+  payrollRuns          PayrollRun[]
+  performanceEvents    PerformanceEvent[]
+  caseApprovals        CaseApproval[]
+  caseExecutions       CaseExecution[]
+  procedureRequests    ProcedureRequest[]
+  clientCommunications ClientCommunication[]
+  caseMessages         CaseMessage[]
+  contracts            Contract[]
 
   @@map("offices")
 }
@@ -523,17 +533,22 @@ model User {
   /// Owner is modeled as PARTNER — there is no implicit god mode.
   isActive Boolean @default(true) @map("is_active")
 
+  /// TOTP two-factor secret (base32), set once 2FA is confirmed-enabled.
+  totpSecret  String? @map("totp_secret")
+  totpEnabled Boolean @default(false) @map("totp_enabled")
+
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   createdById String?   @map("created_by") @db.Uuid
   deletedAt   DateTime? @map("deleted_at")
 
-  assignedCases   CaseAssignee[]
-  auditLogs       AuditLog[]
-  tasks           Task[]         @relation("TaskAssignee")
-  waivedConflicts ConflictFlag[] @relation("ConflictWaivedBy")
-  timeEntries     TimeEntry[]    @relation("TimeEntryLawyer")
-  employee        Employee?      @relation("EmployeeUser")
+  assignedCases     CaseAssignee[]
+  auditLogs         AuditLog[]
+  tasks             Task[]             @relation("TaskAssignee")
+  waivedConflicts   ConflictFlag[]     @relation("ConflictWaivedBy")
+  timeEntries       TimeEntry[]        @relation("TimeEntryLawyer")
+  employee          Employee?          @relation("EmployeeUser")
+  performanceEvents PerformanceEvent[]
 
   @@unique([officeId, phone])
   @@index([officeId])
@@ -673,6 +688,9 @@ model Case {
   /// Free text (no FK): the opponent is not necessarily in our system.
   opposingParty String? @map("opposing_party")
 
+  /// Optional free-text entity/organization on our side (prototype "الجهة"), distinct from the linked client.
+  entity String?
+
   /// Najiz classification (main → sub → leaf). Stored as strings validated
   /// against the NajizClassification reference table.
   najizMainClass String? @map("najiz_main_class")
@@ -700,6 +718,12 @@ model Case {
   /// Power-of-attorney (الوكالة الشرعية) expiry — surfaced as a deadline.
   poaExpiresAt DateTime? @map("poa_expires_at")
 
+  /// Increments on "إعادة" (arena reset, prototype arenaReset()) — the arena
+  /// thread id is derived as `arena:{caseId}:{arenaSessionSeq}`, so a reset
+  /// starts a fresh round-1 thread WITHOUT deleting prior AiInteraction rows
+  /// (those stay as the permanent AI audit trail, docs/02 §6/§9).
+  arenaSessionSeq Int @default(1) @map("arena_session_seq")
+
   // ── closing / lifecycle ──
   clientSatisfactionScore Int?    @map("client_satisfaction_score")
   referralRequested       Boolean @default(false) @map("referral_requested")
@@ -707,6 +731,8 @@ model Case {
   isArchived              Boolean @default(false) @map("is_archived")
   procEnded               Boolean @default(false) @map("proc_ended")
   procResult              String? @map("proc_result")
+  /// Fixed 4-item closing checklist (prototype closingHtml), {key: boolean}.
+  closingChecklist        Json?   @map("closing_checklist")
 
   // ── conflict-of-interest denormalized cache (docs/06 §4) ──
   /// Highest ACTIVE conflict severity; null = no active conflict. Drives the
@@ -719,19 +745,25 @@ model Case {
   createdById String?   @map("created_by") @db.Uuid
   deletedAt   DateTime? @map("deleted_at")
 
-  assignees      CaseAssignee[]
-  hearings       Hearing[]
-  events         CaseEvent[]
-  reminders      CaseReminder[]
-  tasks          Task[]
-  documents      Document[]
-  invoices       Invoice[]
-  expenses       Expense[]
-  timeEntries    TimeEntry[]
-  feeAgreement   CaseFeeAgreement?
-  aiInteractions AiInteraction[]
-  conflictFlags  ConflictFlag[]    @relation("ConflictCase")
-  convertedFrom  Lead[]            @relation("LeadConvertedCase")
+  assignees         CaseAssignee[]
+  hearings          Hearing[]
+  events            CaseEvent[]
+  reminders         CaseReminder[]
+  tasks             Task[]
+  documents         Document[]
+  invoices          Invoice[]
+  expenses          Expense[]
+  timeEntries       TimeEntry[]
+  feeAgreement      CaseFeeAgreement?
+  aiInteractions    AiInteraction[]
+  conflictFlags     ConflictFlag[]        @relation("ConflictCase")
+  convertedFrom     Lead[]                @relation("LeadConvertedCase")
+  approvals         CaseApproval[]
+  execution         CaseExecution?
+  procedureRequests ProcedureRequest[]
+  communications    ClientCommunication[]
+  messages          CaseMessage[]
+  contracts         Contract[]
 
   @@index([officeId])
   @@index([officeId, clientId])
@@ -826,6 +858,7 @@ model Hearing {
   deletedAt   DateTime? @map("deleted_at")
 
   reminders CaseReminder[]
+  tasks     Task[]
 
   @@index([officeId, caseId])
   @@index([officeId, hearingDate])
@@ -842,11 +875,15 @@ model CaseEvent {
   caseId String @map("case_id") @db.Uuid
   case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  type        CaseEventType
-  description String
+  type               CaseEventType
+  description        String
   /// Free actor label (المحامي/الخصم/المحكمة/النظام); internal actor by FK.
-  actor       String?
-  actorUserId String?       @map("actor_user_id") @db.Uuid
+  actor              String?
+  actorUserId        String?       @map("actor_user_id") @db.Uuid
+  /// Soft link to a procedural request, for that request's own activity log (mirrors Task.hearingId).
+  procedureRequestId String?       @map("procedure_request_id") @db.Uuid
+  /// Soft link to an internal approval item, for that item's own audit trail (mirrors procedureRequestId).
+  approvalId         String?       @map("approval_id") @db.Uuid
 
   occurredAt DateTime @default(now()) @map("occurred_at")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -942,6 +979,12 @@ model Task {
 
   caseId String? @map("case_id") @db.Uuid
   case   Case?   @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  /// Soft link to the hearing this action item originated from (prototype
+  /// hearing.actions[] kind="مهمة"), so a hearing's follow-up tasks are
+  /// traceable back to it — mirrors CaseReminder.hearingId.
+  hearingId String?  @map("hearing_id") @db.Uuid
+  hearing   Hearing? @relation(fields: [hearingId], references: [id], onDelete: SetNull)
 
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -1096,6 +1139,12 @@ model Document {
   sessionLabel String?   @map("session_label")
   /// Soft link to a hearing (plain column, mirrors CaseEvent.actorUserId style).
   hearingId    String?   @map("hearing_id") @db.Uuid
+
+  /// Link to the procedural request this attachment belongs to (prototype
+  /// "📎 <file> · الطلب" / "· النتيجة"), with its role within that request.
+  procedureRequestId String?                  @map("procedure_request_id") @db.Uuid
+  procedureRequest   ProcedureRequest?        @relation(fields: [procedureRequestId], references: [id], onDelete: SetNull)
+  procedureDocRole   ProcedureRequestDocRole? @map("procedure_doc_role")
 
   // ── stored object ──
   storageKey String  @map("storage_key")
@@ -1781,4 +1830,258 @@ model PayrollLine {
   @@index([payrollRunId])
   @@index([employeeId])
   @@map("payroll_lines")
+}
+
+// ---------- Pulse (نبض الفريق): performance points feeding "Employee of the
+// Week" (prototype eowCard). Fixed point values per kind, computed in
+// src/lib/performance.ts — this table is just the ledger.
+enum PerformanceEventKind {
+  TASK_COMPLETED // إنجاز مهمة
+  HEARING_RECORDED // تسجيل جلسة
+  DOCUMENT_GENERATED // توليد مستند
+  INVOICE_CREATED // إنشاء فاتورة
+  LEAD_CONVERTED // تحويل عميل محتمل
+}
+
+model PerformanceEvent {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
+  kind   PerformanceEventKind
+  points Int
+
+  occurredAt DateTime @default(now()) @map("occurred_at")
+
+  @@index([officeId, userId, occurredAt])
+  @@map("performance_events")
+}
+
+// ---------- Internal review pipeline (الاعتمادات), per case. A fixed 5-stage
+// review a case document/deliverable moves through before it's considered
+// approved (prototype: "مسودة ← محامٍ أول ← مستشار ← تدقيق لغوي ← اعتماد
+// الشريك ← معتمد"). Distinct from the client-report approval gate (Phase 8)
+// and from HR's EmployeeRequest workflow — this is purely internal review.
+enum ApprovalStage {
+  DRAFT // مسودة
+  SENIOR_LAWYER // محامٍ أول
+  COUNSEL // مستشار
+  PROOFREADING // تدقيق لغوي
+  PARTNER // اعتماد الشريك
+  APPROVED // معتمد
+}
+
+model CaseApproval {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  title String
+  stage ApprovalStage @default(DRAFT)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, caseId])
+  @@map("case_approvals")
+}
+
+// ---------- Procedural requests/milestones (طلبات ومعالم) filed within a
+// procedural stage (prototype "تفاصيل الطلبات والمعالم") — e.g. a motion to
+// appoint an expert, an objection/appeal, a cassation petition. Distinct from
+// Hearing (a court session) and CaseApproval (internal review workflow).
+enum ProcedureRequestStatus {
+  SUBMITTED // مُقدّم
+  PENDING // قيد النظر
+  ACCEPTED // مقبول
+  REJECTED // مرفوض
+}
+
+/// Which half of a procedural request an attached document represents
+/// (prototype "📎 <file> · الطلب" vs "· النتيجة").
+enum ProcedureRequestDocRole {
+  REQUEST // الطلب
+  RESULT // النتيجة
+}
+
+model ProcedureRequest {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  // 0..4 = RECONCILIATION..EXECUTION (matches STAGE_BY_INDEX in cases.ts).
+  stageIndex Int @map("stage_index")
+
+  /// Which side filed the request (prototype "↗ الخصم" / "↗ نحن").
+  party  DocParty
+  /// Free-text descriptor from a closed vocabulary (PROC_REQUEST_TYPES), not an enforced enum — mirrors Document.docType.
+  type   String?
+  text   String
+  status ProcedureRequestStatus @default(SUBMITTED)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  documents Document[]
+
+  @@index([officeId, caseId])
+  @@map("procedure_requests")
+}
+
+// ---------- Client communication log (سجل التواصل مع العميل), prototype
+// commsAdd() — a running log of client contact touchpoints on the Parties
+// tab, distinct from any live chat/portal messaging (that's Phase 8).
+enum ClientCommunicationType {
+  CALL // مكالمة
+  MESSAGE // رسالة
+  MEETING // اجتماع
+  EMAIL // بريد إلكتروني
+}
+
+model ClientCommunication {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  type ClientCommunicationType
+  note String
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, caseId])
+  @@map("client_communications")
+}
+
+// ---------- Case chat (محادثة العميل) — a direct message thread between
+// office staff and the client on one case, distinct from the internal
+// CaseEvent timeline and from ClientCommunication (a manually logged touchpoint
+// note, not a live conversation). Client-side sending is authenticated via the
+// separate client-portal session (Phase 8), not the staff AppSession.
+enum MessageSenderType {
+  STAFF // المكتب
+  CLIENT // العميل
+}
+
+model CaseMessage {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  senderType   MessageSenderType @map("sender_type")
+  /// Staff sender (plain soft link, mirrors CaseEvent.actorUserId) — null when senderType = CLIENT.
+  senderUserId String?           @map("sender_user_id") @db.Uuid
+  body         String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([officeId, caseId, createdAt])
+  @@map("case_messages")
+}
+
+// ---------- Case contracts list (عقود القضية), prototype wsAddContract() —
+// a simple named, signable/unsigned document tracker per case (e.g. عقد
+// الأتعاب / الوكالة الشرعية / اتفاقية السرية). NOT documented in docs/01–06;
+// built as a plain new entity rather than repurposing CaseFeeAgreement or the
+// POA-expiry deadline field, since both of those already have their own
+// distinct, more structured tracking (Finance tab / deadlines) that a generic
+// signable-list model would not improve.
+model Contract {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  title    String
+  isSigned Boolean   @default(false) @map("is_signed")
+  signedAt DateTime? @map("signed_at")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, caseId])
+  @@map("contracts")
+}
+
+// ---------- Post-judgment execution/enforcement file (تنفيذ), one per case
+// once opened. Distinct from the litigation Hearing/ProcStage flow — this
+// tracks the enforcement request against a debtor after judgment.
+enum ExecutionFileStatus {
+  ACTIVE // نشط
+  PARTIALLY_COLLECTED // محصّل جزئياً
+  FULLY_COLLECTED // محصّل بالكامل
+  STALLED // متعثّر
+  CLOSED // مغلق
+}
+
+enum ExecutionProcStatus {
+  REQUIRED // مطلوب
+  IN_PROGRESS // قيد التنفيذ
+  EXECUTED // منفّذ
+  STALLED // متعثّر
+}
+
+model CaseExecution {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @unique @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  court          String?
+  requestNo      String?             @map("request_no")
+  amountMinor    Int?                @map("amount_minor")
+  collectedMinor Int                 @default(0) @map("collected_minor")
+  debtor         String?
+  basis          String?
+  openedAt       DateTime?           @map("opened_at")
+  status         ExecutionFileStatus @default(ACTIVE)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  procedures ExecutionProcedure[]
+
+  @@map("case_executions")
+}
+
+model ExecutionProcedure {
+  id              String        @id @default(uuid()) @db.Uuid
+  caseExecutionId String        @map("case_execution_id") @db.Uuid
+  caseExecution   CaseExecution @relation(fields: [caseExecutionId], references: [id], onDelete: Cascade)
+
+  type   String
+  status ExecutionProcStatus @default(REQUIRED)
+  note   String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([caseExecutionId])
+  @@map("execution_procedures")
 }

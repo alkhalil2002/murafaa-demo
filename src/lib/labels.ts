@@ -1,7 +1,12 @@
 import {
   AdvanceStatus,
+  ApprovalStage,
   AppointmentType,
+  CaseEventType,
   CaseOutcome,
+  ClientCommunicationType,
+  ExecutionFileStatus,
+  ExecutionProcStatus,
   CaseStatus,
   ClientStatus,
   ClientType,
@@ -21,6 +26,7 @@ import {
   PaymentMethod,
   PermModule,
   ProcStage,
+  ProcedureRequestStatus,
   RequestKind,
   RequestStatus,
   Role,
@@ -99,3 +105,19 @@ export const leaveTypeLabel = (v: LeaveType) => t(`leaveType.${v}` as MessageKey
 export const requestKindLabel = (v: RequestKind) => t(`reqKind.${v}` as MessageKey);
 export const requestStatusLabel = (v: RequestStatus) => t(`reqStatus.${v}` as MessageKey);
 export const nitaqatBandLabel = (v: NitaqatBandKey) => t(`nitaqat.${v}` as MessageKey);
+export const approvalStageLabel = (v: ApprovalStage) => t(`approvalStage.${v}` as MessageKey);
+export const procedureRequestStatusLabel = (v: ProcedureRequestStatus) => t(`procedureRequestStatus.${v}` as MessageKey);
+export const caseEventTypeLabel = (v: CaseEventType) => t(`caseEventType.${v}` as MessageKey);
+export const clientCommunicationTypeLabel = (v: ClientCommunicationType) => t(`clientCommunicationType.${v}` as MessageKey);
+export const CASE_EVENT_ICON: Record<CaseEventType, string> = {
+  STAGE: "⚖",
+  SYSTEM: "⚙",
+  APPROVAL: "✔",
+  REQUEST: "📌",
+  DOC: "📄",
+  OPENING: "📥",
+  DEADLINE: "⏰",
+  MESSAGE: "💬",
+};
+export const executionFileStatusLabel = (v: ExecutionFileStatus) => t(`execFileStatus.${v}` as MessageKey);
+export const executionProcStatusLabel = (v: ExecutionProcStatus) => t(`execProcStatus.${v}` as MessageKey);

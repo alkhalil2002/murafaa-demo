@@ -7,6 +7,7 @@ import { getPayrollRun } from "@/server/hr/payroll";
 import { generateWpsFile } from "@/server/hr/wps";
 import { PermissionError } from "@/lib/permissions/guard";
 import { formatSar } from "@/lib/money";
+import { maskIban } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
 export default async function PayrollRunPage({
@@ -28,13 +29,15 @@ export default async function PayrollRunPage({
 
     content = (
       <>
-        <Link href="/hr/payroll" className="text-sm text-ink-soft hover:underline">→ {t("hr.tab.payroll")}</Link>
-        <div className="mt-2 flex items-center gap-3">
-          <h1 className="font-serif text-3xl text-bench">{run.periodKey}</h1>
+        <Link href="/hr/payroll" className="backbtn">
+          ‹ {t("hr.tab.payroll")}
+        </Link>
+        <div className="vhead">
+          <h2>{run.periodKey}</h2>
           <Pill tone="ok">{t("hr.payroll.posted")}</Pill>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-4 rounded-2xl border border-line bg-white p-5 text-sm md:grid-cols-5">
+        <div className="kpis">
           <Field label={t("hr.gross")} value={formatSar(run.totalBasic + run.totalAllowances)} />
           <Field label={t("hr.gosi")} value={formatSar(run.totalGosi)} />
           <Field label={t("hr.advances")} value={formatSar(run.totalAdvances)} />
@@ -44,7 +47,7 @@ export default async function PayrollRunPage({
 
         <section className="mt-6">
           <h2 className="mb-3 font-serif text-xl text-bench">{t("hr.tab.payroll")}</h2>
-          <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+          <div className="panel overflow-x-auto">
             <table className="w-full text-right text-sm">
               <thead className="border-b border-line text-ink-soft">
                 <tr>
@@ -89,7 +92,7 @@ export default async function PayrollRunPage({
                   {t("hr.wps.missingIban")}: {wpsFile.missingIban.join("، ")}
                 </p>
               ) : null}
-              <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+              <div className="panel overflow-x-auto">
                 <table className="w-full text-right text-sm">
                   <thead className="border-b border-line text-ink-soft">
                     <tr>
@@ -103,7 +106,7 @@ export default async function PayrollRunPage({
                     {wpsFile.records.map((r, i) => (
                       <tr key={i} className="border-b border-parch-line last:border-0">
                         <td className="p-3">{r.employeeName}</td>
-                        <td className="p-3 font-mono text-xs text-ink-soft">{r.iban ?? "—"}</td>
+                        <td className="p-3 font-mono text-xs text-ink-soft" dir="ltr">{r.iban ? maskIban(r.iban) : "—"}</td>
                         <td className="p-3 text-ink-soft">{formatSar(r.deductionsMinor)}</td>
                         <td className="p-3">{formatSar(r.netMinor)}</td>
                       </tr>
@@ -126,9 +129,11 @@ export default async function PayrollRunPage({
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <div className="text-xs text-ink-soft">{label}</div>
-      <div className="mt-0.5">{value}</div>
+    <div className="kpi">
+      <div className="v" style={{ fontSize: 20 }}>
+        {value}
+      </div>
+      <div className="l">{label}</div>
     </div>
   );
 }

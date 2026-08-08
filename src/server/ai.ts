@@ -205,6 +205,49 @@ export async function runArenaTurn(session: AppSession, raw: z.infer<typeof aren
   });
 }
 
+async function loadArenaCase(session: AppSession, caseId: string) {
+  await requireModule(session, PermModule.CASES, "view");
+  const c = await prisma.case.findFirst({
+    where: { id: caseId, officeId: session.officeId, deletedAt: null },
+    select: { arenaSessionSeq: true, assignees: { select: { userId: true } } },
+  });
+  if (!c) throw new PermissionError("scope");
+  await requireCaseAccess(session, caseId, c.assignees.map((a) => a.userId));
+  return c;
+}
+
+/** Current arena thread + round number for a case (prototype arenaRound()'s counter). */
+export async function getArenaState(session: AppSession, caseId: string) {
+  const c = await loadArenaCase(session, caseId);
+  const threadId = `arena:${caseId}:${c.arenaSessionSeq}`;
+  const turnCount = await prisma.aiInteraction.count({
+    where: { officeId: session.officeId, caseId, surface: AiSurface.ARENA, threadId },
+  });
+  return { threadId, roundNumber: Math.floor(turnCount / 3) + 1 };
+}
+
+/** One full round = OURS argument → OPPONENT rebuttal → JUDGE assessment, run
+ * sequentially through the real gated pipeline (prototype arenaRound() — no
+ * canned/fabricated output, each turn is a genuine generate+gate call). */
+export async function runArenaRound(session: AppSession, caseId: string) {
+  const { threadId } = await getArenaState(session, caseId);
+  const ours = await runArenaTurn(session, { caseId, role: ArenaRole.OURS, threadId });
+  const opponent = await runArenaTurn(session, { caseId, role: ArenaRole.OPPONENT, threadId });
+  const judge = await runArenaTurn(session, { caseId, role: ArenaRole.JUDGE, threadId });
+  return [ours, opponent, judge];
+}
+
+/** Start a fresh arena session (prototype "إعادة"/arenaReset()) — increments
+ * the session counter so a NEW thread begins at round 1. Prior rounds are
+ * NOT deleted: AiInteraction is the AI audit trail (docs/02 §6/§9) and must
+ * stay intact even after a reset. */
+export async function resetArena(session: AppSession, caseId: string) {
+  await requireModule(session, PermModule.AI, "edit");
+  await loadArenaCase(session, caseId);
+  await prisma.case.update({ where: { id: caseId }, data: { arenaSessionSeq: { increment: 1 } } });
+  await logAudit({ session, action: "ai.arena.reset", resource: "cases", targetId: caseId });
+}
+
 export async function listInteractions(session: AppSession, opts: { caseId?: string; threadId?: string } = {}) {
   await requireModule(session, PermModule.AI, "view");
 

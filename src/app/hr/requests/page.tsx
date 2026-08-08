@@ -46,6 +46,10 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
               {Object.values(RequestKind).map((v) => <option key={v} value={v}>{requestKindLabel(v)}</option>)}
             </select>
           </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-ink-soft">{t("hr.form.days")}</span>
+            <input type="number" name="days" min="1" step="1" className={INPUT} style={{ width: 90 }} />
+          </label>
           <label className="text-sm grow">
             <span className="mb-1 block text-ink-soft">{t("hr.form.detail")}</span>
             <input type="text" name="detail" className={INPUT} />
@@ -57,7 +61,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
         {requests.length === 0 ? (
           <p className="text-ink-soft">{t("hr.empty.requests")}</p>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+          <div className="panel overflow-x-auto">
             <table className="w-full text-right text-sm">
               <thead className="border-b border-line text-ink-soft">
                 <tr>
@@ -75,7 +79,10 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
                     <tr key={r.id} className="border-b border-parch-line last:border-0">
                       <td className="p-3">{r.employee.name}</td>
                       <td className="p-3">{requestKindLabel(r.kind)}</td>
-                      <td className="p-3 text-ink-soft">{r.detail ?? "—"}</td>
+                      <td className="p-3 text-ink-soft">
+                        {r.detail ?? "—"}
+                        {r.days ? ` · ${r.days.toLocaleString("ar-SA")} ${t("hr.form.daysUnit")}` : ""}
+                      </td>
                       <td className="p-3"><Pill tone={STATUS_TONE[r.status]}>{requestStatusLabel(r.status)}</Pill></td>
                       <td className="p-3">
                         {decided || !canEdit ? (
@@ -103,7 +110,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
 
   return (
     <AppShell>
-      <h1 className="mb-4 font-serif text-3xl text-bench">{t("hr.title")}</h1>
+      <div className="vhead"><h2>{t("hr.title")}</h2></div>
       <HrTabs />
       <ErrBanner code={err} />
       {content}

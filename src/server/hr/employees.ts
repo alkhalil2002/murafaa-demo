@@ -1,4 +1,4 @@
-import { EmployeeStatus, PermModule } from "@prisma/client";
+import { EmployeeStatus, PermModule, Role } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
@@ -6,6 +6,7 @@ import type { AppSession } from "@/lib/auth/types";
 import { PermissionError, requireModule } from "@/lib/permissions/guard";
 import { MAX_HALALAS } from "@/lib/finance/core";
 import { endOfServiceAward, serviceYears } from "@/lib/hr/core";
+import { normalizeSaudiPhone } from "@/lib/auth/phone";
 
 /**
  * Employees (prototype EMPLOYEES + EMP_EXTRA). HR-gated (الموارد البشرية):
@@ -85,10 +86,49 @@ export async function getEmployee(session: AppSession, employeeId: string) {
       advances: { where: { deletedAt: null }, orderBy: { advanceDate: "desc" } },
       leaves: { where: { deletedAt: null }, orderBy: { startDate: "desc" } },
       requests: { where: { deletedAt: null }, orderBy: { createdAt: "desc" } },
+      user: { select: { name: true, phone: true, role: true, isActive: true } },
     },
   });
   if (!employee) throw new PermissionError("scope");
   return employee;
+}
+
+const grantAccountSchema = z.object({
+  phone: z.string().min(1),
+  role: z.nativeEnum(Role),
+});
+
+/** Provision a system-login account for an employee (prototype "منح حساب نظام + دور").
+ * FULL-level HR action (partner-only by default) since this grants module access,
+ * not just an HR record edit. Creates a new User linked via Employee.userId. */
+export async function grantEmployeeAccount(session: AppSession, employeeId: string, raw: z.infer<typeof grantAccountSchema>) {
+  await requireModule(session, PermModule.HR, "delete");
+  const input = grantAccountSchema.parse(raw);
+  const phone = normalizeSaudiPhone(input.phone);
+  if (!phone) throw new Error("PHONE_INVALID");
+
+  const employee = await prisma.employee.findFirst({
+    where: { id: employeeId, officeId: session.officeId, deletedAt: null },
+    select: { id: true, name: true, userId: true },
+  });
+  if (!employee) throw new PermissionError("scope");
+  if (employee.userId) throw new Error("EMPLOYEE_ALREADY_HAS_ACCOUNT");
+
+  const existingUser = await prisma.user.findFirst({
+    where: { officeId: session.officeId, phone, deletedAt: null },
+    select: { id: true },
+  });
+  if (existingUser) throw new Error("PHONE_ALREADY_IN_USE");
+
+  const user = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: { officeId: session.officeId, createdById: session.userId, name: employee.name, phone, role: input.role },
+    });
+    await tx.employee.update({ where: { id: employeeId }, data: { userId: created.id } });
+    return created;
+  });
+  await logAudit({ session, action: "employee.grantAccount", resource: "hr", targetId: employeeId, detail: user.id });
+  return user;
 }
 
 const updateSchema = employeeSchema.partial().omit({ userId: true });

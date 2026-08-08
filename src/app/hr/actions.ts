@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { LeaveType, RequestKind, RequestStatus } from "@prisma/client";
+import { LeaveType, Role, RequestKind, RequestStatus } from "@prisma/client";
 import { getSession } from "@/lib/auth/session";
 import { riyalsToHalalas } from "@/lib/money";
 import {
@@ -11,6 +11,7 @@ import {
   createLeave,
   createRequest,
   decideRequest,
+  grantEmployeeAccount,
   runPayroll,
   terminateEmployee,
 } from "@/server/hr";
@@ -78,6 +79,15 @@ export async function terminateEmployeeAction(formData: FormData): Promise<void>
   const session = await getSession();
   const id = String(formData.get("employeeId") ?? "");
   await run(session, `/hr/${id}`, (s) => terminateEmployee(s, id));
+}
+
+export async function grantEmployeeAccountAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  const id = String(formData.get("employeeId") ?? "");
+  const phone = String(formData.get("phone") ?? "");
+  const roleRaw = String(formData.get("role") ?? "");
+  const role = roleRaw && roleRaw in Role ? (roleRaw as Role) : Role.RECEPTION;
+  await run(session, `/hr/${id}`, (s) => grantEmployeeAccount(s, id, { phone, role }));
 }
 
 export async function runPayrollAction(formData: FormData): Promise<void> {

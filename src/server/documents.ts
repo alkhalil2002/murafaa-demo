@@ -1,16 +1,17 @@
 import { randomUUID } from "node:crypto";
-import { DocKind, DocParty, DocSource, PermModule } from "@prisma/client";
+import { DocKind, DocParty, DocSource, PermModule, ProcedureRequestDocRole } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { logCaseEvent } from "@/lib/case-events";
+import { logPerformance } from "@/lib/performance";
 import { CaseEventType } from "@prisma/client";
 import { t } from "@/lib/i18n";
 import type { AppSession } from "@/lib/auth/types";
 import { PermissionError, mayViewField, requireCaseAccess, requireModule } from "@/lib/permissions/guard";
 import { documentKey, getStorage } from "@/lib/storage";
 import { renderPdf } from "@/lib/pdf/render";
-import { letterheadHtml, resolveBranding } from "@/lib/pdf/letterhead";
+import { escapeHtml, letterheadHtml, resolveBranding } from "@/lib/pdf/letterhead";
 import { formatHijri, prepareFields, renderBody, type CaseAutofill } from "@/lib/documents/render";
 import { getTemplateByKey, templateFields } from "./templates";
 
@@ -196,6 +197,11 @@ export async function generateFromTemplate(session: AppSession, raw: GenerateInp
     targetId: doc.id,
     detail: `${template.key} → ${fileName}`,
   });
+  await logPerformance(prisma, {
+    officeId: session.officeId,
+    userId: session.userId,
+    kind: "DOCUMENT_GENERATED",
+  });
   return doc;
 }
 
@@ -205,6 +211,11 @@ const uploadSchema = z.object({
   mimeType: z.string().min(1),
   docType: z.string().nullish(),
   party: z.nativeEnum(DocParty).nullish(),
+  hearingId: z.string().uuid().nullish(),
+  sessionLabel: z.string().nullish(),
+  procedureRequestId: z.string().uuid().nullish(),
+  procedureDocRole: z.nativeEnum(ProcedureRequestDocRole).nullish(),
+  source: z.nativeEnum(DocSource).nullish(),
 });
 export type UploadInput = z.infer<typeof uploadSchema>;
 
@@ -214,6 +225,20 @@ export async function uploadDocument(session: AppSession, raw: UploadInput, byte
   if (!UPLOAD_MIME_ALLOW.has(input.mimeType)) throw new Error("UPLOAD_MIME_REJECTED");
   if (bytes.length === 0 || bytes.length > MAX_UPLOAD_BYTES) throw new Error("UPLOAD_SIZE_REJECTED");
   await loadCaseForDocs(session, input.caseId);
+  if (input.hearingId) {
+    const hearing = await prisma.hearing.findFirst({
+      where: { id: input.hearingId, caseId: input.caseId, officeId: session.officeId },
+      select: { id: true },
+    });
+    if (!hearing) throw new Error("HEARING_NOT_FOUND");
+  }
+  if (input.procedureRequestId) {
+    const request = await prisma.procedureRequest.findFirst({
+      where: { id: input.procedureRequestId, caseId: input.caseId, officeId: session.officeId },
+      select: { id: true },
+    });
+    if (!request) throw new Error("PROCEDURE_REQUEST_NOT_FOUND");
+  }
 
   const id = randomUUID();
   const storageKey = documentKey({
@@ -234,9 +259,13 @@ export async function uploadDocument(session: AppSession, raw: UploadInput, byte
         createdById: session.userId,
         fileName: input.fileName,
         kind: kindForMime(input.mimeType),
-        source: DocSource.UPLOAD,
+        source: input.source ?? DocSource.UPLOAD,
         party: input.party ?? null,
         docType: input.docType ?? null,
+        hearingId: input.hearingId ?? null,
+        sessionLabel: input.sessionLabel ?? null,
+        procedureRequestId: input.procedureRequestId ?? null,
+        procedureDocRole: input.procedureDocRole ?? null,
         storageKey,
         mimeType: input.mimeType,
         sizeBytes: bytes.length,
@@ -339,4 +368,73 @@ export async function softDeleteDocument(session: AppSession, id: string) {
   await prisma.document.update({ where: { id }, data: { deletedAt: new Date() } });
   // Object retained (recycle bin); a PDPL purge path removes it separately.
   await logAudit({ session, action: "document.delete", resource: "documents", targetId: id });
+}
+
+/** Soft-delete every opening-package document on a case in one action (prototype "تفريغ الحزمة"). */
+export async function clearOpeningPackage(session: AppSession, caseId: string) {
+  await requireModule(session, PermModule.DOCUMENTS, "delete");
+  await loadCaseForDocs(session, caseId);
+  const { count } = await prisma.document.updateMany({
+    where: { officeId: session.officeId, caseId, source: DocSource.OPENING, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
+  await logAudit({ session, action: "document.clearOpeningPackage", resource: "documents", targetId: caseId, detail: `${count}` });
+  return count;
+}
+
+/** Render a hearing's client report as a letterhead PDF and store it as a case Document (prototype "⬇ معاينة PDF بالديباجة"). */
+export async function generateHearingReportPdf(session: AppSession, caseId: string, hearingId: string) {
+  await requireModule(session, PermModule.DOCUMENTS, "edit");
+  await loadCaseForDocs(session, caseId);
+  const hearing = await prisma.hearing.findFirst({
+    where: { id: hearingId, caseId, officeId: session.officeId, deletedAt: null },
+  });
+  if (!hearing) throw new PermissionError("scope");
+  if (!hearing.clientReport) throw new Error("HEARING_HAS_NO_REPORT");
+
+  const office = await prisma.office.findUniqueOrThrow({
+    where: { id: session.officeId },
+    select: { name: true, branding: true },
+  });
+  const branding = resolveBranding(office.branding ?? { name: office.name });
+  const generatedDate = new Date();
+  const bodyHtml = `<p>${escapeHtml(hearing.clientReport).replace(/\n/g, "<br/>")}</p>`;
+  const html = letterheadHtml({
+    branding,
+    title: t("cases.hearings.clientReport"),
+    bodyHtml,
+    hijriDate: formatHijri(generatedDate),
+  });
+  const pdf = await renderPdf(html);
+
+  const id = randomUUID();
+  const fileName = t("cases.hearings.sessionNo", { no: (hearing.sequenceNo ?? 0).toString() }) + " - " + t("cases.hearings.clientReport") + ".pdf";
+  const storageKey = documentKey({ officeId: session.officeId, caseId, documentId: id, filename: fileName });
+  await getStorage().put(storageKey, pdf, "application/pdf");
+
+  let doc;
+  try {
+    doc = await prisma.document.create({
+      data: {
+        id,
+        officeId: session.officeId,
+        caseId,
+        createdById: session.userId,
+        fileName,
+        kind: DocKind.DOCUMENT,
+        source: DocSource.HEARING,
+        docType: t("cases.hearings.clientReport"),
+        hearingId,
+        storageKey,
+        mimeType: "application/pdf",
+        sizeBytes: pdf.length,
+        generatedDate,
+      },
+    });
+  } catch (err) {
+    await getStorage().delete(storageKey).catch(() => {});
+    throw err;
+  }
+  await logAudit({ session, action: "hearing.reportPdf", resource: "documents", targetId: doc.id, detail: hearingId });
+  return doc;
 }

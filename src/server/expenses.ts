@@ -107,10 +107,10 @@ export async function createExpense(session: AppSession, raw: CreateExpenseInput
   return expense;
 }
 
-export async function listExpenses(session: AppSession) {
+export async function listExpenses(session: AppSession, caseId?: string) {
   await requireModule(session, PermModule.FINANCE, "view");
   return prisma.expense.findMany({
-    where: { officeId: session.officeId, deletedAt: null },
+    where: { officeId: session.officeId, deletedAt: null, ...(caseId ? { caseId } : {}) },
     orderBy: { expenseDate: "desc" },
     include: { client: { select: { name: true } }, case: { select: { title: true } } },
   });

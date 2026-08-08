@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { t } from "@/lib/i18n";
 
-/** Sub-navigation for the HR module (server-rendered), mirroring FinanceTabs. */
+/** Sub-navigation for the HR module, reproducing the prototype's `.ftabs`. */
 export function HrTabs() {
+  const pathname = usePathname();
   const tabs = [
     { href: "/hr", label: t("hr.tab.employees") },
     { href: "/hr/payroll", label: t("hr.tab.payroll") },
@@ -12,13 +16,9 @@ export function HrTabs() {
     { href: "/hr/saudization", label: t("hr.tab.saudization") },
   ];
   return (
-    <div className="mb-6 flex flex-wrap gap-2 border-b border-line pb-3">
+    <div className="ftabs">
       {tabs.map((tab) => (
-        <Link
-          key={tab.href}
-          href={tab.href}
-          className="rounded-lg px-3 py-1.5 text-sm text-ink-soft hover:bg-white hover:text-bench"
-        >
+        <Link key={tab.href} href={tab.href} className={`ftab${pathname === tab.href ? " on" : ""}`}>
           {tab.label}
         </Link>
       ))}

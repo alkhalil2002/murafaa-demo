@@ -25,29 +25,27 @@ export default async function AiPage() {
 
     content = (
       <>
-        <div className="mb-4 flex flex-wrap gap-2 border-b border-line pb-3 text-sm">
-          <span className="rounded-lg bg-bench px-3 py-1.5 text-white">{t("ai.assistant")}</span>
-          <Link href="/ai/kb" className="rounded-lg px-3 py-1.5 text-ink-soft hover:bg-white hover:text-bench">
+        <div className="ftabs">
+          <span className="ftab on">{t("ai.assistant")}</span>
+          <Link href="/ai/kb" className="ftab">
             {t("ai.kb")}
           </Link>
         </div>
 
-        <div className="space-y-3">
-          {chat.length === 0 ? (
-            <p className="text-ink-soft">{t("ai.emptyChat")}</p>
-          ) : (
-            chat.map((i) => <AiAnswer key={i.id} data={i} />)
-          )}
-        </div>
+        {chat.length === 0 ? (
+          <div className="panel">
+            <div className="sub" style={{ marginBottom: 0 }}>
+              {t("ai.emptyChat")}
+            </div>
+          </div>
+        ) : (
+          chat.map((i) => <AiAnswer key={i.id} data={i} />)
+        )}
 
         {canGenerate && (
-          <form action={askAction} className="mt-5 flex gap-2">
-            <input
-              name="question"
-              placeholder={t("ai.ask")}
-              className="flex-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
-            />
-            <button type="submit" className="rounded-xl bg-bench px-5 py-2.5 text-sm text-white hover:bg-bench-2">
+          <form action={askAction} className="panel" style={{ display: "flex", gap: 8, padding: 16 }}>
+            <input type="text" name="question" placeholder={t("ai.ask")} style={{ flex: 1 }} />
+            <button type="submit" className="act b-add">
               {t("ai.send")}
             </button>
           </form>
@@ -61,7 +59,9 @@ export default async function AiPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-4 font-serif text-3xl text-bench">{t("ai.title")}</h1>
+      <div className="vhead">
+        <h2>{t("ai.title")}</h2>
+      </div>
       {content}
     </AppShell>
   );

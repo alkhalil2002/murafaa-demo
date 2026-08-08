@@ -11,37 +11,33 @@ export default async function AppointmentsPage() {
   if (!session) redirect("/login");
 
   let content: React.ReactNode;
+  let total = 0;
   try {
     const appts = await listAppointments(session);
-    content =
-      appts.length === 0 ? (
-        <p className="text-ink-soft">{t("appts.empty")}</p>
-      ) : (
-        <div className="overflow-x-auto rounded-2xl border border-line bg-white">
-          <table className="w-full text-right text-sm">
-            <thead className="border-b border-line text-ink-soft">
-              <tr>
-                <th className="p-3 font-medium">{t("appts.contact")}</th>
-                <th className="p-3 font-medium">{t("appts.type")}</th>
-                <th className="p-3 font-medium">{t("appts.date")}</th>
-                <th className="p-3 font-medium">{t("appts.time")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {appts.map((a) => (
-                <tr key={a.id} className="border-b border-parch-line last:border-0">
-                  <td className="p-3 font-medium">{a.contactName}</td>
-                  <td className="p-3 text-ink-soft">{apptTypeLabel(a.type)}</td>
-                  <td className="p-3 text-ink-soft">
-                    {new Date(a.scheduledOn).toISOString().slice(0, 10)}
-                  </td>
-                  <td className="p-3 text-ink-soft">{a.scheduledTime ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
+    total = appts.length;
+    content = (
+      <div className="panel">
+        {appts.length === 0 ? (
+          <div className="sub" style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+            {t("appts.empty")}
+          </div>
+        ) : (
+          appts.map((a) => (
+            <div className="approve-row" key={a.id}>
+              <span className="ndot" style={{ background: "var(--bench)" }} />
+              <span className="at">
+                {a.contactName}
+                <span className="chip"> {apptTypeLabel(a.type)}</span>
+              </span>
+              <span className="chip">
+                {new Date(a.scheduledOn).toISOString().slice(0, 10)}
+                {a.scheduledTime ? ` · ${a.scheduledTime}` : ""}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    );
   } catch (err) {
     if (err instanceof PermissionError) content = <DeniedPanel />;
     else throw err;
@@ -49,7 +45,10 @@ export default async function AppointmentsPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-6 font-serif text-3xl text-bench">{t("appts.title")}</h1>
+      <div className="vhead">
+        <h2>{t("appts.title")}</h2>
+        <span className="pill">{t("appts.pill", { n: total.toLocaleString("ar-SA") })}</span>
+      </div>
       {content}
     </AppShell>
   );

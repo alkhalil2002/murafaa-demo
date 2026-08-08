@@ -26,11 +26,13 @@ export default async function SaudizationPage() {
     const sz = await getSaudizationStatus(session);
     content = (
       <>
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="kpis">
           <StatCard label={t("hr.saudizationPct")} value={`${Math.round(sz.pct)}%`} />
-          <div className="rounded-2xl border border-line bg-white p-4">
-            <div className="text-xs text-ink-soft">{t("hr.sz.target")}</div>
-            <div className="mt-2"><Pill tone={BAND_TONE[sz.band]}>{nitaqatBandLabel(sz.band)}</Pill></div>
+          <div className="kpi">
+            <div className="l">{t("hr.sz.target")}</div>
+            <div style={{ marginTop: 6 }}>
+              <Pill tone={BAND_TONE[sz.band]}>{nitaqatBandLabel(sz.band)}</Pill>
+            </div>
           </div>
           <StatCard label={t("hr.kpi.staff")} value={String(sz.total)} />
           <StatCard label={t("hr.sz.saudis")} value={`${sz.saudiCount} / ${sz.total}`} />
@@ -39,7 +41,7 @@ export default async function SaudizationPage() {
         {sz.targets.length === 0 ? (
           <p className="text-ink-soft">—</p>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+          <div className="panel overflow-x-auto">
             <table className="w-full text-right text-sm">
               <thead className="border-b border-line text-ink-soft">
                 <tr>
@@ -69,7 +71,7 @@ export default async function SaudizationPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-4 font-serif text-3xl text-bench">{t("hr.title")}</h1>
+      <div className="vhead"><h2>{t("hr.title")}</h2></div>
       <HrTabs />
       {content}
     </AppShell>

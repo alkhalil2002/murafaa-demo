@@ -7,6 +7,7 @@ import {
   generateFromTemplate,
   softDeleteDocument,
   toggleShare,
+  clearOpeningPackage,
 } from "@/server/documents";
 
 /** Generate a document from a template with the submitted field values. */
@@ -46,4 +47,12 @@ export async function deleteDocumentAction(formData: FormData): Promise<void> {
   const caseId = String(formData.get("caseId") ?? "");
   await softDeleteDocument(session, id);
   if (caseId) revalidatePath(`/cases/${caseId}`);
+}
+
+export async function clearOpeningPackageAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const caseId = String(formData.get("caseId") ?? "");
+  await clearOpeningPackage(session, caseId);
+  revalidatePath(`/cases/${caseId}`);
 }

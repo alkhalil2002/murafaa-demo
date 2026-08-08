@@ -22,24 +22,28 @@ export default async function KbPage() {
     const sources = await listKnowledgeSources(session);
     content = (
       <>
-        <div className="mb-4 flex flex-wrap gap-2 border-b border-line pb-3 text-sm">
-          <Link href="/ai" className="rounded-lg px-3 py-1.5 text-ink-soft hover:bg-white hover:text-bench">
+        <div className="ftabs">
+          <Link href="/ai" className="ftab">
             {t("ai.assistant")}
           </Link>
-          <span className="rounded-lg bg-bench px-3 py-1.5 text-white">{t("ai.kb")}</span>
+          <span className="ftab on">{t("ai.kb")}</span>
         </div>
-        <p className="mb-4 text-sm text-ink-soft">{t("ai.disclaimer")}</p>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="panel">
+          <div className="sub" style={{ marginBottom: 0 }}>
+            {t("ai.disclaimer")}
+          </div>
+        </div>
+        <div className="clist">
           {sources.map((s) => (
-            <div key={s.id} className="rounded-2xl border border-line bg-white p-4">
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-gold/15 px-2 py-0.5 text-xs text-warn">
+            <div key={s.id} className="dcard">
+              <div className="chips">
+                <span className="chip" style={{ color: "var(--warn)", borderColor: "var(--gold)" }}>
                   {t(TYPE_LABEL[s.type] as never)}
                 </span>
-                <span className="text-xs text-ink-soft">{t("kb.chunks", { n: s._count.chunks })}</span>
+                <span className="chip">{t("kb.chunks", { n: s._count.chunks })}</span>
               </div>
-              <div className="mt-2 font-medium">{s.title}</div>
-              {s.officialRef && <div className="mt-1 text-xs text-ink-soft">{s.officialRef}</div>}
+              <h3>{s.title}</h3>
+              {s.officialRef && <div className="sub" style={{ marginBottom: 0 }}>{s.officialRef}</div>}
             </div>
           ))}
         </div>
@@ -52,7 +56,9 @@ export default async function KbPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-4 font-serif text-3xl text-bench">{t("ai.kb")}</h1>
+      <div className="vhead">
+        <h2>{t("ai.kb")}</h2>
+      </div>
       {content}
     </AppShell>
   );

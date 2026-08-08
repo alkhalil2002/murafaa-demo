@@ -52,7 +52,7 @@ export default async function LedgerPage() {
         {/* Trial balance */}
         <section>
           <h2 className="mb-3 font-serif text-xl text-bench">{t("ledger.trialBalance")}</h2>
-          <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+          <div className="panel overflow-x-auto">
             <table className="w-full text-right text-sm">
               <thead className="border-b border-line text-ink-soft">
                 <tr>
@@ -87,7 +87,7 @@ export default async function LedgerPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-4 font-serif text-3xl text-bench">{t("finance.title")}</h1>
+      <div className="vhead"><h2>{t("finance.title")}</h2></div>
       <FinanceTabs />
       {content}
     </AppShell>

@@ -2,25 +2,36 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { ArenaRole } from "@prisma/client";
 import { getSession } from "@/lib/auth/session";
-import { askAssistant, runArenaTurn } from "@/server/ai";
+import { askAssistant, runArenaRound, resetArena } from "@/server/ai";
 
 export async function askAction(formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session) redirect("/login");
   const question = String(formData.get("question") ?? "").trim();
+  const caseId = String(formData.get("caseId") ?? "") || null;
   if (question) {
-    await askAssistant(session, { question });
+    await askAssistant(session, { question, caseId });
   }
-  revalidatePath("/ai");
+  if (caseId) {
+    revalidatePath(`/cases/${caseId}`);
+  } else {
+    revalidatePath("/ai");
+  }
 }
 
-export async function arenaTurnAction(formData: FormData): Promise<void> {
+export async function arenaRoundAction(formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session) redirect("/login");
   const caseId = String(formData.get("caseId") ?? "");
-  const role = String(formData.get("role") ?? "OURS") as ArenaRole;
-  await runArenaTurn(session, { caseId, role, threadId: `arena:${caseId}` });
+  await runArenaRound(session, caseId);
+  revalidatePath(`/ai/arena/${caseId}`);
+}
+
+export async function arenaResetAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const caseId = String(formData.get("caseId") ?? "");
+  await resetArena(session, caseId);
   revalidatePath(`/ai/arena/${caseId}`);
 }

@@ -16,7 +16,7 @@ const MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS ?? 5);
 const RESEND_COOLDOWN_SECONDS = 30;
 
 export type OtpSendResult =
-  | { ok: true }
+  | { ok: true; devCode?: string }
   | { ok: false; code: "PHONE_INVALID" | "USER_NOT_FOUND" | "RATE_LIMITED" };
 
 export type OtpVerifyResult =
@@ -85,9 +85,13 @@ export async function sendOtp(
     },
   });
 
-  await getOtpProvider().send(phone, code, channel);
+  const provider = getOtpProvider();
+  await provider.send(phone, code, channel);
   await logSystemAudit(user.officeId, "auth.otp.sent", `otp sent to ${phone}`);
-  return { ok: true };
+  // Dev convenience only: the console provider doesn't actually deliver
+  // anywhere, so surface the code in the response instead of requiring a
+  // server-log lookup. Never happens with a real provider (unifonic etc).
+  return provider.name === "console" ? { ok: true, devCode: code } : { ok: true };
 }
 
 export async function verifyOtp(

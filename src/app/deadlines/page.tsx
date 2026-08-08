@@ -14,53 +14,60 @@ const KIND_LABEL: Record<DeadlineItem["kind"], () => string> = {
   reminder: () => t("deadlines.reminder"),
 };
 
-const URGENCY_CLASS: Record<Urgency, string> = {
-  overdue: "text-advocate",
-  critical: "text-advocate",
-  soon: "text-warn",
-  upcoming: "text-gold",
-  normal: "text-ink-soft",
-};
-
 function daysText(item: DeadlineItem): string {
   if (item.daysLeft < 0) return t("deadlines.overdue");
   if (item.daysLeft === 0) return t("deadlines.today");
   return t("deadlines.daysLeft", { n: item.daysLeft });
 }
 
+const URGENCY_COLOR: Record<Urgency, string> = {
+  overdue: "var(--advocate)",
+  critical: "var(--advocate)",
+  soon: "var(--gold)",
+  upcoming: "var(--ok)",
+  normal: "var(--ink-soft)",
+};
+
 export default async function DeadlinesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
   let content: React.ReactNode;
+  let total = 0;
   try {
     const items = await getDeadlines(session);
-    content =
-      items.length === 0 ? (
-        <p className="text-ink-soft">{t("deadlines.empty")}</p>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((item, i) => (
-            <li
-              key={`${item.caseId}-${item.kind}-${i}`}
-              className="flex items-center gap-4 rounded-xl border border-line bg-white p-3 text-sm"
-            >
-              <div className={`w-24 shrink-0 font-semibold ${URGENCY_CLASS[item.urgency]}`}>
-                {daysText(item)}
-              </div>
-              <div className="flex-1">
-                <div className="font-medium">
+    total = items.length;
+    content = (
+      <div className="panel">
+        {items.length === 0 ? (
+          <div className="sub" style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+            {t("deadlines.empty")}
+          </div>
+        ) : (
+          items.map((item, i) => {
+            const color = URGENCY_COLOR[item.urgency];
+            return (
+              <Link
+                href={`/cases/${item.caseId}`}
+                className="approve-row"
+                style={{ cursor: "pointer" }}
+                key={`${item.caseId}-${item.kind}-${i}`}
+              >
+                <span className="ndot" style={{ background: color }} />
+                <span className="at">
                   {KIND_LABEL[item.kind]()}
-                  {item.label ? ` — ${item.label}` : ""}
-                </div>
-                <Link href={`/cases/${item.caseId}`} className="text-xs text-ink-soft hover:underline">
-                  {item.caseTitle} · {item.date}
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
-      );
+                  {item.label ? ` — ${item.label}` : ""} — {item.caseTitle}
+                  <span style={{ color: "var(--ink-soft)", fontSize: 12 }}> ({item.date})</span>
+                </span>
+                <span className="chip" style={{ color, borderColor: color }}>
+                  {daysText(item)}
+                </span>
+              </Link>
+            );
+          })
+        )}
+      </div>
+    );
   } catch (err) {
     if (err instanceof PermissionError) content = <DeniedPanel />;
     else throw err;
@@ -68,7 +75,10 @@ export default async function DeadlinesPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-6 font-serif text-3xl text-bench">{t("deadlines.title")}</h1>
+      <div className="vhead">
+        <h2>{t("deadlines.title")}</h2>
+        <span className="pill">{t("deadlines.pill", { n: total.toLocaleString("ar-SA") })}</span>
+      </div>
       {content}
     </AppShell>
   );

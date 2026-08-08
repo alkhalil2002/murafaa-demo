@@ -18,6 +18,8 @@ export async function logCaseEvent(
     description: string;
     actor?: string;
     actorUserId?: string;
+    procedureRequestId?: string;
+    approvalId?: string;
   },
 ): Promise<void> {
   await db.caseEvent.create({
@@ -28,6 +30,8 @@ export async function logCaseEvent(
       description: params.description,
       actor: params.actor,
       actorUserId: params.actorUserId,
+      procedureRequestId: params.procedureRequestId,
+      approvalId: params.approvalId,
     },
   });
 }

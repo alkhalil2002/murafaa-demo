@@ -11,6 +11,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { logCaseEvent } from "@/lib/case-events";
+import { logPerformance } from "@/lib/performance";
 import { t } from "@/lib/i18n";
 import { NAJIZ } from "@/lib/najiz";
 import type { AppSession } from "@/lib/auth/types";
@@ -176,6 +177,11 @@ export async function convertLead(session: AppSession, id: string) {
       actorUserId: session.userId,
     });
     await recomputeCaseConflicts(session, newCase.id, tx);
+    await logPerformance(tx, {
+      officeId: session.officeId,
+      userId: session.userId,
+      kind: "LEAD_CONVERTED",
+    });
     return { client, newCase };
   });
 

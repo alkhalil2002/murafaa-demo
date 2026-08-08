@@ -25,7 +25,7 @@ export default async function TrustPage() {
             <span className="font-semibold text-bench">{formatSar(total)}</span>
             <span className="mr-2 text-xs text-ink-soft">— {t("trust.segregationNote")}</span>
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+          <div className="panel overflow-x-auto">
             <table className="w-full text-right text-sm">
               <thead className="border-b border-line text-ink-soft">
                 <tr>
@@ -52,7 +52,7 @@ export default async function TrustPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-4 font-serif text-3xl text-bench">{t("finance.title")}</h1>
+      <div className="vhead"><h2>{t("finance.title")}</h2></div>
       <FinanceTabs />
       {content}
     </AppShell>

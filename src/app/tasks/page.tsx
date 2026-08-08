@@ -14,38 +14,41 @@ export default async function TasksPage() {
   if (!session) redirect("/login");
 
   let content: React.ReactNode;
+  let total = 0;
   try {
     const tasks = await listTasks(session);
+    total = tasks.length;
     content = (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="kanban">
         {COLUMNS.map((col) => {
           const inCol = tasks.filter((tk) => tk.status === col);
           return (
-            <div key={col} className="rounded-2xl border border-line bg-white p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="font-semibold text-bench">{taskColumnLabel(col)}</span>
-                <span className="text-xs text-ink-soft">{inCol.length}</span>
-              </div>
-              <div className="space-y-2">
-                {inCol.map((tk) => (
-                  <div key={tk.id} className="rounded-xl border border-parch-line bg-parch p-3 text-sm">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-medium">{tk.title}</span>
+            <div key={col} className="kcol">
+              <h4>
+                {taskColumnLabel(col)}
+                <span>{inCol.length.toLocaleString("ar-SA")}</span>
+              </h4>
+              {inCol.length === 0 ? (
+                <div className="kempty">{t("tasks.empty")}</div>
+              ) : (
+                inCol.map((tk) => (
+                  <div key={tk.id} className="kcard">
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                      <span style={{ flex: 1, fontWeight: 600 }}>{tk.title}</span>
                       {tk.priority === "URGENT" && (
-                        <span className="shrink-0 rounded-full bg-advocate/15 px-2 py-0.5 text-xs text-advocate">
+                        <span className="chip" style={{ color: "var(--advocate)", borderColor: "var(--advocate)" }}>
                           {taskPriorityLabel(tk.priority)}
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 text-xs text-ink-soft">
-                      {tk.assignee?.name ?? t("tasks.unassigned")}
-                      {tk.category && <> · {taskCategoryLabel(tk.category)}</>}
+                    <div className="chips" style={{ marginTop: 8 }}>
+                      <span className="chip">{tk.assignee?.name ?? t("tasks.unassigned")}</span>
+                      {tk.category && <span className="chip">{taskCategoryLabel(tk.category)}</span>}
+                      {tk.case && <span className="chip">⚖ {tk.case.title}</span>}
                     </div>
-                    {tk.case && <div className="mt-1 text-xs text-ink-soft">⚖ {tk.case.title}</div>}
                   </div>
-                ))}
-                {inCol.length === 0 && <p className="text-xs text-ink-soft">{t("tasks.empty")}</p>}
-              </div>
+                ))
+              )}
             </div>
           );
         })}
@@ -58,7 +61,10 @@ export default async function TasksPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-6 font-serif text-3xl text-bench">{t("tasks.title")}</h1>
+      <div className="vhead">
+        <h2>{t("tasks.title")}</h2>
+        <span className="pill">{t("tasks.pill", { n: total.toLocaleString("ar-SA") })}</span>
+      </div>
       {content}
     </AppShell>
   );
