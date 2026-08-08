@@ -8,3 +8,4 @@ export * from "./wps";
 export * from "./attendance";
 export * from "./recruitment";
 export * from "./integrations";
+export * from "./org-chart";

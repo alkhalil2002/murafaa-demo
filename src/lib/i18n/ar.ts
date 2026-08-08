@@ -182,6 +182,20 @@ export const ar = {
   "settings.account.hosting": "استضافة البيانات",
   "settings.account.hostingValue": "السحابة الحكومية — الدمام، المملكة العربية السعودية (متوافق مع PDPL)",
   "settings.account.logout": "تسجيل الخروج",
+  "settings.office.title": "إعدادات المكتب",
+  "settings.office.hint": "تُستخدم هذه البيانات في ديباجة كل المستندات والفواتير المولَّدة.",
+  "settings.office.name": "اسم المكتب",
+  "settings.office.tagline": "الوصف المختصر",
+  "settings.office.phone": "الهاتف",
+  "settings.office.email": "البريد الإلكتروني",
+  "settings.office.website": "الموقع الإلكتروني",
+  "settings.office.address": "العنوان",
+  "settings.office.licenseNo": "رقم الترخيص",
+  "settings.office.primaryColor": "اللون الأساسي",
+  "settings.office.accentColor": "لون التمييز",
+  "settings.office.confidentialityNotice": "إشعار السرّية",
+  "settings.office.save": "حفظ",
+  "settings.office.deniedNote": "متاح للشريك فقط.",
 
   // ── WhatsApp (واتساب) ──
   "whatsapp.title": "واتساب",
@@ -1088,6 +1102,8 @@ export const ar = {
 
   // ── Integrations (التكاملات) ──
   "hr.tab.integrations": "التكاملات",
+  "hr.tab.org": "الهيكل التنظيمي",
+  "hr.org.noDept": "بلا قسم",
   "hr.integ.hint": "ربط المكتب بالجهات الحكومية لمزامنة الموظفين والرواتب والاشتراكات والفواتير. الربط الفعلي يتطلّب خادماً وصلاحيات API رسمية من كل جهة؛ ما يظهر هنا محاكاة لحالة الاتصال والمزامنة.",
   "hr.integ.connected": "مربوط",
   "hr.integ.notConnected": "غير مربوط",
