@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { IconBell } from "./icons";
 
@@ -27,6 +28,14 @@ export function ShellFrame({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const router = useRouter();
+
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (query.trim().length < 2) return;
+    router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+  }
 
   return (
     <div className="app-grid">
@@ -48,10 +57,16 @@ export function ShellFrame({
           >
             ☰
           </button>
-          <div className="gsearch">
-            <input placeholder={searchPlaceholder} autoComplete="off" aria-label={searchLabel} />
-            <button type="button">{searchLabel}</button>
-          </div>
+          <form className="gsearch" onSubmit={submitSearch}>
+            <input
+              placeholder={searchPlaceholder}
+              autoComplete="off"
+              aria-label={searchLabel}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <button type="submit">{searchLabel}</button>
+          </form>
           <Link href="/notifications" className="bell" aria-label={bellLabel} style={{ position: "relative" }}>
             <IconBell />
             {bellCount > 0 ? (
