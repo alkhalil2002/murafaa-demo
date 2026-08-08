@@ -1014,14 +1014,14 @@ export default async function CaseDetailPage({
                                 action={updateHearingReminderAction}
                                 key={r.id}
                                 className="approve-row"
-                                style={{ gap: 6, alignItems: "center" }}
+                                style={{ gap: 6, alignItems: "center", flexWrap: "wrap" }}
                               >
                                 <input type="hidden" name="caseId" value={id} />
                                 <input type="hidden" name="hearingId" value={h.id} />
                                 <input type="hidden" name="reminderId" value={r.id} />
                                 <span className="ndot" style={{ background: "#0a7ea4" }} />
                                 <span className="chip">{t("cases.hearings.addReminder").replace("＋ ", "")}</span>
-                                <input type="text" name="text" defaultValue={r.text} style={{ flex: 1 }} />
+                                <input type="text" name="text" defaultValue={r.text} style={{ flex: "1 1 160px", minWidth: 120 }} />
                                 <input type="date" name="dueOn" defaultValue={fmt(r.dueOn)} />
                                 <button type="submit" className="tinybtn">
                                   {t("cases.hearings.actionSave")}
@@ -1053,14 +1053,14 @@ export default async function CaseDetailPage({
                                 action={updateHearingTaskAction}
                                 key={tk.id}
                                 className="approve-row"
-                                style={{ gap: 6, alignItems: "center" }}
+                                style={{ gap: 6, alignItems: "center", flexWrap: "wrap" }}
                               >
                                 <input type="hidden" name="caseId" value={id} />
                                 <input type="hidden" name="hearingId" value={h.id} />
                                 <input type="hidden" name="taskId" value={tk.id} />
                                 <span className="ndot" style={{ background: "var(--gold)" }} />
                                 <span className="chip">{t("cases.hearings.addTask").replace("＋ ", "")}</span>
-                                <input type="text" name="title" defaultValue={tk.title} style={{ flex: 1 }} />
+                                <input type="text" name="title" defaultValue={tk.title} style={{ flex: "1 1 160px", minWidth: 120 }} />
                                 <select name="assigneeId" defaultValue={tk.assigneeId ?? ""}>
                                   <option value="">{t("tasks.unassigned")}</option>
                                   {assignableUsers.map((u) => (
