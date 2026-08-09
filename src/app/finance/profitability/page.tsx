@@ -9,6 +9,7 @@ import { PermissionError } from "@/lib/permissions/guard";
 import { formatSar } from "@/lib/money";
 import { RIYADH_TZ } from "@/lib/dates";
 import { t } from "@/lib/i18n";
+import { invoiceTimeEntryAction } from "../actions";
 
 const arNum = (n: number) => n.toLocaleString("ar-SA");
 const fmtDate = (d: Date) =>
@@ -52,7 +53,20 @@ export default async function ProfitabilityPage() {
                   <td className="p-3 text-ink-soft">{fmtDate(e.workDate)}</td>
                   <td className="p-3">{arNum(Math.round((e.minutes / 60) * 100) / 100)}</td>
                   <td className="p-3">{formatSar(Math.round((e.minutes / 60) * e.hourlyRate))}</td>
-                  <td className="p-3">{e.invoiced ? "✓" : "—"}</td>
+                  <td className="p-3">
+                    {e.invoiced ? (
+                      "✓"
+                    ) : e.billable ? (
+                      <form action={invoiceTimeEntryAction}>
+                        <input type="hidden" name="entryId" value={e.id} />
+                        <button type="submit" className="tinybtn">
+                          {t("finProfit.invoiceEntry")}
+                        </button>
+                      </form>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

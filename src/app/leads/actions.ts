@@ -3,7 +3,53 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/session";
-import { moveLead, convertLead } from "@/server/leads";
+import { LeadSource, ClientType } from "@prisma/client";
+import { moveLead, convertLead, createLead, updateLead, deleteLead } from "@/server/leads";
+
+export async function createLeadAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const name = String(formData.get("name") ?? "");
+  const typeRaw = String(formData.get("type") ?? "");
+  const sourceRaw = String(formData.get("source") ?? "");
+  const expectedValueRaw = String(formData.get("expectedValue") ?? "");
+  const nextAction = String(formData.get("nextAction") ?? "");
+  const phone = String(formData.get("phone") ?? "");
+  await createLead(session, {
+    name,
+    type: typeRaw && typeRaw in ClientType ? (typeRaw as ClientType) : undefined,
+    source: sourceRaw && sourceRaw in LeadSource ? (sourceRaw as LeadSource) : undefined,
+    expectedValue: expectedValueRaw ? Math.round(Number(expectedValueRaw) * 100) : undefined,
+    nextAction: nextAction || null,
+    phone: phone || null,
+  });
+  revalidatePath("/leads");
+}
+
+export async function updateLeadAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "");
+  const expectedValueRaw = String(formData.get("expectedValue") ?? "");
+  const nextAction = String(formData.get("nextAction") ?? "");
+  const phone = String(formData.get("phone") ?? "");
+  await updateLead(session, id, {
+    name,
+    expectedValue: expectedValueRaw ? Math.round(Number(expectedValueRaw) * 100) : undefined,
+    nextAction: nextAction || null,
+    phone: phone || null,
+  });
+  revalidatePath("/leads");
+}
+
+export async function deleteLeadAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const id = String(formData.get("id") ?? "");
+  await deleteLead(session, id);
+  revalidatePath("/leads");
+}
 
 export async function moveLeadAction(formData: FormData): Promise<void> {
   const session = await getSession();

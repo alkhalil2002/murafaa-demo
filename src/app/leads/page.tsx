@@ -7,7 +7,8 @@ import { PermissionError, canAction } from "@/lib/permissions/guard";
 import { leadSourceLabel, leadStageLabel } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { t } from "@/lib/i18n";
-import { moveLeadAction, convertLeadAction } from "./actions";
+import { moveLeadAction, convertLeadAction, createLeadAction, updateLeadAction, deleteLeadAction } from "./actions";
+import { halalasToRiyals } from "@/lib/money";
 
 const PIPELINE: LeadStage[] = [
   LeadStage.PROSPECT,
@@ -29,7 +30,44 @@ export default async function LeadsPage() {
     ]);
     total = leads.length;
     content = (
-      <div className="pipe">
+      <>
+        {canEdit && (
+          <div className="panel">
+            <form action={createLeadAction} className="three" style={{ alignItems: "flex-end" }}>
+              <div className="field">
+                <label>{t("leads.new")}</label>
+                <input type="text" name="name" placeholder={t("leads.namePlaceholder")} required />
+              </div>
+              <div className="field">
+                <label>{t("leads.source")}</label>
+                <select name="source" defaultValue="">
+                  <option value="">—</option>
+                  {["WEBSITE", "REFERRAL", "WHATSAPP", "EXHIBITION", "OTHER"].map((s) => (
+                    <option key={s} value={s}>
+                      {leadSourceLabel(s as never)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>{t("leads.expectedValue")}</label>
+                <input type="number" name="expectedValue" min="0" step="0.01" />
+              </div>
+              <div className="field">
+                <label>{t("leads.phonePlaceholder")}</label>
+                <input type="text" name="phone" placeholder={t("leads.phonePlaceholder")} />
+              </div>
+              <div className="field">
+                <label>{t("leads.nextAction")}</label>
+                <input type="text" name="nextAction" />
+              </div>
+              <button type="submit" className="act b-add">
+                {t("leads.addSubmit")}
+              </button>
+            </form>
+          </div>
+        )}
+        <div className="pipe">
         {PIPELINE.map((stage, si) => {
           const inStage = leads.filter((l) => l.stage === stage);
           return (
@@ -80,13 +118,45 @@ export default async function LeadsPage() {
                         )}
                       </div>
                     )}
+                    {canEdit && (
+                      <details style={{ marginTop: 6 }}>
+                        <summary style={{ cursor: "pointer", fontSize: 11.5, color: "var(--bench)" }}>
+                          {t("leads.edit")}
+                        </summary>
+                        <form action={updateLeadAction} style={{ marginTop: 6, display: "grid", gap: 4 }}>
+                          <input type="hidden" name="id" value={l.id} />
+                          <input type="text" name="name" defaultValue={l.name} placeholder={t("leads.namePlaceholder")} required />
+                          <input type="text" name="phone" defaultValue={l.phone ?? ""} placeholder={t("leads.phonePlaceholder")} />
+                          <input
+                            type="number"
+                            name="expectedValue"
+                            min="0"
+                            step="0.01"
+                            defaultValue={l.expectedValue > 0 ? halalasToRiyals(l.expectedValue) : ""}
+                          />
+                          <input type="text" name="nextAction" defaultValue={l.nextAction ?? ""} />
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button type="submit" className="tinybtn">
+                              {t("leads.save")}
+                            </button>
+                          </div>
+                        </form>
+                        <form action={deleteLeadAction} style={{ marginTop: 4 }}>
+                          <input type="hidden" name="id" value={l.id} />
+                          <button type="submit" className="tinybtn del">
+                            {t("leads.delete")}
+                          </button>
+                        </form>
+                      </details>
+                    )}
                   </div>
                 ))
               )}
             </div>
           );
         })}
-      </div>
+        </div>
+      </>
     );
   } catch (err) {
     if (err instanceof PermissionError) content = <DeniedPanel />;

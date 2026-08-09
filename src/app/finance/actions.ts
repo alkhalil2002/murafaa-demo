@@ -7,7 +7,7 @@ import { getSession } from "@/lib/auth/session";
 import { issueCreditNote, recordPayment, writeOffBadDebt } from "@/server/invoices";
 import { createManualJournalEntry } from "@/server/ledger-reports";
 import { setPeriodLock, setRequireApproval } from "@/server/finance-governance";
-import { reimburseExpense } from "@/server/expenses";
+import { reimburseExpense, invoiceTimeEntry } from "@/server/expenses";
 import { riyalsToHalalas } from "@/lib/money";
 
 export async function recordPaymentAction(formData: FormData): Promise<void> {
@@ -55,6 +55,14 @@ export async function reimburseExpenseAction(formData: FormData): Promise<void> 
   await reimburseExpense(session, expenseId);
   revalidatePath("/finance/expenses");
   if (caseId) revalidatePath(`/cases/${caseId}`);
+}
+
+export async function invoiceTimeEntryAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const entryId = String(formData.get("entryId") ?? "");
+  await invoiceTimeEntry(session, entryId);
+  revalidatePath("/finance/profitability");
 }
 
 export async function createManualJournalEntryAction(formData: FormData): Promise<void> {

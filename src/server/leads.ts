@@ -52,6 +52,24 @@ export async function listLeads(session: AppSession) {
   });
 }
 
+/** CRM KPI strip (prototype pipeline header): active pipeline count/value + all-time conversion rate. */
+export async function getLeadsKpis(session: AppSession) {
+  await requireModule(session, PermModule.CLIENTS, "view");
+  const [active, everCreated, converted] = await Promise.all([
+    prisma.lead.findMany({
+      where: { officeId: session.officeId, deletedAt: null, convertedClientId: null },
+      select: { expectedValue: true },
+    }),
+    prisma.lead.count({ where: { officeId: session.officeId } }),
+    prisma.lead.count({ where: { officeId: session.officeId, convertedClientId: { not: null } } }),
+  ]);
+  return {
+    activeCount: active.length,
+    pipelineValue: active.reduce((sum, l) => sum + l.expectedValue, 0),
+    conversionRatePct: everCreated > 0 ? Math.round((converted / everCreated) * 100) : 0,
+  };
+}
+
 export async function createLead(session: AppSession, raw: CreateLeadInput) {
   await requireModule(session, PermModule.CLIENTS, "edit");
   const input = createSchema.parse(raw);
@@ -72,6 +90,41 @@ export async function createLead(session: AppSession, raw: CreateLeadInput) {
   // Reverse trigger: a new lead may complete a MEDIUM conflict on an existing case.
   await rescanConflictsForName(session, created.name);
   return created;
+}
+
+const updateSchema = z.object({
+  name: z.string().trim().min(1),
+  expectedValue: z.number().int().min(0).optional(),
+  nextAction: z.string().nullish(),
+  phone: z.string().nullish(),
+});
+export type UpdateLeadInput = z.infer<typeof updateSchema>;
+
+export async function updateLead(session: AppSession, id: string, raw: UpdateLeadInput) {
+  await requireModule(session, PermModule.CLIENTS, "edit");
+  const input = updateSchema.parse(raw);
+  const lead = await prisma.lead.findFirst({ where: { id, officeId: session.officeId, deletedAt: null } });
+  if (!lead) throw new PermissionError("scope");
+  const updated = await prisma.lead.update({
+    where: { id },
+    data: {
+      name: input.name,
+      expectedValue: input.expectedValue ?? lead.expectedValue,
+      nextAction: input.nextAction ?? null,
+      phone: input.phone ? normalizeSaudiPhone(input.phone) : null,
+    },
+  });
+  await logAudit({ session, action: "lead.update", resource: "clients", targetId: id });
+  if (updated.name !== lead.name) await rescanConflictsForName(session, updated.name);
+  return updated;
+}
+
+export async function deleteLead(session: AppSession, id: string) {
+  await requireModule(session, PermModule.CLIENTS, "delete");
+  const lead = await prisma.lead.findFirst({ where: { id, officeId: session.officeId, deletedAt: null } });
+  if (!lead) throw new PermissionError("scope");
+  await prisma.lead.update({ where: { id }, data: { deletedAt: new Date() } });
+  await logAudit({ session, action: "lead.delete", resource: "clients", targetId: id });
 }
 
 /** Single-step, bounded pipeline move (docs BR-CRM-MOVE). dir ∈ {-1,+1}. */
