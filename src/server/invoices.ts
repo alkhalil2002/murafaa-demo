@@ -383,6 +383,17 @@ export async function listInvoices(session: AppSession, caseId?: string): Promis
   return rows.map(toDTO);
 }
 
+/** كشف حساب العميل (prototype finStmt/stmtRender) — every invoice for one client. */
+export async function listInvoicesByClient(session: AppSession, clientId: string): Promise<InvoiceDTO[]> {
+  await requireModule(session, PermModule.FINANCE, "view");
+  const rows = await prisma.invoice.findMany({
+    where: { officeId: session.officeId, clientId, deletedAt: null },
+    orderBy: { createdAt: "desc" },
+    include: { client: { select: { name: true } }, case: { select: { title: true } }, payments: { select: { amount: true } } },
+  });
+  return rows.map(toDTO);
+}
+
 export async function getInvoice(session: AppSession, id: string) {
   await requireModule(session, PermModule.FINANCE, "view");
   const inv = await prisma.invoice.findFirst({

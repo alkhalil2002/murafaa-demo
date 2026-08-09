@@ -1,11 +1,11 @@
-import { AccountType, JournalSourceType, PermModule } from "@prisma/client";
+import { AccountType, JournalSourceType, PermModule, TrustTxnType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { AppSession } from "@/lib/auth/types";
 import { requireModule } from "@/lib/permissions/guard";
 import { logAudit } from "@/lib/audit";
 import { agingBucket, paidOf, remainingOf, type AgingBucket } from "@/lib/finance/core";
-import { postJournal } from "@/lib/finance/ledger";
+import { ACC, postJournal } from "@/lib/finance/ledger";
 
 /**
  * Derived accounting reports (docs BR-LED-3/4, FIN-VAT-RETURN). All balances
@@ -140,6 +140,54 @@ export async function getFinancialStatements(session: AppSession): Promise<Finan
     assetsMinor,
     liabilitiesMinor,
     equityMinor,
+  };
+}
+
+export type CashFlowStatement = {
+  collectedMinor: number;
+  trustToFeesMinor: number;
+  expensePaidMinor: number;
+  operatingMinor: number;
+  openingCashMinor: number;
+  closingCashMinor: number;
+  cashBankMinor: number;
+};
+
+/**
+ * Simplified direct-method cash flow (prototype finRep §cashFlow): client
+ * trust deposits/withdrawals are excluded (docs guardrail 5 — client money,
+ * not the office's), only a TRANSFER_TO_FEES movement counts as operating
+ * cash in. openingCash is 0 since inception (no separate period-opening
+ * balances are tracked); the closing figure should match the real CASH_BANK
+ * ledger balance, shown alongside as a reconciliation check.
+ */
+export async function getCashFlowStatement(session: AppSession): Promise<CashFlowStatement> {
+  await requireModule(session, PermModule.FINANCE, "view");
+  const officeId = session.officeId;
+  const [paymentsAgg, trustAgg, expenses, rows] = await Promise.all([
+    prisma.payment.aggregate({ where: { officeId, invoice: { deletedAt: null } }, _sum: { amount: true } }),
+    prisma.trustTransaction.aggregate({
+      where: { officeId, type: TrustTxnType.TRANSFER_TO_FEES },
+      _sum: { amountMinor: true },
+    }),
+    prisma.expense.findMany({ where: { officeId, deletedAt: null }, select: { netAmount: true, inputVat: true } }),
+    trialBalance(session),
+  ]);
+  const collectedMinor = paymentsAgg._sum.amount ?? 0;
+  const trustToFeesMinor = trustAgg._sum.amountMinor ?? 0;
+  const expensePaidMinor = expenses.reduce((s, e) => s + e.netAmount + e.inputVat, 0);
+  const operatingMinor = collectedMinor + trustToFeesMinor - expensePaidMinor;
+  const cashBankRow = rows.find((r) => r.code === ACC.CASH_BANK);
+  const cashBankMinor = cashBankRow ? cashBankRow.debit - cashBankRow.credit : 0;
+  const openingCashMinor = 0;
+  return {
+    collectedMinor,
+    trustToFeesMinor,
+    expensePaidMinor,
+    operatingMinor,
+    openingCashMinor,
+    closingCashMinor: openingCashMinor + operatingMinor,
+    cashBankMinor,
   };
 }
 
