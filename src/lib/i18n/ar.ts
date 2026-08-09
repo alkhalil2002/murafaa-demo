@@ -1383,6 +1383,8 @@ export const ar = {
   "search.group.documents": "المستندات",
   "search.group.invoices": "الفواتير",
   "search.group.tasks": "المهام",
+  "search.group.leads": "العملاء المحتملون",
+  "search.group.employees": "الموظفون",
   "notif.title": "الإشعارات",
   "notif.pill": "كل تنبيهات المنصة في مكان واحد",
   "notif.empty": "لا توجد إشعارات جديدة.",

@@ -32,16 +32,24 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const query = (q ?? "").trim();
   const results = query.length >= 2 ? await globalSearch(session, query) : null;
   const total = results
-    ? results.cases.length + results.clients.length + results.documents.length + results.invoices.length + results.tasks.length
+    ? results.cases.length +
+      results.clients.length +
+      results.leads.length +
+      results.documents.length +
+      results.invoices.length +
+      results.tasks.length +
+      results.employees.length
     : 0;
 
   const groups: Array<[MessageKey, SearchResult[]]> = results
     ? [
         ["search.group.cases", results.cases],
         ["search.group.clients", results.clients],
+        ["search.group.leads", results.leads],
         ["search.group.documents", results.documents],
         ["search.group.invoices", results.invoices],
         ["search.group.tasks", results.tasks],
+        ["search.group.employees", results.employees],
       ]
     : [];
 

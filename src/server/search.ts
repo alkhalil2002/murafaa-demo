@@ -17,29 +17,32 @@ export type SearchResult = { id: string; label: string; sub: string | null; href
 export type SearchResults = {
   cases: SearchResult[];
   clients: SearchResult[];
+  leads: SearchResult[];
   documents: SearchResult[];
   invoices: SearchResult[];
   tasks: SearchResult[];
+  employees: SearchResult[];
 };
 
 const TAKE = 8;
 
 export async function globalSearch(session: AppSession, rawQuery: string): Promise<SearchResults> {
   const q = rawQuery.trim();
-  const empty: SearchResults = { cases: [], clients: [], documents: [], invoices: [], tasks: [] };
+  const empty: SearchResults = { cases: [], clients: [], leads: [], documents: [], invoices: [], tasks: [], employees: [] };
   if (q.length < 2) return empty;
 
-  const [canCases, canClients, canDocuments, canFinance, canTasks] = await Promise.all([
+  const [canCases, canClients, canDocuments, canFinance, canTasks, canHr] = await Promise.all([
     canAction(session, PermModule.CASES, "view"),
     canAction(session, PermModule.CLIENTS, "view"),
     canAction(session, PermModule.DOCUMENTS, "view"),
     canAction(session, PermModule.FINANCE, "view"),
     canAction(session, PermModule.TASKS, "view"),
+    canAction(session, PermModule.HR, "view"),
   ]);
 
   const caseWhere = canCases || canDocuments || canTasks ? await caseScopeWhere(session) : null;
 
-  const [cases, clients, documents, invoices, tasks] = await Promise.all([
+  const [cases, clients, leads, documents, invoices, tasks, employees] = await Promise.all([
     canCases
       ? prisma.case.findMany({
           where: { ...caseWhere!, OR: [{ title: { contains: q, mode: "insensitive" } }, { number: { contains: q, mode: "insensitive" } }] },
@@ -52,6 +55,18 @@ export async function globalSearch(session: AppSession, rawQuery: string): Promi
           where: {
             officeId: session.officeId,
             deletedAt: null,
+            OR: [{ name: { contains: q, mode: "insensitive" } }, { phone: { contains: q, mode: "insensitive" } }],
+          },
+          select: { id: true, name: true, phone: true },
+          take: TAKE,
+        })
+      : Promise.resolve([]),
+    canClients
+      ? prisma.lead.findMany({
+          where: {
+            officeId: session.officeId,
+            deletedAt: null,
+            convertedClientId: null,
             OR: [{ name: { contains: q, mode: "insensitive" } }, { phone: { contains: q, mode: "insensitive" } }],
           },
           select: { id: true, name: true, phone: true },
@@ -89,11 +104,23 @@ export async function globalSearch(session: AppSession, rawQuery: string): Promi
           take: TAKE,
         })
       : Promise.resolve([]),
+    canHr
+      ? prisma.employee.findMany({
+          where: {
+            officeId: session.officeId,
+            deletedAt: null,
+            OR: [{ name: { contains: q, mode: "insensitive" } }, { phone: { contains: q, mode: "insensitive" } }],
+          },
+          select: { id: true, name: true, jobTitle: true },
+          take: TAKE,
+        })
+      : Promise.resolve([]),
   ]);
 
   return {
     cases: cases.map((c) => ({ id: c.id, label: c.title, sub: c.number, href: `/cases/${c.id}` })),
-    clients: clients.map((c) => ({ id: c.id, label: c.name, sub: c.phone, href: `/clients/${c.id}` })),
+    clients: clients.map((c) => ({ id: c.id, label: c.name, sub: c.phone, href: `/clients` })),
+    leads: leads.map((l) => ({ id: l.id, label: l.name, sub: l.phone, href: `/leads` })),
     documents: documents.map((d) => ({
       id: d.id,
       label: d.fileName,
@@ -102,5 +129,6 @@ export async function globalSearch(session: AppSession, rawQuery: string): Promi
     })),
     invoices: invoices.map((i) => ({ id: i.id, label: i.number, sub: i.client.name, href: `/finance/${i.id}` })),
     tasks: tasks.map((t) => ({ id: t.id, label: t.title, sub: null, href: `/tasks` })),
+    employees: employees.map((e) => ({ id: e.id, label: e.name, sub: e.jobTitle, href: `/hr/${e.id}` })),
   };
 }
