@@ -948,6 +948,12 @@ export const ar = {
   "finProfit.col.expenses": "المصاريف المباشرة",
   "finProfit.col.margin": "هامش الربح",
   "finProfit.invoiceEntry": "↗ فوترة",
+  "finProfit.newEntry": "＋ تسجيل ساعات",
+  "finProfit.description": "الوصف",
+  "finProfit.hoursInput": "عدد الساعات",
+  "finProfit.hourlyRate": "الأجر بالساعة",
+  "finProfit.billable": "قابل للفوترة",
+  "finProfit.addSubmit": "＋ تسجيل",
 
   // ── finBank ──
   "finBank.hint": "الحسابات البنكية والصندوق — أين يستقرّ المال فعلاً: المدفوعات بتحويل/شبكة تدخل الحساب الجاري، والنقد يدخل الصندوق، وأموال العملاء في حساب العهدة المنفصل.",

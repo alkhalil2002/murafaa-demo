@@ -177,6 +177,8 @@ export async function createTimeEntry(session: AppSession, raw: CreateTimeInput)
     select: { id: true },
   });
   if (!lawyer) throw new PermissionError("scope");
+  const workDate = input.workDate ?? new Date();
+  await assertPeriodOpen(prisma, session.officeId, workDate);
 
   const entry = await prisma.timeEntry.create({
     data: {
@@ -187,7 +189,7 @@ export async function createTimeEntry(session: AppSession, raw: CreateTimeInput)
       description: input.description ?? null,
       minutes: input.minutes,
       hourlyRate: input.hourlyRate,
-      workDate: input.workDate ?? new Date(),
+      workDate,
       billable: input.billable,
     },
   });

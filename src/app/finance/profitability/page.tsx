@@ -5,11 +5,13 @@ import { FinanceTabs } from "@/components/finance-tabs";
 import { getSession } from "@/lib/auth/session";
 import { listTimeEntries } from "@/server/expenses";
 import { getCaseProfitability } from "@/server/case-profitability";
-import { PermissionError } from "@/lib/permissions/guard";
+import { listCases, listAssignableUsers } from "@/server/cases";
+import { PermissionError, canAction } from "@/lib/permissions/guard";
+import { PermModule } from "@prisma/client";
 import { formatSar } from "@/lib/money";
 import { RIYADH_TZ } from "@/lib/dates";
 import { t } from "@/lib/i18n";
-import { invoiceTimeEntryAction } from "../actions";
+import { invoiceTimeEntryAction, createTimeEntryAction } from "../actions";
 
 const arNum = (n: number) => n.toLocaleString("ar-SA");
 const fmtDate = (d: Date) =>
@@ -21,16 +23,71 @@ export default async function ProfitabilityPage() {
 
   let content: React.ReactNode;
   try {
-    const [entries, profitability] = await Promise.all([
+    const [entries, profitability, canEdit] = await Promise.all([
       listTimeEntries(session),
       getCaseProfitability(session),
+      canAction(session, PermModule.FINANCE, "edit"),
     ]);
+    const [cases, lawyers] = canEdit ? await Promise.all([listCases(session), listAssignableUsers(session)]) : [[], []];
 
     content = (
       <>
         <div className="panel">
           <div className="sub" style={{ marginBottom: 0 }}>{t("finProfit.hint")}</div>
         </div>
+
+        {canEdit && (
+          <div className="panel">
+            <h2 style={{ marginTop: 0 }}>{t("finProfit.newEntry")}</h2>
+            <form action={createTimeEntryAction} className="three" style={{ alignItems: "flex-end" }}>
+              <div className="field">
+                <label>{t("finProfit.col.case")}</label>
+                <select name="caseId" defaultValue="" required>
+                  <option value="" disabled>—</option>
+                  {cases.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>{t("finProfit.col.lawyer")}</label>
+                <select name="lawyerId" defaultValue="" required>
+                  <option value="" disabled>—</option>
+                  {lawyers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>{t("finProfit.col.date")}</label>
+                <input type="date" name="workDate" />
+              </div>
+              <div className="field">
+                <label>{t("finProfit.hoursInput")}</label>
+                <input type="number" name="hours" min="0.1" step="0.1" required />
+              </div>
+              <div className="field">
+                <label>{t("finProfit.hourlyRate")}</label>
+                <input type="number" name="hourlyRate" min="0" step="0.01" required />
+              </div>
+              <div className="field">
+                <label>{t("finProfit.description")}</label>
+                <input type="text" name="description" />
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input type="checkbox" name="billable" defaultChecked />
+                {t("finProfit.billable")}
+              </label>
+              <button type="submit" className="act b-add">
+                {t("finProfit.addSubmit")}
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="panel overflow-x-auto">
           <h2 style={{ marginTop: 0 }}>{t("finProfit.timeLog")}</h2>

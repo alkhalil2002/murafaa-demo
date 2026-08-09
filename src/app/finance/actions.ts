@@ -7,7 +7,7 @@ import { getSession } from "@/lib/auth/session";
 import { issueCreditNote, recordPayment, writeOffBadDebt } from "@/server/invoices";
 import { createManualJournalEntry } from "@/server/ledger-reports";
 import { setPeriodLock, setRequireApproval } from "@/server/finance-governance";
-import { reimburseExpense, invoiceTimeEntry } from "@/server/expenses";
+import { reimburseExpense, invoiceTimeEntry, createTimeEntry } from "@/server/expenses";
 import { riyalsToHalalas } from "@/lib/money";
 
 export async function recordPaymentAction(formData: FormData): Promise<void> {
@@ -55,6 +55,28 @@ export async function reimburseExpenseAction(formData: FormData): Promise<void> 
   await reimburseExpense(session, expenseId);
   revalidatePath("/finance/expenses");
   if (caseId) revalidatePath(`/cases/${caseId}`);
+}
+
+export async function createTimeEntryAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const caseId = String(formData.get("caseId") ?? "");
+  const lawyerId = String(formData.get("lawyerId") ?? "");
+  const description = String(formData.get("description") ?? "");
+  const hours = Number(formData.get("hours") ?? 0);
+  const hourlyRateRiyals = Number(formData.get("hourlyRate") ?? 0);
+  const workDateRaw = String(formData.get("workDate") ?? "");
+  const billable = formData.get("billable") === "on";
+  await createTimeEntry(session, {
+    caseId,
+    lawyerId,
+    description: description || null,
+    minutes: Math.round(hours * 60),
+    hourlyRate: riyalsToHalalas(hourlyRateRiyals),
+    workDate: workDateRaw ? new Date(workDateRaw) : undefined,
+    billable,
+  });
+  revalidatePath("/finance/profitability");
 }
 
 export async function invoiceTimeEntryAction(formData: FormData): Promise<void> {
