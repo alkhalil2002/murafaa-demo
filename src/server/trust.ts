@@ -180,6 +180,26 @@ export async function trustWithdraw(session: AppSession, raw: z.infer<typeof mov
   return result;
 }
 
+export async function trustTransferToFees(session: AppSession, raw: z.infer<typeof moveSchema>) {
+  await requireModule(session, PermModule.FINANCE, "edit");
+  const input = moveSchema.parse(raw);
+  await assertClientInOffice(session, input.clientId);
+  const result = await withNumberRetry(() =>
+    prisma.$transaction((tx) =>
+      postTrustMovement(tx, session, {
+        clientId: input.clientId,
+        type: TrustTxnType.TRANSFER_TO_FEES,
+        amountMinor: input.amountMinor,
+        date: input.date ?? new Date(),
+        note: input.note,
+        relatedCaseId: input.relatedCaseId,
+      }),
+    ),
+  );
+  await logAudit({ session, action: "trust.transferToFees", resource: "finance", targetId: input.clientId, detail: String(input.amountMinor) });
+  return result;
+}
+
 export async function listTrustAccounts(session: AppSession) {
   await requireModule(session, PermModule.FINANCE, "view");
   return prisma.trustAccount.findMany({
