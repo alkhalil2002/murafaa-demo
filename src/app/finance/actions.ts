@@ -8,6 +8,7 @@ import { issueCreditNote, recordPayment, writeOffBadDebt } from "@/server/invoic
 import { createManualJournalEntry } from "@/server/ledger-reports";
 import { setPeriodLock, setRequireApproval } from "@/server/finance-governance";
 import { reimburseExpense, invoiceTimeEntry, createTimeEntry } from "@/server/expenses";
+import { toggleBankLineCleared } from "@/server/finance-bank";
 import { riyalsToHalalas } from "@/lib/money";
 
 export async function recordPaymentAction(formData: FormData): Promise<void> {
@@ -77,6 +78,15 @@ export async function createTimeEntryAction(formData: FormData): Promise<void> {
     billable,
   });
   revalidatePath("/finance/profitability");
+}
+
+export async function toggleBankLineClearedAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const kind = String(formData.get("kind") ?? "") === "EXPENSE" ? "EXPENSE" : "PAYMENT";
+  const id = String(formData.get("id") ?? "");
+  await toggleBankLineCleared(session, kind, id);
+  revalidatePath("/finance/bank");
 }
 
 export async function invoiceTimeEntryAction(formData: FormData): Promise<void> {

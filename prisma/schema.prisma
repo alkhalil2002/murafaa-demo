@@ -1302,6 +1302,10 @@ model Payment {
   approvedById String?   @map("approved_by") @db.Uuid
   approvedAt   DateTime? @map("approved_at")
 
+  /// Bank reconciliation (docs/05 finBank bankToggleClear) — matched against the bank statement.
+  cleared   Boolean   @default(false)
+  clearedAt DateTime? @map("cleared_at")
+
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   createdById String?   @map("created_by") @db.Uuid
@@ -1364,6 +1368,10 @@ model Expense {
   case                   Case?   @relation(fields: [caseId], references: [id])
   /// Reimbursement invoice this expense was billed into (plain column).
   reimbursementInvoiceId String? @map("reimbursement_invoice_id") @db.Uuid
+
+  /// Bank reconciliation (docs/05 finBank bankToggleClear) — matched against the bank statement.
+  cleared   Boolean   @default(false)
+  clearedAt DateTime? @map("cleared_at")
 
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
