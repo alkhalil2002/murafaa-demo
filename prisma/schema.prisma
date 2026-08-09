@@ -511,6 +511,7 @@ model Office {
   employeeRequests     EmployeeRequest[]
   payrollRuns          PayrollRun[]
   performanceEvents    PerformanceEvent[]
+  performanceWeights   OfficePerformanceWeight[]
   caseApprovals        CaseApproval[]
   caseExecutions       CaseExecution[]
   procedureRequests    ProcedureRequest[]
@@ -1977,6 +1978,24 @@ model PerformanceEvent {
 
   @@index([officeId, userId, occurredAt])
   @@map("performance_events")
+}
+
+/// Per-office override of PERFORMANCE_POINTS (prototype pulseSaveWeights/
+/// pulseResetWeights) — absence of a row for a kind falls back to the
+/// hardcoded default in src/lib/performance.ts.
+model OfficePerformanceWeight {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  kind   PerformanceEventKind
+  points Int
+
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedById String?  @map("updated_by") @db.Uuid
+
+  @@unique([officeId, kind])
+  @@map("office_performance_weights")
 }
 
 // ---------- Internal review pipeline (الاعتمادات), per case. A fixed 5-stage

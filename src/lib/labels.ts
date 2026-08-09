@@ -38,6 +38,7 @@ import {
   TaskColumn,
   TaskPriority,
   TrustTxnType,
+  PerformanceEventKind,
 } from "@prisma/client";
 import type { NitaqatBandKey } from "@/lib/hr/core";
 import type { EffectiveInvoiceStatus } from "@/lib/finance/core";
@@ -70,6 +71,8 @@ const MODULE_KEY: Record<PermModule, MessageKey> = {
 };
 
 export const permLevelLabel = (v: PermLevel) => t(`permLevel.${v}` as MessageKey);
+
+export const performanceEventKindLabel = (v: PerformanceEventKind) => t(`performanceEventKind.${v}` as MessageKey);
 
 export function roleLabel(role: Role): string {
   return t(ROLE_KEY[role]);
