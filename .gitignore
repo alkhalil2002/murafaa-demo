@@ -27,3 +27,6 @@ npm-debug.log*
 # IDE
 .idea/
 .vscode/
+docs/.obsidian/workspace.json
+docs/.obsidian/workspace-mobile.json
+docs/.obsidian/cache
