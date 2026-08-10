@@ -1,8 +1,10 @@
-import { MessageSenderType } from "@prisma/client";
+import { randomUUID } from "node:crypto";
+import { ClientApprovalStatus, DocKind, DocSource, MessageSenderType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logSystemAudit } from "@/lib/audit";
-import { getStorage } from "@/lib/storage";
+import { documentKey, getStorage } from "@/lib/storage";
+import { invoiceStatus, paidOf, remainingOf } from "@/lib/finance/core";
 import type { PortalSession } from "@/lib/auth/portal-session";
 
 /**
@@ -94,4 +96,121 @@ export async function sendPortalMessage(session: PortalSession, caseId: string, 
     `client=${session.clientId} case=${caseId} message=${created.id}`,
   );
   return created;
+}
+
+// ── Client approvals (اعتمادات) ──
+
+export async function listPortalApprovals(session: PortalSession, caseId: string) {
+  await loadOwnPortalCase(session, caseId);
+  return prisma.clientApprovalRequest.findMany({
+    where: { officeId: session.officeId, caseId, deletedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+const decideSchema = z.object({
+  approve: z.boolean(),
+  note: z.string().trim().max(2000).nullish(),
+});
+
+export async function decidePortalApproval(
+  session: PortalSession,
+  caseId: string,
+  approvalId: string,
+  approve: boolean,
+  note?: string | null,
+) {
+  const input = decideSchema.parse({ approve, note });
+  await loadOwnPortalCase(session, caseId);
+  const approval = await prisma.clientApprovalRequest.findFirst({
+    where: { id: approvalId, officeId: session.officeId, caseId, deletedAt: null },
+  });
+  if (!approval) throw new Error("PORTAL_SCOPE");
+  if (approval.status !== ClientApprovalStatus.PENDING) throw new Error("APPROVAL_ALREADY_DECIDED");
+  const updated = await prisma.clientApprovalRequest.update({
+    where: { id: approvalId },
+    data: {
+      status: input.approve ? ClientApprovalStatus.APPROVED : ClientApprovalStatus.REJECTED,
+      decisionNote: input.note ?? null,
+    },
+  });
+  await logSystemAudit(
+    session.officeId,
+    "portal.approval.decide",
+    `client=${session.clientId} case=${caseId} approval=${approvalId} decision=${updated.status}`,
+  );
+  return updated;
+}
+
+// ── Client document upload (رفع مستندات) ──
+
+const MAX_PORTAL_UPLOAD_BYTES = 20 * 1024 * 1024;
+
+function kindForMime(mime: string): DocKind {
+  if (mime.startsWith("image/")) return DocKind.IMAGE;
+  if (mime === "text/plain") return DocKind.TEXT;
+  if (mime === "application/pdf") return DocKind.DOCUMENT;
+  return DocKind.FILE;
+}
+
+export async function uploadPortalDocument(
+  session: PortalSession,
+  caseId: string,
+  file: { fileName: string; mimeType: string; bytes: Buffer },
+) {
+  if (file.bytes.length === 0 || file.bytes.length > MAX_PORTAL_UPLOAD_BYTES) throw new Error("UPLOAD_SIZE_REJECTED");
+  await loadOwnPortalCase(session, caseId);
+
+  const id = randomUUID();
+  const storageKey = documentKey({
+    officeId: session.officeId,
+    caseId,
+    documentId: id,
+    filename: file.fileName,
+  });
+  await getStorage().put(storageKey, file.bytes, file.mimeType);
+
+  const doc = await prisma.document.create({
+    data: {
+      id,
+      officeId: session.officeId,
+      caseId,
+      fileName: file.fileName,
+      kind: kindForMime(file.mimeType),
+      source: DocSource.CLIENT,
+      clientVisible: true,
+      storageKey,
+      mimeType: file.mimeType,
+      sizeBytes: file.bytes.length,
+    },
+  });
+  await logSystemAudit(
+    session.officeId,
+    "portal.document.upload",
+    `client=${session.clientId} case=${caseId} doc=${doc.id}`,
+  );
+  return doc;
+}
+
+// ── Invoices (دفع) ──
+
+export async function listPortalInvoices(session: PortalSession) {
+  const rows = await prisma.invoice.findMany({
+    where: { officeId: session.officeId, clientId: session.clientId, deletedAt: null },
+    orderBy: { issueDate: "desc" },
+    include: { case: { select: { title: true } }, payments: { select: { amount: true } } },
+  });
+  return rows.map((inv) => {
+    const paid = paidOf(inv.payments);
+    return {
+      id: inv.id,
+      number: inv.number,
+      caseTitle: inv.case?.title ?? null,
+      issueDate: inv.issueDate,
+      total: inv.totalAmount,
+      paid,
+      remaining: remainingOf(inv.totalAmount, paid),
+      status: invoiceStatus(inv, paid),
+    };
+  });
 }

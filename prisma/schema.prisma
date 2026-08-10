@@ -513,6 +513,7 @@ model Office {
   performanceEvents    PerformanceEvent[]
   performanceWeights   OfficePerformanceWeight[]
   caseApprovals        CaseApproval[]
+  clientApprovalRequests ClientApprovalRequest[]
   caseExecutions       CaseExecution[]
   procedureRequests    ProcedureRequest[]
   clientCommunications ClientCommunication[]
@@ -764,6 +765,7 @@ model Case {
   conflictFlags     ConflictFlag[]        @relation("ConflictCase")
   convertedFrom     Lead[]                @relation("LeadConvertedCase")
   approvals         CaseApproval[]
+  clientApprovalRequests ClientApprovalRequest[]
   execution         CaseExecution?
   procedureRequests ProcedureRequest[]
   communications    ClientCommunication[]
@@ -2035,6 +2037,55 @@ model CaseApproval {
 
   @@index([officeId, caseId])
   @@map("case_approvals")
+}
+
+/// Kind of client-facing approval request (prototype PROPOSALS.kind: مذكرة/أتعاب/تسوية).
+enum ClientApprovalKind {
+  MEMO // مذكرة
+  FEE // أتعاب
+  SETTLEMENT // تسوية
+}
+
+/// Status of a client-facing approval request (prototype PROPOSALS.st / CLIENT_APPR.st).
+enum ClientApprovalStatus {
+  PENDING // معلّق
+  APPROVED // معتمد
+  REJECTED // مرفوض
+}
+
+/// Client-facing approval request (اعتمادات العميل — docs/03 PROPOSALS + CLIENT_APPR,
+/// docs/05 client portal اعتمادات tab). Staff raises one against a case (a
+/// memo/fee-proposal/settlement needing the client's sign-off); the client
+/// approves or rejects it from the portal. Kept as a single entity rather than
+/// splitting PROPOSALS/CLIENT_APPR — they are the same lifecycle in the docs.
+model ClientApprovalRequest {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String @map("case_id") @db.Uuid
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  title String
+  kind  ClientApprovalKind
+
+  /// Halalas. Only meaningful for FEE/SETTLEMENT kinds; null for MEMO.
+  amount Int?
+
+  note String?
+
+  status       ClientApprovalStatus @default(PENDING)
+  /// Client's note when rejecting (or approving), free text.
+  decisionNote String?              @map("decision_note")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String?   @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([officeId, caseId])
+  @@index([officeId, status])
+  @@map("client_approval_requests")
 }
 
 // ---------- Procedural requests/milestones (طلبات ومعالم) filed within a

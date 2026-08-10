@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ConflictSeverity, ConflictStatus, PermModule, CaseOutcome, CaseStatus, ApprovalStage, HearingKind, DocParty, DocSource, ProcStage, ExecutionFileStatus, CaseEventType, FeeType, ClientCommunicationType } from "@prisma/client";
+import { ConflictSeverity, ConflictStatus, PermModule, CaseOutcome, CaseStatus, ApprovalStage, ClientApprovalKind, ClientApprovalStatus, HearingKind, DocParty, DocSource, ProcStage, ExecutionFileStatus, CaseEventType, FeeType, ClientCommunicationType } from "@prisma/client";
 import { AppShell, DeniedPanel } from "@/components/app-shell";
 import { getSession } from "@/lib/auth/session";
 import { getCase, listAssignableUsers } from "@/server/cases";
@@ -11,6 +11,7 @@ import { halalasToRiyals } from "@/lib/money";
 import { listInvoices } from "@/server/invoices";
 import { listExpenses, listTimeEntries } from "@/server/expenses";
 import { listApprovals } from "@/server/approvals";
+import { listClientApprovals } from "@/server/client-approvals";
 import { listProcedureRequests, PROC_REQUEST_TYPES } from "@/server/procedure-requests";
 import { listClientCommunications } from "@/server/communications";
 import { addClientCommunicationAction, deleteClientCommunicationAction } from "../communication-actions";
@@ -50,6 +51,7 @@ import {
 import { setOutcomeAction, generateFeeInvoiceAction, saveFeeAgreementAction } from "../actions";
 import { reimburseExpenseAction } from "@/app/finance/actions";
 import { createApprovalAction, advanceApprovalAction, rejectApprovalAction, deleteApprovalAction } from "../approvals-actions";
+import { createClientApprovalRequestAction } from "../client-approvals-actions";
 import {
   recordHearingAction,
   setNextHearingAction,
@@ -95,6 +97,8 @@ import {
   partyRoleLabel,
   outcomeLabel,
   stageLabel,
+  clientApprovalKindLabel,
+  clientApprovalStatusLabel,
 } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { daysLeft, daysAgo } from "@/lib/dates";
@@ -1941,6 +1945,7 @@ export default async function CaseDetailPage({
       }
       case "approvals": {
         const approvals = await listApprovals(session, id);
+        const clientApprovals = await listClientApprovals(session, id);
         const approvalUsers = await listAssignableUsers(session);
         const approvalUserNameById = new Map(approvalUsers.map((u) => [u.id, u.name]));
         const approvalActorLabel = (ev: { actorUserId: string | null; actor: string | null }) =>
@@ -2046,6 +2051,52 @@ export default async function CaseDetailPage({
                         ))}
                       </div>
                     )}
+                  </div>
+                ))
+              )}
+            </Panel>
+
+            <Panel n="" title={t("caseWorkspace.clientApprovals.title")}>
+              {canEditCase && (
+                <form action={createClientApprovalRequestAction} className="two" style={{ marginBottom: 12 }}>
+                  <input type="hidden" name="caseId" value={id} />
+                  <input type="text" name="title" placeholder={t("caseWorkspace.clientApprovals.titleLabel")} required />
+                  <select name="kind" defaultValue={ClientApprovalKind.MEMO}>
+                    {Object.values(ClientApprovalKind).map((k) => (
+                      <option key={k} value={k}>
+                        {clientApprovalKindLabel(k)}
+                      </option>
+                    ))}
+                  </select>
+                  <input type="number" name="amount" min={0} step={1} placeholder={t("caseWorkspace.clientApprovals.amountLabel")} />
+                  <input type="text" name="note" placeholder={t("caseWorkspace.clientApprovals.noteLabel")} />
+                  <button type="submit" className="act b-add">
+                    {t("caseWorkspace.clientApprovals.submit")}
+                  </button>
+                </form>
+              )}
+              {clientApprovals.length === 0 ? (
+                <Empty>{t("caseWorkspace.clientApprovals.empty")}</Empty>
+              ) : (
+                clientApprovals.map((a) => (
+                  <div className="approve-row" key={a.id}>
+                    <span
+                      className="ndot"
+                      style={{
+                        background:
+                          a.status === ClientApprovalStatus.APPROVED
+                            ? "var(--ok)"
+                            : a.status === ClientApprovalStatus.REJECTED
+                              ? "var(--advocate)"
+                              : "var(--gold)",
+                      }}
+                    />
+                    <span className="at">
+                      {a.title}
+                      <span className="chip"> {clientApprovalKindLabel(a.kind)}</span>
+                      {a.amount != null && <span className="chip"> {formatSar(a.amount)}</span>}
+                    </span>
+                    <span className="chip st">{clientApprovalStatusLabel(a.status)}</span>
                   </div>
                 ))
               )}

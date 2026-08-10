@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ClientApprovalStatus } from "@prisma/client";
 import { getPortalSession } from "@/lib/auth/portal-session";
-import { getPortalCase, listPortalDocuments, listPortalMessages } from "@/server/portal";
-import { sendPortalMessageAction } from "../../../actions";
-import { caseStatusLabel, stageLabel } from "@/lib/labels";
+import { getPortalCase, listPortalApprovals, listPortalDocuments, listPortalMessages } from "@/server/portal";
+import { decidePortalApprovalAction, sendPortalMessageAction, uploadPortalDocumentAction } from "../../../actions";
+import { caseStatusLabel, clientApprovalKindLabel, clientApprovalStatusLabel, stageLabel } from "@/lib/labels";
+import { formatSar } from "@/lib/money";
 import { t } from "@/lib/i18n";
 
 function fmt(d: Date | null | undefined): string {
@@ -17,10 +19,11 @@ export default async function PortalCaseDetailPage({ params }: { params: Promise
 
   let content: React.ReactNode;
   try {
-    const [c, documents, messages] = await Promise.all([
+    const [c, documents, messages, approvals] = await Promise.all([
       getPortalCase(session, id),
       listPortalDocuments(session, id),
       listPortalMessages(session, id),
+      listPortalApprovals(session, id),
     ]);
 
     content = (
@@ -49,6 +52,62 @@ export default async function PortalCaseDetailPage({ params }: { params: Promise
         </div>
 
         <div className="panel">
+          <h2 style={{ marginTop: 0 }}>{t("portal.approvals.title")}</h2>
+          {approvals.length === 0 ? (
+            <div className="sub" style={{ marginBottom: 0 }}>
+              {t("portal.approvals.empty")}
+            </div>
+          ) : (
+            approvals.map((a) => (
+              <div className="panel" key={a.id} style={{ marginBottom: 10 }}>
+                <div className="approve-row" style={{ border: "none", padding: 0 }}>
+                  <span
+                    className="ndot"
+                    style={{
+                      background:
+                        a.status === ClientApprovalStatus.APPROVED
+                          ? "var(--ok)"
+                          : a.status === ClientApprovalStatus.REJECTED
+                            ? "var(--advocate)"
+                            : "var(--gold)",
+                    }}
+                  />
+                  <span className="at">
+                    {a.title}
+                    <span className="chip"> {clientApprovalKindLabel(a.kind)}</span>
+                    {a.amount != null && <span className="chip"> {t("portal.approvals.amount")}: {formatSar(a.amount)}</span>}
+                  </span>
+                  <span className="chip st">{clientApprovalStatusLabel(a.status)}</span>
+                </div>
+                {a.note && (
+                  <div className="sub" style={{ marginTop: 6, marginBottom: 0 }}>
+                    {t("portal.approvals.note")}: {a.note}
+                  </div>
+                )}
+                {a.decisionNote && (
+                  <div className="sub" style={{ marginTop: 6, marginBottom: 0 }}>
+                    {t("portal.approvals.decisionNote")}: {a.decisionNote}
+                  </div>
+                )}
+                {a.status === ClientApprovalStatus.PENDING && (
+                  <form action={decidePortalApprovalAction} style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                    <input type="hidden" name="caseId" value={id} />
+                    <input type="hidden" name="approvalId" value={a.id} />
+                    <input type="text" name="note" placeholder={t("portal.approvals.decisionPlaceholder")} style={{ flex: 1 }} />
+                    <button type="submit" name="decision" value="approve" className="act b-add">
+                      {t("portal.approvals.approve")}
+                    </button>
+                    <button type="submit" name="decision" value="reject" className="tinybtn del">
+                      {t("portal.approvals.reject")}
+                    </button>
+                  </form>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="panel">
           <h2 style={{ marginTop: 0 }}>{t("portal.documents.title")}</h2>
           {documents.length === 0 ? (
             <div className="sub" style={{ marginBottom: 0 }}>
@@ -65,6 +124,13 @@ export default async function PortalCaseDetailPage({ params }: { params: Promise
               </div>
             ))
           )}
+          <form action={uploadPortalDocumentAction} style={{ display: "flex", gap: 6, marginTop: 10 }}>
+            <input type="hidden" name="caseId" value={id} />
+            <input type="file" name="file" required style={{ flex: 1 }} />
+            <button type="submit" className="act b-add">
+              {t("portal.upload.submit")}
+            </button>
+          </form>
         </div>
 
         <div className="panel">

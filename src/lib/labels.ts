@@ -4,6 +4,8 @@ import {
   AppointmentType,
   CaseEventType,
   CaseOutcome,
+  ClientApprovalKind,
+  ClientApprovalStatus,
   ClientCommunicationType,
   ExecutionFileStatus,
   ExecutionProcStatus,
@@ -119,6 +121,8 @@ export const requestKindLabel = (v: RequestKind) => t(`reqKind.${v}` as MessageK
 export const requestStatusLabel = (v: RequestStatus) => t(`reqStatus.${v}` as MessageKey);
 export const nitaqatBandLabel = (v: NitaqatBandKey) => t(`nitaqat.${v}` as MessageKey);
 export const approvalStageLabel = (v: ApprovalStage) => t(`approvalStage.${v}` as MessageKey);
+export const clientApprovalKindLabel = (v: ClientApprovalKind) => t(`clientApprovalKind.${v}` as MessageKey);
+export const clientApprovalStatusLabel = (v: ClientApprovalStatus) => t(`clientApprovalStatus.${v}` as MessageKey);
 export const procedureRequestStatusLabel = (v: ProcedureRequestStatus) => t(`procedureRequestStatus.${v}` as MessageKey);
 export const caseEventTypeLabel = (v: CaseEventType) => t(`caseEventType.${v}` as MessageKey);
 export const clientCommunicationTypeLabel = (v: ClientCommunicationType) => t(`clientCommunicationType.${v}` as MessageKey);

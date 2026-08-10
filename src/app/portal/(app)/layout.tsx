@@ -14,6 +14,12 @@ export default async function PortalLayout({ children }: { children: React.React
         <Link href="/portal" className="pill">
           {t("app.name")} — {t("portal.login.tagline")}
         </Link>
+        <Link href="/portal" className="chip">
+          {t("portal.nav.cases")}
+        </Link>
+        <Link href="/portal/invoices" className="chip">
+          {t("portal.nav.invoices")}
+        </Link>
         <span className="chip" style={{ marginInlineStart: "auto" }}>
           {session.name}
         </span>
