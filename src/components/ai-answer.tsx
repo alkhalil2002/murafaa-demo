@@ -53,7 +53,7 @@ export function AiAnswer({ data }: { data: AiAnswerData }) {
       <p className="sub" style={{ fontWeight: 600, marginBottom: 8 }}>
         {data.question}
       </p>
-      <p style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.8 }}>{data.finalOutput}</p>
+      <p style={{ whiteSpace: "pre-wrap", fontSize: 17.5, lineHeight: 1.8 }}>{data.finalOutput}</p>
 
       {data.groundingNote && (
         <div className="docnote" style={{ marginTop: 10 }}>
@@ -83,7 +83,7 @@ export function AiAnswer({ data }: { data: AiAnswerData }) {
         </p>
       )}
 
-      <p className="sub" style={{ marginTop: 12, marginBottom: 0, paddingTop: 8, borderTop: "1px solid var(--parch-line)", fontSize: 11 }}>
+      <p className="sub" style={{ marginTop: 12, marginBottom: 0, paddingTop: 8, borderTop: "1px solid var(--parch-line)", fontSize: 13.75 }}>
         ⚖ {t("ai.disclaimer")}
       </p>
     </div>

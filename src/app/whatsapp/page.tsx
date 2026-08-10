@@ -31,7 +31,7 @@ export default async function WhatsappPage() {
           <div className="clist">
             {rows.map((r) => (
               <div key={r.id} className="dcard" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 18 }}>💬</span>
+                <span style={{ fontSize: 22.5 }}>💬</span>
                 <div style={{ flex: 1 }}>
                   <div>{r.note}</div>
                   <div className="sub">

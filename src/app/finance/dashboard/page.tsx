@@ -51,7 +51,7 @@ export default async function FinanceDashboardPage() {
                   }}
                   title={formatSar(r.totalMinor)}
                 />
-                <div className="sub" style={{ fontSize: 11 }}>{monthLabel(r.month)}</div>
+                <div className="sub" style={{ fontSize: 13.75 }}>{monthLabel(r.month)}</div>
               </div>
             ))}
           </div>

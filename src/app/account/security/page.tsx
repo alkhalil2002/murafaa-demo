@@ -51,7 +51,7 @@ export default async function AccountSecurityPage({
               <label>{t("security.totp.secretLabel")}</label>
               <input type="text" readOnly dir="ltr" value={enrollment!.secret} style={{ fontFamily: "monospace" }} />
             </div>
-            <div className="sub" style={{ fontSize: 12.5, wordBreak: "break-all" }}>
+            <div className="sub" style={{ fontSize: 15.625, wordBreak: "break-all" }}>
               {enrollment!.uri}
             </div>
             <form action={confirmTotpEnrollAction} style={{ marginTop: 12, display: "flex", gap: 8 }}>

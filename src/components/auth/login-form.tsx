@@ -128,7 +128,7 @@ export function LoginForm() {
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
           placeholder={t("auth.login.otpPlaceholder")}
-          style={{ textAlign: "center", fontSize: 24, letterSpacing: "0.4em" }}
+          style={{ textAlign: "center", fontSize: 30, letterSpacing: "0.4em" }}
         />
       </div>
       {needsTotp && (
@@ -142,7 +142,7 @@ export function LoginForm() {
             value={totp}
             onChange={(e) => setTotp(e.target.value.replace(/\D/g, ""))}
             placeholder={t("auth.login.totpPlaceholder")}
-            style={{ textAlign: "center", fontSize: 20, letterSpacing: "0.3em" }}
+            style={{ textAlign: "center", fontSize: 25, letterSpacing: "0.3em" }}
           />
         </div>
       )}

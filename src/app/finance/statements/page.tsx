@@ -81,7 +81,7 @@ export default async function StatementsPage({
             <Row label={t("finStmt.cashFlow.opening")} value={cf.openingCashMinor} />
             <Row label={t("finStmt.cashFlow.closing")} value={cf.closingCashMinor} bold />
           </div>
-          <div className="sub" style={{ marginTop: 8, fontSize: 11.5 }}>
+          <div className="sub" style={{ marginTop: 8, fontSize: 14.375 }}>
             {t("finStmt.cashFlow.reconNote", { amount: formatSar(cf.cashBankMinor) })}
           </div>
         </div>

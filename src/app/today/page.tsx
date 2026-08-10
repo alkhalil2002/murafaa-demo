@@ -47,7 +47,7 @@ function Row({
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="sub" style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+    <div className="sub" style={{ fontSize: 16.25, color: "var(--ink-soft)" }}>
       {children}
     </div>
   );
@@ -90,22 +90,22 @@ function EmployeeOfWeekCard({ eow }: { eow: { name: string; roleLabel: string; p
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ fontSize: 30 }}>🏆</div>
+        <div style={{ fontSize: 37.5 }}>🏆</div>
         <InitialsAvatar name={eow.name} size={52} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="sub" style={{ fontSize: 11.5, color: "var(--gold)", fontWeight: 700, letterSpacing: 1, marginBottom: 0 }}>
+          <div className="sub" style={{ fontSize: 14.375, color: "var(--gold)", fontWeight: 700, letterSpacing: 1, marginBottom: 0 }}>
             {t("pulse.eow.badge")}
           </div>
-          <div style={{ fontWeight: 700, fontSize: 17 }}>{eow.name}</div>
+          <div style={{ fontWeight: 700, fontSize: 21.25 }}>{eow.name}</div>
           <div className="sub" style={{ marginTop: 1, marginBottom: 0 }}>
             {eow.roleLabel}
           </div>
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-amiri), serif", fontSize: 30, fontWeight: 700, color: "var(--gold)", lineHeight: 1 }}>
+          <div style={{ fontFamily: "var(--font-amiri), serif", fontSize: 37.5, fontWeight: 700, color: "var(--gold)", lineHeight: 1 }}>
             {arNum(eow.points)}
           </div>
-          <div className="sub" style={{ fontSize: 10, marginBottom: 0 }}>
+          <div className="sub" style={{ fontSize: 12.5, marginBottom: 0 }}>
             {t("pulse.eow.points")}
           </div>
         </div>

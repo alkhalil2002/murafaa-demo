@@ -115,7 +115,7 @@ export function EmpPortalLoginForm() {
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
           placeholder={t("auth.login.otpPlaceholder")}
-          style={{ textAlign: "center", fontSize: 24, letterSpacing: "0.4em" }}
+          style={{ textAlign: "center", fontSize: 30, letterSpacing: "0.4em" }}
         />
       </div>
       <button type="submit" disabled={busy} className="lbtn go">

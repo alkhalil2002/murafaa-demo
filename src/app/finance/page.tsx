@@ -30,7 +30,7 @@ export default async function FinancePage() {
               <span className="ndot" style={{ background: "var(--bench)" }} />
               <span className="at">
                 {inv.number} — {inv.clientName}
-                <span style={{ color: "var(--ink-soft)", fontSize: 12 }}> ({inv.issueDate})</span>
+                <span style={{ color: "var(--ink-soft)", fontSize: 15 }}> ({inv.issueDate})</span>
               </span>
               <span className="chip">{formatSar(inv.remaining)} {t("inv.remaining")}</span>
               <span className={`chip st${inv.status === "PAID" ? "" : " done"}`}>

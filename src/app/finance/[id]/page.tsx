@@ -138,7 +138,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="kpi">
-      <div className="v" style={{ fontSize: 20 }}>
+      <div className="v" style={{ fontSize: 25 }}>
         {value}
       </div>
       <div className="l">{label}</div>

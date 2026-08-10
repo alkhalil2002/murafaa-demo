@@ -95,7 +95,7 @@ export default async function ClientsPage() {
                 </div>
                 {canEdit && (
                   <details style={{ marginTop: 8 }}>
-                    <summary style={{ cursor: "pointer", fontSize: 11.5, color: "var(--bench)" }}>
+                    <summary style={{ cursor: "pointer", fontSize: 14.375, color: "var(--bench)" }}>
                       {t("clients.edit")}
                     </summary>
                     <form action={updateClientAction} style={{ marginTop: 8, display: "grid", gap: 6 }}>

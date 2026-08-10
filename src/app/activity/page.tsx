@@ -96,7 +96,7 @@ export default async function ActivityPage({
           ) : (
             rows.map((r) => (
               <div key={r.id} className="dcard">
-                <span style={{ fontSize: 18 }}>{CATEGORY_ICON[r.category]}</span>
+                <span style={{ fontSize: 22.5 }}>{CATEGORY_ICON[r.category]}</span>
                 <div style={{ flex: 1 }}>
                   <div>{r.action}{r.detail ? ` — ${r.detail}` : ""}</div>
                   <div className="sub">

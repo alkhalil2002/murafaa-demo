@@ -33,7 +33,7 @@ export default async function AlertsPage() {
           <div className="clist">
             {items.map((a) => (
               <div key={a.id} className="dcard" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 18 }}>{TIER_ICON[a.tier]}</span>
+                <span style={{ fontSize: 22.5 }}>{TIER_ICON[a.tier]}</span>
                 <div style={{ flex: 1 }}>
                   <div className="chip" style={{ color: TIER_COLOR[a.tier], borderColor: TIER_COLOR[a.tier], marginBottom: 6 }}>
                     {t(`alerts.tier.${a.tier}` as MessageKey)}

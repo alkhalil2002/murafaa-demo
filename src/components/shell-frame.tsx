@@ -136,7 +136,7 @@ export function ShellFrame({
                     if (items.length === 0) return null;
                     return (
                       <div key={key} style={{ marginBottom: 6 }}>
-                        <div className="sub" style={{ fontWeight: 600, fontSize: 11.5, padding: "2px 8px" }}>
+                        <div className="sub" style={{ fontWeight: 600, fontSize: 14.375, padding: "2px 8px" }}>
                           {t(labelKey)}
                         </div>
                         {items.map((r) => (

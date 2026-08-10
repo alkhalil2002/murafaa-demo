@@ -40,7 +40,7 @@ export default async function DeadlinesPage() {
     content = (
       <div className="panel">
         {items.length === 0 ? (
-          <div className="sub" style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+          <div className="sub" style={{ fontSize: 16.25, color: "var(--ink-soft)" }}>
             {t("deadlines.empty")}
           </div>
         ) : (
@@ -57,7 +57,7 @@ export default async function DeadlinesPage() {
                 <span className="at">
                   {KIND_LABEL[item.kind]()}
                   {item.label ? ` — ${item.label}` : ""} — {item.caseTitle}
-                  <span style={{ color: "var(--ink-soft)", fontSize: 12 }}> ({item.date})</span>
+                  <span style={{ color: "var(--ink-soft)", fontSize: 15 }}> ({item.date})</span>
                 </span>
                 <span className="chip" style={{ color, borderColor: color }}>
                   {daysText(item)}

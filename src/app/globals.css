@@ -36,11 +36,6 @@
     font-family: var(--font-plex-arabic), system-ui, sans-serif;
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
-    /* Every font-size in this file is a fixed px value (no rem base to
-       scale), so a uniform zoom is the only way to bump text site-wide
-       without touching hundreds of individual rules. Reflows layout
-       (unlike transform: scale), so spacing/click targets stay correct. */
-    zoom: 1.25;
   }
 
   h1,
@@ -101,10 +96,10 @@
   }
   .sbrand h1 {
     font-family: var(--font-amiri), serif;
-    font-size: 23px;
+    font-size: 28.75px;
   }
   .sbrand p {
-    font-size: 10.5px;
+    font-size: 13.125px;
     color: var(--gold-soft);
     margin: 0;
   }
@@ -116,7 +111,7 @@
     width: 100%;
     cursor: pointer;
     user-select: none;
-    font-size: 10px;
+    font-size: 12.5px;
     font-weight: 700;
     color: rgb(255 255 255 / 0.34);
     padding: 13px 12px 5px;
@@ -163,7 +158,7 @@
     border-radius: 11px;
     cursor: pointer;
     color: var(--gold-soft);
-    font-size: 14.5px;
+    font-size: 18.125px;
     font-weight: 500;
     transition: 0.15s;
   }
@@ -182,7 +177,7 @@
   }
   .nav .cnt {
     margin-inline-start: auto;
-    font-size: 11px;
+    font-size: 13.75px;
     background: rgb(255 255 255 / 0.14);
     border-radius: 999px;
     padding: 1px 8px;
@@ -196,7 +191,7 @@
     border-radius: 11px;
     padding: 11px;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 17.5px;
     font-weight: 600;
     cursor: pointer;
     display: flex;
@@ -213,7 +208,7 @@
     margin-top: auto;
     border-top: 1px solid rgb(231 210 164 / 0.18);
     padding-top: 14px;
-    font-size: 12.5px;
+    font-size: 15.625px;
     color: var(--gold-soft);
   }
   .suser .u {
@@ -229,7 +224,7 @@
     border: none;
     color: var(--gold-soft);
     font-family: inherit;
-    font-size: 12.5px;
+    font-size: 15.625px;
     cursor: pointer;
     margin-top: 8px;
     text-decoration: underline;
@@ -254,7 +249,7 @@
     border-radius: 10px;
     width: 42px;
     height: 42px;
-    font-size: 20px;
+    font-size: 25px;
     cursor: pointer;
     flex: 0 0 auto;
     color: var(--bench);
@@ -273,7 +268,7 @@
     border-radius: 10px;
     padding: 10px 14px;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 17.5px;
     background: #fff;
   }
   .gsearch button {
@@ -310,7 +305,7 @@
     inset-inline-start: -6px;
     background: var(--advocate);
     color: #fff;
-    font-size: 10px;
+    font-size: 12.5px;
     font-weight: 700;
     min-width: 18px;
     height: 18px;
@@ -331,10 +326,10 @@
   }
   .vhead h2 {
     font-family: var(--font-amiri), serif;
-    font-size: 26px;
+    font-size: 32.5px;
   }
   .pill {
-    font-size: 12px;
+    font-size: 15px;
     color: var(--ink-soft);
     background: #fff;
     border: 1px solid var(--line);
@@ -352,7 +347,7 @@
   }
   .panel > h2 {
     font-family: var(--font-amiri), serif;
-    font-size: 21px;
+    font-size: 26.25px;
     margin-bottom: 4px;
     display: flex;
     align-items: center;
@@ -360,7 +355,7 @@
   }
   .panel > h2 .n {
     font-family: var(--font-plex-arabic), sans-serif;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--gold);
     border: 1px solid var(--gold);
@@ -369,7 +364,7 @@
   }
   .panel .sub {
     color: var(--ink-soft);
-    font-size: 13.5px;
+    font-size: 16.875px;
     margin-bottom: 16px;
   }
 
@@ -396,7 +391,7 @@
     border: 1px solid var(--line);
     border-radius: 10px;
     padding: 10px 12px;
-    font-size: 13.5px;
+    font-size: 16.875px;
     background: #fff;
     color: var(--ink);
   }
@@ -406,7 +401,7 @@
   }
 
   .mini {
-    font-size: 12.5px;
+    font-size: 15.625px;
     font-weight: 600;
     cursor: pointer;
     border: 1px solid var(--line);
@@ -424,7 +419,7 @@
     border: none;
     color: var(--bench);
     font-family: inherit;
-    font-size: 14px;
+    font-size: 17.5px;
     font-weight: 600;
     cursor: pointer;
     display: inline-flex;
@@ -466,7 +461,7 @@
     background: var(--ink-soft);
   }
   .ccard h3 {
-    font-size: 15.5px;
+    font-size: 19.375px;
     margin-bottom: 8px;
     line-height: 1.5;
   }
@@ -491,7 +486,7 @@
     color: var(--ink-soft);
   }
   .ccard .meta {
-    font-size: 12px;
+    font-size: 15px;
     color: var(--ink-soft);
     margin-top: 8px;
   }
@@ -499,7 +494,7 @@
     grid-column: 1 / -1;
     text-align: center;
     color: var(--ink-soft);
-    font-size: 14px;
+    font-size: 17.5px;
     padding: 40px;
     border: 1px dashed var(--line);
     border-radius: 14px;
@@ -507,7 +502,7 @@
 
   /* ---------- status pill + tag ---------- */
   .status {
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
     border-radius: 999px;
     padding: 4px 12px;
@@ -522,7 +517,7 @@
   }
   .tag {
     display: inline-block;
-    font-size: 11.5px;
+    font-size: 14.375px;
     font-weight: 600;
     border-radius: 6px;
     padding: 2px 9px;
@@ -552,7 +547,7 @@
     border-bottom: 2px solid transparent;
     padding: 10px 14px;
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: 16.875px;
     color: var(--ink-soft);
     cursor: pointer;
     white-space: nowrap;
@@ -576,7 +571,7 @@
     padding: 12px;
   }
   .kcol h4 {
-    font-size: 13.5px;
+    font-size: 16.875px;
     margin-bottom: 10px;
     display: flex;
     justify-content: space-between;
@@ -588,7 +583,7 @@
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 10px;
-    font-size: 13.5px;
+    font-size: 16.875px;
   }
   .kcard:last-child {
     margin-bottom: 0;
@@ -622,16 +617,16 @@
     width: 20px;
   }
   .tpl .tt {
-    font-size: 14px;
+    font-size: 17.5px;
     font-weight: 600;
   }
   .tpl .tc {
-    font-size: 11.5px;
+    font-size: 14.375px;
     color: var(--ink-soft);
   }
   .tpl .use {
     margin-inline-start: auto;
-    font-size: 12.5px;
+    font-size: 15.625px;
     color: var(--bench);
     font-weight: 600;
     cursor: pointer;
@@ -645,18 +640,18 @@
     padding: 16px 18px;
   }
   .dcard h3 {
-    font-size: 15.5px;
+    font-size: 19.375px;
     margin: 6px 0 2px;
   }
   .dcard .sub {
-    font-size: 12.5px;
+    font-size: 15.625px;
     color: var(--ink-soft);
   }
 
   .ptable {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 16.25px;
     white-space: nowrap;
   }
   .ptable th,
@@ -670,7 +665,7 @@
     text-align: start;
   }
   .permSelect {
-    font-size: 12.5px;
+    font-size: 15.625px;
     padding: 3px 6px;
     border-radius: 8px;
     border: 1px solid var(--line);
@@ -684,7 +679,7 @@
     gap: 12px;
   }
   .kempty {
-    font-size: 12px;
+    font-size: 15px;
     color: var(--ink-soft);
     text-align: center;
     padding: 14px 8px;
@@ -702,11 +697,11 @@
     margin-bottom: 0;
   }
   .ktask .tt {
-    font-size: 13.5px;
+    font-size: 16.875px;
     margin-bottom: 7px;
   }
   .ktask .tm {
-    font-size: 11.5px;
+    font-size: 14.375px;
     color: var(--ink-soft);
     display: flex;
     justify-content: space-between;
@@ -722,7 +717,7 @@
   .lctrl button {
     flex: 1;
     font-family: inherit;
-    font-size: 11.5px;
+    font-size: 14.375px;
     border: 1px solid var(--line);
     background: #fff;
     color: var(--ink-soft);
@@ -793,14 +788,14 @@
   }
   .lcard h1 {
     font-family: var(--font-amiri), serif;
-    font-size: 30px;
+    font-size: 37.5px;
     text-align: center;
     color: var(--bench);
   }
   .lcard .tag {
     text-align: center;
     color: var(--ink-soft);
-    font-size: 13px;
+    font-size: 16.25px;
     margin: 4px 0 22px;
   }
   .lcard .field {
@@ -809,7 +804,7 @@
   .lcard label {
     display: block;
     font-weight: 600;
-    font-size: 13.5px;
+    font-size: 16.875px;
     margin-bottom: 7px;
   }
   .lcard input {
@@ -817,7 +812,7 @@
     border: 1px solid var(--line);
     border-radius: 11px;
     padding: 13px 14px;
-    font-size: 15px;
+    font-size: 18.75px;
     background: var(--parch);
   }
   .lcard input:focus {
@@ -836,7 +831,7 @@
     border-radius: 11px;
     padding: 0 14px;
     background: var(--parch);
-    font-size: 14px;
+    font-size: 17.5px;
     color: var(--ink-soft);
   }
   .lbtn {
@@ -846,7 +841,7 @@
     border-radius: 11px;
     padding: 14px;
     font-family: inherit;
-    font-size: 15px;
+    font-size: 18.75px;
     font-weight: 600;
     color: #fff;
     cursor: pointer;
@@ -874,7 +869,7 @@
     border-radius: 12px;
     padding: 12px 14px;
     margin: 4px 0 20px;
-    font-size: 14px;
+    font-size: 17.5px;
   }
   .wabubble .wh {
     display: flex;
@@ -882,14 +877,14 @@
     gap: 7px;
     color: var(--wa);
     font-weight: 700;
-    font-size: 12.5px;
+    font-size: 15.625px;
   }
   .wabubble .wh svg {
     width: 16px;
     height: 16px;
   }
   .lhint {
-    font-size: 11.5px;
+    font-size: 14.375px;
     color: var(--ink-soft);
     text-align: center;
     margin-top: 14px;
@@ -899,14 +894,14 @@
     border: none;
     color: var(--ink-soft);
     font-family: inherit;
-    font-size: 13px;
+    font-size: 16.25px;
     cursor: pointer;
     margin-top: 10px;
     width: 100%;
   }
   .lerr {
     color: var(--warn);
-    font-size: 13px;
+    font-size: 16.25px;
     margin-top: 10px;
     text-align: center;
   }
@@ -918,20 +913,20 @@
   .field label {
     display: block;
     font-weight: 600;
-    font-size: 13.5px;
+    font-size: 16.875px;
     margin-bottom: 6px;
   }
   .field .hint {
     font-weight: 400;
     color: var(--ink-soft);
-    font-size: 12.5px;
+    font-size: 15.625px;
   }
   .panel select,
   .panel textarea,
   .panel input[type="text"],
   .panel input[type="date"] {
     width: 100%;
-    font-size: 14.5px;
+    font-size: 18.125px;
     color: var(--ink);
     border: 1px solid var(--line);
     border-radius: 10px;
@@ -976,12 +971,12 @@
   }
   .role b {
     display: block;
-    font-size: 15px;
+    font-size: 18.75px;
     margin-bottom: 2px;
   }
   .role small {
     color: var(--ink-soft);
-    font-size: 12.5px;
+    font-size: 15.625px;
   }
 
   /* ---------- action buttons ---------- */
@@ -993,7 +988,7 @@
   }
   button.act {
     font-family: inherit;
-    font-size: 14.5px;
+    font-size: 18.125px;
     font-weight: 600;
     cursor: pointer;
     border: none;
@@ -1031,11 +1026,11 @@
     background: rgb(194 151 75 / 0.1);
     border-radius: 9px;
     padding: 9px 12px;
-    font-size: 13px;
+    font-size: 16.25px;
     margin: 8px 0;
   }
   .ref {
-    font-size: 11.5px;
+    font-size: 14.375px;
     background: rgb(194 151 75 / 0.12);
     border: 1px solid rgb(194 151 75 / 0.35);
     color: #8a6a2a;
@@ -1057,7 +1052,7 @@
     padding: 16px 18px;
   }
   .kpi .v {
-    font-size: 28px;
+    font-size: 35px;
     font-weight: 700;
     color: var(--bench);
     font-family: var(--font-amiri), serif;
@@ -1066,7 +1061,7 @@
     color: var(--warn);
   }
   .kpi .l {
-    font-size: 12.5px;
+    font-size: 15.625px;
     color: var(--ink-soft);
     margin-top: 2px;
   }
@@ -1090,7 +1085,7 @@
   }
   .approve-row .at {
     flex: 1;
-    font-size: 14px;
+    font-size: 17.5px;
   }
   .ndot {
     width: 9px;
@@ -1100,7 +1095,7 @@
   }
 
   .chip {
-    font-size: 11.5px;
+    font-size: 14.375px;
     border-radius: 7px;
     padding: 2px 9px;
     background: var(--parch);
@@ -1110,7 +1105,7 @@
 
   .tinybtn {
     font-family: inherit;
-    font-size: 11.5px;
+    font-size: 14.375px;
     border: 1px solid var(--line);
     background: #fff;
     border-radius: 6px;
@@ -1135,7 +1130,7 @@
   .statusbar .stp {
     flex: 1;
     text-align: center;
-    font-size: 11px;
+    font-size: 13.75px;
     padding: 8px 4px;
     border-radius: 8px;
     background: var(--parch);
@@ -1168,7 +1163,7 @@
     color: var(--ink-soft);
     border-radius: 999px;
     padding: 5px 12px;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
     transition: 0.12s;
   }
@@ -1201,7 +1196,7 @@
   }
   .hsummary::before {
     content: "▸";
-    font-size: 14px;
+    font-size: 17.5px;
     color: var(--ink-soft);
     transition: 0.15s;
   }

@@ -94,7 +94,7 @@ export default async function PulsePage({
                       <div className="sub">{t("pulse.self.noActivity")}</div>
                     ) : (
                       drilldown.events.map((ev) => (
-                        <div key={ev.id} className="sub" style={{ fontSize: 12 }}>
+                        <div key={ev.id} className="sub" style={{ fontSize: 15 }}>
                           · {performanceEventKindLabel(ev.kind)} (+{ev.points}) — {fmtDateTime(ev.occurredAt)}
                         </div>
                       ))
@@ -172,7 +172,7 @@ export default async function PulsePage({
           <div className="sub">{t("pulse.self.noActivity")}</div>
         ) : (
           selfCard.events.map((ev) => (
-            <div key={ev.id} className="sub" style={{ fontSize: 12.5 }}>
+            <div key={ev.id} className="sub" style={{ fontSize: 15.625 }}>
               · {performanceEventKindLabel(ev.kind)} (+{ev.points}) — {fmtDateTime(ev.occurredAt)}
             </div>
           ))

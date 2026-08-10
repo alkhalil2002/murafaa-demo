@@ -35,7 +35,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
         <div className="clist">
           {rows.map((r) => (
             <div key={r.key} className="dcard" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 18, color: r.connected ? "var(--ok)" : "var(--ink-soft)" }}>●</span>
+              <span style={{ fontSize: 22.5, color: r.connected ? "var(--ok)" : "var(--ink-soft)" }}>●</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600 }}>{integrationLabel(r.key)}</div>
                 <div className="sub">{integrationDescLabel(r.key)}</div>

@@ -18,7 +18,7 @@ export default async function AppointmentsPage() {
     content = (
       <div className="panel">
         {appts.length === 0 ? (
-          <div className="sub" style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+          <div className="sub" style={{ fontSize: 16.25, color: "var(--ink-soft)" }}>
             {t("appts.empty")}
           </div>
         ) : (

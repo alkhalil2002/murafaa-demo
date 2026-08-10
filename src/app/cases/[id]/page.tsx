@@ -329,7 +329,7 @@ export default async function CaseDetailPage({
                             </form>
                           </>
                         )}
-                        <div style={{ width: "100%", fontSize: 12, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                        <div style={{ width: "100%", fontSize: 15, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                           {r.documents.length === 0 ? (
                             <span className="sub">{t("cases.procRequests.noAttachments")}</span>
                           ) : (
@@ -362,7 +362,7 @@ export default async function CaseDetailPage({
                                 <input type="hidden" name="procedureRequestId" value={r.id} />
                                 <input type="hidden" name="procedureDocRole" value="REQUEST" />
                                 <input type="hidden" name="source" value="PROCEDURAL_REQUEST" />
-                                <input type="file" name="file" required style={{ fontSize: 11, maxWidth: 130 }} />
+                                <input type="file" name="file" required style={{ fontSize: 13.75, maxWidth: 130 }} />
                                 <button type="submit" className="tinybtn">
                                   {t("cases.procRequests.attachRequest")}
                                 </button>
@@ -376,7 +376,7 @@ export default async function CaseDetailPage({
                                 <input type="hidden" name="procedureRequestId" value={r.id} />
                                 <input type="hidden" name="procedureDocRole" value="RESULT" />
                                 <input type="hidden" name="source" value="PROCEDURAL_REQUEST" />
-                                <input type="file" name="file" required style={{ fontSize: 11, maxWidth: 130 }} />
+                                <input type="file" name="file" required style={{ fontSize: 13.75, maxWidth: 130 }} />
                                 <button type="submit" className="tinybtn">
                                   {t("cases.procRequests.attachResult")}
                                 </button>
@@ -385,7 +385,7 @@ export default async function CaseDetailPage({
                           )}
                         </div>
                         {r.log.length > 0 && (
-                          <div style={{ width: "100%", fontSize: 11.5, color: "var(--ink-soft)" }}>
+                          <div style={{ width: "100%", fontSize: 14.375, color: "var(--ink-soft)" }}>
                             {r.log.map((ev) => (
                               <div key={ev.id}>
                                 · {ev.description} ({relTime(ev.occurredAt)})
@@ -735,7 +735,7 @@ export default async function CaseDetailPage({
             {canEditCase && (
               <div className="panel" id="record-hearing-form">
                 <details open={Boolean(upcoming)}>
-                  <summary style={{ cursor: "pointer", fontSize: 15, fontWeight: 700 }}>
+                  <summary style={{ cursor: "pointer", fontSize: 18.75, fontWeight: 700 }}>
                     <span className="n">{t("cases.tag.dates")}</span> {t("cases.hearings.record")}
                   </summary>
                   <div className="sub" style={{ marginTop: 8 }}>
@@ -892,7 +892,7 @@ export default async function CaseDetailPage({
               </div>
             )}
 
-            <div className="sub" style={{ fontWeight: 600, fontSize: 15, marginBottom: 8 }}>
+            <div className="sub" style={{ fontWeight: 600, fontSize: 18.75, marginBottom: 8 }}>
               {t("cases.hearings")} ({held.length.toLocaleString("ar-SA")})
             </div>
             {held.length === 0 ? (
@@ -926,17 +926,17 @@ export default async function CaseDetailPage({
                         ) : null}
                       </div>
                     )}
-                    {h.minutes && <div style={{ fontSize: 13.5, lineHeight: 1.85, whiteSpace: "pre-wrap", marginBottom: 10 }}>{h.minutes}</div>}
+                    {h.minutes && <div style={{ fontSize: 16.875, lineHeight: 1.85, whiteSpace: "pre-wrap", marginBottom: 10 }}>{h.minutes}</div>}
                     {h.clientReport && (
                       <div className="docnote">
                         📄 {t("cases.hearings.clientReport")}: {h.clientReport}
                         {h.reportApproved && h.reportSentToClient ? (
-                          <div style={{ marginTop: 6, color: "var(--ok)", fontSize: 12.5, fontWeight: 600 }}>
+                          <div style={{ marginTop: 6, color: "var(--ok)", fontSize: 15.625, fontWeight: 600 }}>
                             {t("cases.hearings.reportApprovedBadge")}
                           </div>
                         ) : h.reportApprovalRequested ? (
                           <div style={{ marginTop: 8 }}>
-                            <div style={{ color: "var(--gold)", fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>
+                            <div style={{ color: "var(--gold)", fontSize: 15.625, fontWeight: 600, marginBottom: 6 }}>
                               {t("cases.hearings.reportPendingApproval")}
                             </div>
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1074,7 +1074,7 @@ export default async function CaseDetailPage({
                                   ))}
                                 </select>
                                 <input type="date" name="dueAt" defaultValue={tk.dueAt ? fmt(tk.dueAt) : ""} />
-                                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+                                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 15 }}>
                                   <input type="checkbox" name="done" defaultChecked={tk.status === "DONE"} />
                                   {t("cases.hearings.actionDone")}
                                 </label>
@@ -1147,7 +1147,7 @@ export default async function CaseDetailPage({
 
                     {canEditCase && (
                       <details style={{ marginTop: 12 }}>
-                        <summary style={{ cursor: "pointer", fontSize: 12.5, color: "var(--bench)", fontWeight: 600 }}>
+                        <summary style={{ cursor: "pointer", fontSize: 15.625, color: "var(--bench)", fontWeight: 600 }}>
                           {t("cases.hearings.attachDoc")}
                         </summary>
                         <form
@@ -1193,7 +1193,7 @@ export default async function CaseDetailPage({
 
                     {canEditCase && (
                       <details style={{ marginTop: 12 }}>
-                        <summary style={{ cursor: "pointer", fontSize: 12.5, color: "var(--bench)", fontWeight: 600 }}>
+                        <summary style={{ cursor: "pointer", fontSize: 15.625, color: "var(--bench)", fontWeight: 600 }}>
                           {t("cases.hearings.edit")}
                         </summary>
                         <form action={updateHearingAction} style={{ marginTop: 10 }}>
@@ -1648,7 +1648,7 @@ export default async function CaseDetailPage({
                   )}
                   {d.extractedText && (
                     <details style={{ width: "100%", marginTop: 6 }}>
-                      <summary style={{ cursor: "pointer", fontSize: 12, color: "var(--bench)" }}>
+                      <summary style={{ cursor: "pointer", fontSize: 15, color: "var(--bench)" }}>
                         {t("documents.extractedText")}
                       </summary>
                       <div className="sub" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
@@ -1816,7 +1816,7 @@ export default async function CaseDetailPage({
                       </button>
                     </form>
                   )}
-                  <div style={{ width: "100%", fontSize: 12.5, color: "var(--ink-soft)" }}>
+                  <div style={{ width: "100%", fontSize: 15.625, color: "var(--ink-soft)" }}>
                     {t("cases.finance.invoicePreview", { amount: formatSar(previewNet) })}
                     {pendingExpenses === 0 && <> · {t("cases.finance.noPendingExpenses")}</>}
                   </div>
@@ -1824,7 +1824,7 @@ export default async function CaseDetailPage({
               )}
               {canEditCase && (
                 <details style={{ marginTop: 12 }}>
-                  <summary style={{ cursor: "pointer", fontSize: 12.5, color: "var(--bench)", fontWeight: 600 }}>
+                  <summary style={{ cursor: "pointer", fontSize: 15.625, color: "var(--bench)", fontWeight: 600 }}>
                     {fee ? t("cases.finance.editFee") : t("cases.finance.addFee")}
                   </summary>
                   <form action={saveFeeAgreementAction} style={{ marginTop: 10 }}>
@@ -2019,7 +2019,7 @@ export default async function CaseDetailPage({
                               type="text"
                               name="note"
                               placeholder={t("cases.approvals.rejectNotePlaceholder")}
-                              style={{ fontSize: 11.5, width: 140 }}
+                              style={{ fontSize: 14.375, width: 140 }}
                             />
                             <button type="submit" className="tinybtn del">
                               {t("cases.approvals.reject")}
@@ -2038,12 +2038,12 @@ export default async function CaseDetailPage({
                       </form>
                     )}
                     {a.stage === ApprovalStage.APPROVED && (
-                      <div style={{ width: "100%", color: "var(--ok)", fontSize: 12.5, fontWeight: 600 }}>
+                      <div style={{ width: "100%", color: "var(--ok)", fontSize: 15.625, fontWeight: 600 }}>
                         {t("cases.approvals.najizReady")}
                       </div>
                     )}
                     {a.log.length > 0 && (
-                      <div style={{ width: "100%", fontSize: 11.5, color: "var(--ink-soft)" }}>
+                      <div style={{ width: "100%", fontSize: 14.375, color: "var(--ink-soft)" }}>
                         {a.log.map((ev) => (
                           <div key={ev.id}>
                             · {ev.description} — {approvalActorLabel(ev)} ({relTime(ev.occurredAt)})
@@ -2168,7 +2168,7 @@ export default async function CaseDetailPage({
                 </div>
                 {canEditCase && (
                   <details style={{ marginBottom: 12 }}>
-                    <summary style={{ cursor: "pointer", fontSize: 12.5, color: "var(--bench)", fontWeight: 600 }}>
+                    <summary style={{ cursor: "pointer", fontSize: 15.625, color: "var(--bench)", fontWeight: 600 }}>
                       {t("cases.execution.editFile")}
                     </summary>
                     <form action={updateExecutionAction} style={{ marginTop: 10 }}>
@@ -2325,7 +2325,7 @@ export default async function CaseDetailPage({
                       )}
                       {canEditCase && (
                         <details style={{ width: "100%" }}>
-                          <summary style={{ cursor: "pointer", fontSize: 11.5, color: "var(--bench)" }}>
+                          <summary style={{ cursor: "pointer", fontSize: 14.375, color: "var(--bench)" }}>
                             {t("cases.execution.editProcedure")}
                           </summary>
                           <form action={updateExecutionProcedureAction} className="two" style={{ marginTop: 8 }}>
@@ -2491,7 +2491,7 @@ export default async function CaseDetailPage({
                             background: "none",
                             border: "none",
                             cursor: canEditCase ? "pointer" : "default",
-                            fontSize: 26,
+                            fontSize: 32.5,
                             lineHeight: 1,
                             color:
                               c.clientSatisfactionScore && n <= c.clientSatisfactionScore
@@ -2614,7 +2614,7 @@ export default async function CaseDetailPage({
             <div style={{ color: "var(--advocate)", fontWeight: 600, marginBottom: 8 }}>
               ⚠ {anyHigh ? t("conflict.banner.titleHigh") : t("conflict.banner.title")}
             </div>
-            <ul style={{ listStyle: "disc", paddingInlineStart: 20, fontSize: 13.5 }}>
+            <ul style={{ listStyle: "disc", paddingInlineStart: 20, fontSize: 16.875 }}>
               {messages.map((m, i) => (
                 <li key={i}>{m}</li>
               ))}
@@ -2651,7 +2651,7 @@ export default async function CaseDetailPage({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="kpi">
-      <div className="v" style={{ fontSize: 16 }}>
+      <div className="v" style={{ fontSize: 20 }}>
         {value}
       </div>
       <div className="l">{label}</div>
@@ -2661,7 +2661,7 @@ function Field({ label, value }: { label: string; value: string }) {
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="sub" style={{ fontSize: 13, marginBottom: 0 }}>
+    <div className="sub" style={{ fontSize: 16.25, marginBottom: 0 }}>
       {children}
     </div>
   );

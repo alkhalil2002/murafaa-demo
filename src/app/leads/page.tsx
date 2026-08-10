@@ -120,7 +120,7 @@ export default async function LeadsPage() {
                     )}
                     {canEdit && (
                       <details style={{ marginTop: 6 }}>
-                        <summary style={{ cursor: "pointer", fontSize: 11.5, color: "var(--bench)" }}>
+                        <summary style={{ cursor: "pointer", fontSize: 14.375, color: "var(--bench)" }}>
                           {t("leads.edit")}
                         </summary>
                         <form action={updateLeadAction} style={{ marginTop: 6, display: "grid", gap: 4 }}>

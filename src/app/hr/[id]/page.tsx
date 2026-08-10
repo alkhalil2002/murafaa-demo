@@ -71,7 +71,7 @@ export default async function EmployeePage({
           <div className="sub" style={{ marginBottom: 4 }}>
             {terminated ? t("hr.eos.due") : t("hr.eos.preview")}
           </div>
-          <div style={{ fontFamily: "var(--font-amiri), serif", fontSize: 24, color: "var(--bench)" }}>
+          <div style={{ fontFamily: "var(--font-amiri), serif", fontSize: 30, color: "var(--bench)" }}>
             {formatSar(eos.awardMinor)}
           </div>
           <div className="sub" style={{ marginTop: 4, marginBottom: 0 }}>
@@ -177,7 +177,7 @@ export default async function EmployeePage({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="kpi">
-      <div className="v" style={{ fontSize: 18 }}>
+      <div className="v" style={{ fontSize: 22.5 }}>
         {value}
       </div>
       <div className="l">{label}</div>
