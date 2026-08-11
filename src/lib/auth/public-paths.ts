@@ -19,6 +19,9 @@ const PUBLIC_PREFIXES = [
   "/emp-portal",
   "/api/portal-auth",
   "/api/emp-portal-auth",
+  // Platform admin: its own session and its own login, outside office tenancy.
+  "/admin",
+  "/api/platform-auth",
 ] as const;
 
 export function isPublicPath(pathname: string): boolean {

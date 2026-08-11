@@ -565,9 +565,12 @@ model User {
 /// One-time password challenge for phone/WhatsApp login (docs/02 §8).
 /// The code is stored hashed; the row is short-lived and attempt-limited.
 model OtpChallenge {
-  id       String @id @default(uuid()) @db.Uuid
-  officeId String @map("office_id") @db.Uuid
-  office   Office @relation(fields: [officeId], references: [id])
+  id       String  @id @default(uuid()) @db.Uuid
+  /// Null for PLATFORM-level principals (PlatformAdmin), which deliberately sit
+  /// outside the office tenancy model and therefore have no officeId to scope
+  /// to. Staff and portal challenges always carry one.
+  officeId String? @map("office_id") @db.Uuid
+  office   Office? @relation(fields: [officeId], references: [id])
 
   phone      String
   codeHash   String    @map("code_hash")
