@@ -18,7 +18,7 @@ import { loadOfficePolicy } from "./policy";
  * branch on a boolean.
  */
 
-export type PermDenyKind = "module" | "field" | "scope";
+export type PermDenyKind = "module" | "field" | "scope" | "subscription";
 
 export class PermissionError extends Error {
   constructor(
@@ -53,6 +53,25 @@ export async function requireModule(
     });
     throw new PermissionError("module");
   }
+  // Subscription gate. An office past its trial + grace window is read-only:
+  // every mutation is refused here, at the same chokepoint as role preview, so
+  // no individual handler can forget the check. Reads are never gated — a firm
+  // keeps access to its own case files regardless of billing state.
+  if (action !== "view") {
+    const { getAccess } = await import("@/server/subscription");
+    const access = await getAccess(session.officeId);
+    if (access.writeLocked) {
+      await logAudit({
+        session,
+        action: `access.${module}.${action}`,
+        resource: module,
+        decision: "DENY",
+        detail: `blocked: subscription ${access.state}`,
+      });
+      throw new PermissionError("subscription");
+    }
+  }
+
   const policy = await policyFor(session);
   if (canModule(policy, effectiveRole(session), module, action)) return;
   await logAudit({
@@ -94,6 +113,12 @@ export async function canAction(
   action: PermAction,
 ): Promise<boolean> {
   if (session.previewRole && action !== "view") return false;
+  // Mirror the subscription gate in requireModule so a read-only office does
+  // not see edit controls it cannot use.
+  if (action !== "view") {
+    const { getAccess } = await import("@/server/subscription");
+    if ((await getAccess(session.officeId)).writeLocked) return false;
+  }
   const policy = await policyFor(session);
   return canModule(policy, effectiveRole(session), module, action);
 }

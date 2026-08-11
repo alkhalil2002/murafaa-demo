@@ -1,0 +1,763 @@
+/*
+ * ─────────────────────────────────────────────────────────────────────────
+ * Murafaa v2 — "محضر" (the record)
+ * ─────────────────────────────────────────────────────────────────────────
+ * A parallel design layer. Everything is scoped under `.v2`, so v1 screens
+ * are untouched and the two can be compared side by side.
+ *
+ * This supersedes the 2026-07-24 owner decision that bound the product's
+ * chrome 1:1 to prototype/murafaa-prototype.html (see globals.css §48).
+ * The v1 palette concept is kept and deepened, not replaced:
+ *   bench green = the judge's bench · advocate maroon = opposing counsel
+ *   parchment   = the page          · gold           = the seal
+ *
+ * Deliberately NOT inside @layer, so these rules win over globals.css's
+ * `@layer components` without needing !important.
+ */
+
+.v2 {
+  /* ── colour ramps (evolved from the v1 flat tokens) ───────────────── */
+  --bench-900: #071d17;
+  --bench-800: #0a2a22;
+  --bench-700: #0e3a30; /* v1 --bench */
+  --bench-600: #14503f;
+  --bench-500: #1c6a52;
+
+  --gold-700: #7d5c26;
+  --gold-600: #9a7433;
+  --gold-500: #c2974b; /* v1 --gold  */
+  --gold-400: #d8b877;
+  --gold-300: #e7d2a4; /* v1 --gold-soft */
+  --gold-200: #f2e5c8;
+
+  --adv-700: #5c2025; /* v1 --advocate-2 */
+  --adv-600: #7a2e33; /* v1 --advocate   */
+  --adv-500: #9c4148;
+  --adv-300: #d9a0a4;
+
+  --parch-50: #fffdf7;
+  --parch-100: #faf6ec; /* v1 --parch */
+  --parch-200: #f3ecdb;
+  --parch-300: #eadfc8; /* v1 --parch-line */
+
+  --ink-900: #14120e;
+  --ink-800: #1c1a15; /* v1 --ink */
+  --ink-600: #3f3a30;
+  --ink-500: #5a5446; /* v1 --ink-soft */
+  /* #7d7565 (the v1 tone) measures 4.49:1 on --surface — a hair under the
+     4.5 AA floor for small text, and this token carries `.sub` and the empty
+     states at 14px. Darkened to clear AA with headroom (5.2:1). */
+  --ink-400: #736b5a;
+
+  --ok-600: #24634a;
+  --ok-500: #2e7d5b; /* v1 --ok */
+  --warn-500: #b25c1e; /* v1 --warn */
+
+  /* ── semantic surfaces ────────────────────────────────────────────── */
+  --surface: #fffdf8;
+  --surface-2: #fbf7ee;
+  --sunk: #f6f0e2;
+  --on: var(--ink-800);
+  --on-muted: var(--ink-500);
+  --on-faint: var(--ink-400);
+  --hairline: rgb(28 26 21 / 0.1);
+  --hairline-2: rgb(28 26 21 / 0.17);
+
+  /* ── type scale ───────────────────────────────────────────────────── */
+  --t-2xs: 0.75rem;
+  --t-xs: 0.8125rem;
+  --t-sm: 0.875rem;
+  --t-base: 1rem;
+  --t-md: 1.0625rem;
+  --t-lg: 1.25rem;
+  --t-xl: 1.5rem;
+  --t-2xl: 1.875rem;
+  --t-3xl: 2.5rem;
+  --t-4xl: 3.25rem;
+
+  /* ── 4/8 spacing rhythm ───────────────────────────────────────────── */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s7: 32px;
+  --s8: 40px;
+  --s9: 56px;
+  --s10: 72px;
+
+  /* ── radius ───────────────────────────────────────────────────────── */
+  --r1: 6px;
+  --r2: 10px;
+  --r3: 14px;
+  --r4: 18px;
+  --r5: 24px;
+  --rf: 999px;
+
+  /* ── elevation (warm-tinted — neutral grey shadows read dead on
+        parchment, so every shadow carries the paper's own hue) ───────── */
+  --e1: 0 1px 2px rgb(60 48 24 / 0.06), 0 1px 1px rgb(60 48 24 / 0.04);
+  --e2: 0 2px 4px rgb(60 48 24 / 0.05), 0 6px 16px -6px rgb(60 48 24 / 0.14);
+  --e3: 0 10px 30px -10px rgb(60 48 24 / 0.22);
+
+  /* ── motion ───────────────────────────────────────────────────────── */
+  --dur1: 140ms;
+  --dur2: 220ms;
+  --dur3: 340ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  color: var(--on);
+  font-size: var(--t-base);
+
+  /* Bounded measure. Without this the shell's `.main` hands the page its full
+     width — 2312px on a 2560px display — and every row stretches until its
+     label and its own chip sit ~1200px apart. A dense record screen wants a
+     fixed measure and honest side margins, not edge-to-edge fill. */
+  max-width: var(--v2-measure, 1600px);
+  margin-inline: auto;
+}
+
+/* Arabic-Indic digits shift width per glyph; without tabular figures every
+   countdown and money column jitters on re-render. */
+.v2 {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Shell overrides — scoped via :has() so no v1 file is edited
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.app-grid:has(.v2) {
+  /* One source of truth for the measure. Declared on the ancestor so the
+     topbar (which lives in ShellFrame, outside `.v2`) can share it — otherwise
+     the topbar spans the full 2267px main while content is 1600px centred, and
+     the search bar ends up 333px past the content's edge. */
+  --v2-measure: 1600px;
+  background-color: var(--parch-100);
+  /* paper grain + a soft vignette so the field is never flat cream */
+  background-image:
+    radial-gradient(120% 80% at 85% -10%, rgb(194 151 75 / 0.09), transparent 60%),
+    radial-gradient(90% 70% at 0% 100%, rgb(14 58 48 / 0.06), transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
+  background-attachment: fixed, fixed, fixed;
+}
+
+.app-grid:has(.v2) .main {
+  padding: var(--s6) var(--s8) var(--s10);
+}
+
+.app-grid:has(.v2) .topbar {
+  max-width: var(--v2-measure);
+  margin-inline: auto;
+  margin-bottom: var(--s7);
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* Search at the inline start, actions at the opposite end (see v3.css). */
+.app-grid:has(.v2) .gsearch {
+  max-width: 560px;
+}
+
+.app-grid:has(.v2) .bell {
+  margin-inline-start: auto;
+}
+
+.app-grid:has(.v2) .bell,
+.app-grid:has(.v2) .menubtn {
+  width: 44px;
+  height: 44px;
+}
+
+.app-grid:has(.v2) .gsearch input,
+.app-grid:has(.v2) .bell,
+.app-grid:has(.v2) .menubtn {
+  background: var(--surface);
+  border-color: var(--hairline-2);
+  border-radius: var(--r2);
+  transition: border-color var(--dur1) var(--ease), box-shadow var(--dur1) var(--ease);
+}
+
+.app-grid:has(.v2) .gsearch input:focus-visible,
+.app-grid:has(.v2) .bell:focus-visible,
+.app-grid:has(.v2) .menubtn:focus-visible {
+  outline: 2px solid var(--gold-500);
+  outline-offset: 2px;
+}
+
+.app-grid:has(.v2) .gsearch input:hover,
+.app-grid:has(.v2) .bell:hover {
+  border-color: var(--gold-400);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Masthead — the head of a legal instrument, not a page title
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.v2-masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s6);
+  flex-wrap: wrap;
+  padding-bottom: var(--s4);
+  margin-bottom: var(--s7);
+  position: relative;
+}
+
+/* full-width hairline with a gold segment anchored at the inline start */
+.v2-masthead::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    to left,
+    var(--gold-500) 0,
+    var(--gold-500) 88px,
+    var(--hairline-2) 88px,
+    var(--hairline-2) 100%
+  );
+}
+
+.v2-masthead h1 {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-3xl);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--bench-800);
+  margin: 0;
+}
+
+.v2-masthead .lede {
+  margin-top: var(--s2);
+  font-size: var(--t-md);
+  color: var(--on-muted);
+  max-width: 52ch;
+}
+
+.v2-datestack {
+  text-align: end;
+  line-height: 1.45;
+  flex-shrink: 0;
+}
+
+.v2-datestack .greg {
+  font-size: var(--t-lg);
+  font-weight: 600;
+  color: var(--bench-700);
+}
+
+.v2-datestack .hijri {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-base);
+  color: var(--gold-600);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Docket strip — one connected instrument, not N detached boxes
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Docket and the seal card share one band, so neither has to stretch to fill
+   the width alone and the page stops running out of content vertically. */
+.v2-topgrid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--s5);
+  align-items: stretch;
+  margin-bottom: var(--s5);
+}
+
+.v2-docket {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  background: var(--surface);
+  border: 1px solid var(--hairline-2);
+  border-radius: var(--r4);
+  box-shadow: var(--e2);
+  overflow: hidden;
+}
+
+.v2-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--s4);
+  border-inline-start: 1px solid var(--hairline);
+}
+.v2-cell:first-child {
+  border-inline-start: none;
+}
+
+/* Severity rides a rule along the top edge rather than tinting the whole
+   tile. Graded in three steps so the strip stays calm when nothing needs
+   attention — if every cell drew a full-strength rule they'd read as one
+   continuous line and the urgent one would stop standing out.
+     quiet (zero)  → no rule
+     present       → 35% rule
+     urgent        → full rule */
+.v2-cell::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 2px;
+  background: var(--accent, transparent);
+  opacity: 0.35;
+}
+
+.v2-cell.is-urgent::before {
+  opacity: 1;
+}
+
+.v2-cell.is-quiet::before {
+  background: transparent;
+}
+
+/* 40px over a 14px label was a ~2.9:1 jump — the number shouted and the label
+   vanished. 30/14 keeps the figure dominant without the tile going hollow. */
+.v2-cell .v {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-2xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent, var(--bench-700));
+  font-variant-numeric: tabular-nums;
+}
+
+.v2-cell .l {
+  margin-top: var(--s1);
+  font-size: var(--t-xs);
+  color: var(--on-muted);
+  line-height: 1.35;
+}
+
+/* Arabic-Indic zero (٠) is a small dot — at --on-faint it disappears
+   entirely, so quiet cells stay at --on-muted to keep the glyph legible. */
+.v2-cell.is-quiet .v {
+  color: var(--on-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Seal card — employee of the week
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Vertical card sized for the 340px rail. The previous horizontal version
+   justified identity and score to opposite edges, which at full width meant a
+   1835px dotted leader spanning nothing — an idea that only held together at
+   narrow widths. */
+.v2-seal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  border-radius: var(--r4);
+  border: 1px solid var(--gold-400);
+  background:
+    linear-gradient(135deg, rgb(194 151 75 / 0.13), rgb(14 58 48 / 0.05)),
+    var(--surface);
+  box-shadow: var(--e2);
+  overflow: hidden;
+}
+
+.v2-seal-card .top {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+/* embossed gold edge along the inline start */
+.v2-seal-card::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, var(--gold-400), var(--gold-600));
+}
+
+.v2-seal-card .seal {
+  flex-shrink: 0;
+  color: var(--gold-600);
+}
+
+.v2-seal-card .who {
+  min-width: 0;
+}
+
+.v2-seal-card .badge {
+  font-size: var(--t-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--gold-700);
+  text-transform: none;
+}
+
+.v2-seal-card .name {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-lg);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--bench-800);
+}
+
+/* NOTE: named `.v2-role`, not `.role` — globals.css defines a BARE `.role`
+   (the case-creation role picker, §945) which carries a border and padding.
+   A descendant selector like `.v2-seal-card .role` only overrides the
+   properties it declares, so the picker's border leaked in as a phantom box.
+   Any v2 child class must not reuse one of the 71 bare class names in
+   globals.css. */
+.v2-seal-card .v2-role {
+  font-size: var(--t-sm);
+  color: var(--on-muted);
+}
+
+.v2-seal-card .score {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--gold-300);
+}
+
+.v2-seal-card .score .n {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--gold-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.v2-seal-card .score .u {
+  font-size: var(--t-2xs);
+  color: var(--on-muted);
+}
+
+.v2-avatar {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--gold-400);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Record sections
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Exactly two columns, not auto-fit. auto-fit with a 340px floor resolved to
+   THREE 413px columns at this measure, which wrapped 4 of 5 row labels onto a
+   second line and left one section orphaned on its own row. A record screen
+   wants a predictable 2×2, and 2 columns keeps each row on one line. */
+.v2-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s5);
+  /* stretch, not start — a section with one row and a section with three
+     otherwise leave the grid ragged, which reads as broken rather than sparse */
+  align-items: stretch;
+  margin-bottom: var(--s5);
+}
+
+@media (max-width: 1000px) {
+  .v2-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.v2-section {
+  background: var(--surface);
+  border: 1px solid var(--hairline-2);
+  border-radius: var(--r4);
+  box-shadow: var(--e1);
+  padding: var(--s5) var(--s6) var(--s4);
+  margin-bottom: var(--s5);
+  transition: box-shadow var(--dur2) var(--ease);
+}
+
+.v2-cols .v2-section {
+  margin-bottom: 0;
+}
+
+.v2-section:hover {
+  box-shadow: var(--e2);
+}
+
+.v2-shead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  padding-bottom: var(--s3);
+  margin-bottom: var(--s2);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* numbered marker — the clause number on a legal document */
+.v2-shead .mark {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 var(--s2);
+  border-radius: var(--r1);
+  border: 1px solid var(--gold-400);
+  background: var(--gold-200);
+  color: var(--gold-700);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  align-self: center;
+}
+
+.v2-shead h2 {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-xl);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--bench-800);
+  margin: 0;
+}
+
+/* Sits beside the title, not pushed to the far edge — at 790px of section
+   width `margin-inline-start:auto` stranded a single digit ~700px from the
+   thing it counts, where it read as a stray artifact. */
+.v2-shead .count {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--on-muted);
+  background: var(--sunk);
+  border-radius: var(--rf);
+  padding: 1px var(--s2);
+  font-variant-numeric: tabular-nums;
+  align-self: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Rows
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.v2-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s2) var(--s3) var(--s2);
+  border-bottom: 1px solid var(--hairline);
+  border-radius: var(--r1);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--dur1) var(--ease),
+    transform var(--dur1) var(--ease);
+}
+
+.v2-row:last-child {
+  border-bottom: none;
+}
+
+/* urgency as a rule along the inline start — grows on hover */
+.v2-row::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 25%;
+  width: 3px;
+  border-radius: var(--rf);
+  background: var(--accent, var(--on-faint));
+  transition: inset-block var(--dur2) var(--ease);
+}
+
+.v2-row:hover {
+  background: var(--surface-2);
+}
+
+.v2-row:hover::before {
+  inset-block: 12%;
+}
+
+.v2-row:focus-visible {
+  outline: 2px solid var(--gold-500);
+  outline-offset: 1px;
+  background: var(--surface-2);
+}
+
+.v2-row .label {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--t-md);
+  line-height: 1.5;
+  padding-inline-start: var(--s3);
+}
+
+.v2-row .sub {
+  color: var(--on-faint);
+  font-size: var(--t-sm);
+}
+
+/* ── chips ────────────────────────────────────────────────────────────── */
+
+.v2-chip {
+  flex-shrink: 0;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  line-height: 1.6;
+  padding: 2px var(--s2);
+  border-radius: var(--r1);
+  border: 1px solid var(--hairline-2);
+  background: var(--sunk);
+  color: var(--on-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* See v3.css — the raw accent as chip text falls under 4.5:1 on its own tint. */
+.v2-chip.is-accent {
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  color: color-mix(in srgb, var(--accent) 68%, var(--ink-900));
+}
+
+.v2-chip.is-soft {
+  background: transparent;
+  border-color: var(--hairline);
+  color: var(--on-faint);
+  font-weight: 500;
+}
+
+.v2-chip .ic {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-inline-end: 3px;
+}
+
+/* ── empty state ──────────────────────────────────────────────────────── */
+
+/* A settled empty state rather than a line of text with a dashed rule trailing
+   off across the card. Fills the section it sits in so an empty panel and a
+   populated one read as the same kind of object. */
+.v2-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  min-height: 96px;
+  padding: var(--s5) var(--s3);
+  color: var(--on-muted);
+  font-size: var(--t-sm);
+  text-align: center;
+}
+
+.v2-empty .rule {
+  width: 34px;
+  height: 1px;
+  background: var(--hairline-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Entrance — one orchestrated load, staggered by --i
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes v2-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.v2-rise {
+  animation: v2-rise var(--dur3) var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v2 *,
+  .v2 *::before,
+  .v2 *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Large-display step
+   ═══════════════════════════════════════════════════════════════════════
+   The base scale is tuned for ~1440. On a 2560px CSS viewport the same
+   values render as a small, thin column adrift in the page. Tokens step up
+   once past 1500 so the type keeps its relationship to the field. */
+
+@media (min-width: 1500px) {
+  .v2 {
+    --t-2xs: 0.8125rem;
+    --t-xs: 0.875rem;
+    --t-sm: 0.9375rem;
+    --t-base: 1.0625rem;
+    --t-md: 1.1875rem;
+    --t-lg: 1.4375rem;
+    --t-xl: 1.75rem;
+    --t-2xl: 2.125rem;
+    --t-3xl: 2.875rem;
+  }
+
+  .v2-section {
+    padding: var(--s6) var(--s7) var(--s5);
+  }
+
+  .v2-row {
+    padding-block: var(--s4);
+  }
+
+  .v2-cell {
+    padding: var(--s5) var(--s5);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 980px) {
+  .app-grid:has(.v2) .main {
+    padding: var(--s5) var(--s4) var(--s9);
+  }
+  .v2-masthead h1 {
+    font-size: var(--t-2xl);
+  }
+  .v2-datestack {
+    text-align: start;
+  }
+  .v2-cell {
+    border-inline-start: none;
+    border-top: 1px solid var(--hairline);
+  }
+  .v2-cell:first-child {
+    border-top: none;
+  }
+  .v2-topgrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Between the rail collapsing and the full desktop band, keep the docket from
+   squeezing its cells below a legible width. */
+@media (max-width: 1180px) and (min-width: 981px) {
+  .v2-topgrid {
+    grid-template-columns: 1fr 300px;
+  }
+}

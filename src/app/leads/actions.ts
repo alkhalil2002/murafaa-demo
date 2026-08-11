@@ -3,8 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/session";
-import { LeadSource, ClientType } from "@prisma/client";
-import { moveLead, convertLead, createLead, updateLead, deleteLead } from "@/server/leads";
+import { LeadSource, ClientType, LeadStage } from "@prisma/client";
+import { moveLead, setLeadStage, convertLead, createLead, updateLead, deleteLead } from "@/server/leads";
 
 export async function createLeadAction(formData: FormData): Promise<void> {
   const session = await getSession();
@@ -57,6 +57,17 @@ export async function moveLeadAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const dir = Number(formData.get("dir")) === -1 ? -1 : 1;
   await moveLead(session, id, dir);
+  revalidatePath("/leads");
+}
+
+/** Absolute stage move — used by drag and drop, which can target any column. */
+export async function setLeadStageAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const id = String(formData.get("id") ?? "");
+  const stage = String(formData.get("stage") ?? "");
+  if (!(stage in LeadStage)) return;
+  await setLeadStage(session, id, stage as LeadStage);
   revalidatePath("/leads");
 }
 

@@ -103,6 +103,9 @@ export function LoginForm() {
           {busy ? t("common.loading") : t("auth.login.sendOtp")}
         </button>
         <div className="lhint">{t("auth.login.hint")}</div>
+        <a className="lhint" href="/signup" style={{ display: "block", marginTop: 6 }}>
+          {t("signup.link")}
+        </a>
         {error && <div className="lerr">{error}</div>}
       </form>
     );

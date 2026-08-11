@@ -7,15 +7,18 @@ import { decidePortalApprovalAction, sendPortalMessageAction, uploadPortalDocume
 import { caseStatusLabel, clientApprovalKindLabel, clientApprovalStatusLabel, stageLabel } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { t } from "@/lib/i18n";
+import { requireUuidParam } from "@/lib/http/params";
+import { formatDateAr } from "@/lib/dates";
 
 function fmt(d: Date | null | undefined): string {
-  return d ? new Date(d).toISOString().slice(0, 10) : "—";
+  return formatDateAr(d);
 }
 
 export default async function PortalCaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getPortalSession();
   if (!session) redirect("/portal/login");
   const { id } = await params;
+  requireUuidParam(id);
 
   let content: React.ReactNode;
   try {

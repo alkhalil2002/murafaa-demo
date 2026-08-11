@@ -7,7 +7,8 @@ import { PermissionError, canAction } from "@/lib/permissions/guard";
 import { leadSourceLabel, leadStageLabel } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { t } from "@/lib/i18n";
-import { moveLeadAction, convertLeadAction, createLeadAction, updateLeadAction, deleteLeadAction } from "./actions";
+import { DndCard, DndColumn } from "@/components/dnd-board";
+import { moveLeadAction, setLeadStageAction, convertLeadAction, createLeadAction, updateLeadAction, deleteLeadAction } from "./actions";
 import { halalasToRiyals } from "@/lib/money";
 
 const PIPELINE: LeadStage[] = [
@@ -71,7 +72,13 @@ export default async function LeadsPage() {
         {PIPELINE.map((stage, si) => {
           const inStage = leads.filter((l) => l.stage === stage);
           return (
-            <div key={stage} className="kcol">
+            <DndColumn
+              key={stage}
+              className="kcol"
+              target={stage}
+              field="stage"
+              onMove={setLeadStageAction}
+            >
               <h4>
                 {leadStageLabel(stage)}
                 <span>{inStage.length.toLocaleString("ar-SA")}</span>
@@ -80,7 +87,7 @@ export default async function LeadsPage() {
                 <div className="kempty">{t("common.none")}</div>
               ) : (
                 inStage.map((l) => (
-                  <div className="ktask" key={l.id}>
+                  <DndCard className="ktask" key={l.id} id={l.id}>
                     <div className="tt">{l.name}</div>
                     <div className="chips" style={{ marginBottom: 7 }}>
                       <span className="chip">{leadSourceLabel(l.source)}</span>
@@ -149,10 +156,10 @@ export default async function LeadsPage() {
                         </form>
                       </details>
                     )}
-                  </div>
+                  </DndCard>
                 ))
               )}
-            </div>
+            </DndColumn>
           );
         })}
         </div>

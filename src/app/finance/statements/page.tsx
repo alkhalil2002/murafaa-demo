@@ -10,6 +10,7 @@ import { PermissionError } from "@/lib/permissions/guard";
 import { invoiceStatusLabel } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { t } from "@/lib/i18n";
+import { formatDateAr } from "@/lib/dates";
 
 function Row({ label, value, bold }: { label: string; value: number; bold?: boolean }) {
   return (
@@ -134,7 +135,7 @@ export default async function StatementsPage({
                       <tr key={inv.id} className="border-b border-parch-line last:border-0">
                         <td className="p-3 font-medium">{inv.number}</td>
                         <td className="p-3 text-ink-soft">{inv.caseTitle ?? "—"}</td>
-                        <td className="p-3 text-ink-soft">{inv.issueDate}</td>
+                        <td className="p-3 text-ink-soft">{formatDateAr(inv.issueDate)}</td>
                         <td className="p-3">{formatSar(inv.total)}</td>
                         <td className="p-3">{formatSar(inv.paid)}</td>
                         <td className="p-3">{formatSar(inv.remaining)}</td>

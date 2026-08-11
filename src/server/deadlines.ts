@@ -58,6 +58,9 @@ export async function getDeadlines(session: AppSession): Promise<DeadlineItem[]>
   const push = (kind: DeadlineKind, date: Date, caseId: string, caseTitle: string, extra?: Partial<DeadlineItem>) => {
     items.push({
       kind,
+      // Stays ISO: this is a DATA field, not a display string. It is parsed
+      // downstream (`new Date(d.date)` in src/server/notifications.ts) and used
+      // in a notification id. Formatting happens at the render site.
       date: date.toISOString().slice(0, 10),
       daysLeft: daysLeft(date),
       urgency: urgencyOf(date),

@@ -4,9 +4,10 @@ import { listPortalInvoices } from "@/server/portal";
 import { invoiceStatusLabel } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { t } from "@/lib/i18n";
+import { formatDateAr } from "@/lib/dates";
 
 function fmt(d: Date | null | undefined): string {
-  return d ? new Date(d).toISOString().slice(0, 10) : "—";
+  return formatDateAr(d);
 }
 
 export default async function PortalInvoicesPage() {

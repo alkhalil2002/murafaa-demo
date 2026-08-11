@@ -16,7 +16,7 @@ import { logAudit } from "@/lib/audit";
 import { logCaseEvent } from "@/lib/case-events";
 import { logPerformance } from "@/lib/performance";
 import { t } from "@/lib/i18n";
-import { dateInDays, minusDays, plusDays, riyadhCalendarDate } from "@/lib/dates";
+import { dateInDays, minusDays, plusDays, riyadhCalendarDate, formatDateAr } from "@/lib/dates";
 import type { AppSession } from "@/lib/auth/types";
 import { PermissionError, requireModule } from "@/lib/permissions/guard";
 import { isCaseVisible } from "@/lib/permissions/scope";
@@ -201,7 +201,7 @@ export async function recordHearing(session: AppSession, caseId: string, raw: Re
       await createAutoTask(tx, session, {
         caseId,
         autoSignature: `obj:${caseId}:${dueIso}`,
-        title: t("task.autoObjectionTitle", { due: dueIso }),
+        title: t("task.autoObjectionTitle", { due: formatDateAr(due) }),
         assigneeId: c.assignees[0]?.userId ?? null,
         priority: TaskPriority.URGENT,
         category: TaskCategory.MEMO_DRAFTING,
@@ -270,7 +270,7 @@ async function scheduleNextHearing(
     officeId: session.officeId,
     caseId,
     type: CaseEventType.DEADLINE,
-    description: t("event.nextHearingSet", { date: date.toISOString().slice(0, 10) }),
+    description: t("event.nextHearingSet", { date: formatDateAr(date) }),
     actorUserId: session.userId,
   });
 

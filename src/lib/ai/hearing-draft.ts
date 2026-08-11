@@ -30,6 +30,29 @@ const SYSTEM_PROMPT = `أنت مساعد صياغة لمكتب محاماة سع
 - clientReport: تقرير مختصر وودود للعميل عمّا جرى، بدون مصطلحات قانونية معقدة
 لا تكتب أي شيء خارج كائن الـ JSON.`;
 
+/**
+ * Model for hearing-minutes drafting.
+ *
+ * Haiku is the right tier here and the cheapest option that does the job: this
+ * prompt only RE-FORMATS notes the lawyer already wrote, and the system prompt
+ * explicitly forbids adding facts, dates, article numbers, or outcomes. There
+ * is no legal reasoning to do, so paying a frontier-model rate buys nothing.
+ *
+ * Rates per million tokens (input / output):
+ *   claude-haiku-4-5   $1  / $5    ← default
+ *   claude-sonnet-5    $3  / $15   (3x)
+ *   claude-opus-5      $5  / $25   (5x)
+ *
+ * Was pinned to `claude-sonnet-4-5` — a legacy model, ~3x the cost of Haiku
+ * for a reformatting task. Override with AI_DRAFT_MODEL if drafting quality
+ * proves insufficient on real hearing notes.
+ *
+ * NOTE: this whole path is the dev-only fallback. Production routes through
+ * Claude on Vertex AI (regional endpoint, CLAUDE.md data residency) — model
+ * selection there should use the same reasoning.
+ */
+const DRAFT_MODEL = process.env.AI_DRAFT_MODEL || "claude-haiku-4-5";
+
 async function callAnthropic(rawNotes: string): Promise<HearingDraft> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -40,7 +63,7 @@ async function callAnthropic(rawNotes: string): Promise<HearingDraft> {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-5",
+      model: DRAFT_MODEL,
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: rawNotes }],

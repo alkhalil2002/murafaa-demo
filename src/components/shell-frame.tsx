@@ -160,12 +160,16 @@ export function ShellFrame({
               </div>
             )}
           </form>
-          <Link href="/notifications" className="bell" aria-label={bellLabel} style={{ position: "relative" }}>
+          {/* Badge class is `nb`, matching the `.bell .nb` rule in globals.css.
+              It previously rendered as `cnt` — a class only defined under
+              `.nav` — so the count came out unstyled (no pill, no background)
+              and sat outside the bell's edge. `.bell` is already
+              position:relative and `.bell .nb` handles the offset, so no
+              inline positioning is needed here. */}
+          <Link href="/notifications" className="bell" aria-label={bellLabel}>
             <IconBell />
             {bellCount > 0 ? (
-              <span className="cnt" style={{ position: "absolute", top: -4, insetInlineEnd: -4 }}>
-                {bellCount.toLocaleString("ar-SA")}
-              </span>
+              <span className="nb">{bellCount.toLocaleString("ar-SA")}</span>
             ) : null}
           </Link>
         </div>

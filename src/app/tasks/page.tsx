@@ -8,6 +8,7 @@ import { canAction, PermissionError } from "@/lib/permissions/guard";
 import { PermModule } from "@prisma/client";
 import { taskCategoryLabel, taskColumnLabel, taskPriorityLabel } from "@/lib/labels";
 import { t } from "@/lib/i18n";
+import { DndCard, DndColumn } from "@/components/dnd-board";
 import { createTaskAction, moveTaskAction, deleteTaskAction } from "./actions";
 
 const COLUMNS: TaskColumn[] = [TaskColumn.NEW, TaskColumn.IN_PROGRESS, TaskColumn.DONE];
@@ -85,7 +86,13 @@ export default async function TasksPage() {
             const inCol = tasks.filter((tk) => tk.status === col);
             const colIdx = COLUMNS.indexOf(col);
             return (
-              <div key={col} className="kcol">
+              <DndColumn
+                key={col}
+                className="kcol"
+                target={col}
+                field="status"
+                onMove={moveTaskAction}
+              >
                 <h4>
                   {taskColumnLabel(col)}
                   <span>{inCol.length.toLocaleString("ar-SA")}</span>
@@ -94,7 +101,7 @@ export default async function TasksPage() {
                   <div className="kempty">{t("tasks.empty")}</div>
                 ) : (
                   inCol.map((tk) => (
-                    <div key={tk.id} className="kcard">
+                    <DndCard key={tk.id} id={tk.id} className="kcard">
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                         <span style={{ flex: 1, fontWeight: 600 }}>{tk.title}</span>
                         {tk.priority === "URGENT" && (
@@ -136,10 +143,10 @@ export default async function TasksPage() {
                           </form>
                         </div>
                       )}
-                    </div>
+                    </DndCard>
                   ))
                 )}
-              </div>
+              </DndColumn>
             );
           })}
         </div>

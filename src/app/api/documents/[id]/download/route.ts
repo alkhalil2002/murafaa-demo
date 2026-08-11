@@ -4,6 +4,7 @@ import { getPortalSession } from "@/lib/auth/portal-session";
 import { getDocumentForDownload } from "@/server/documents";
 import { getPortalDocumentForDownload } from "@/server/portal";
 import { PermissionError } from "@/lib/permissions/guard";
+import { isUuid } from "@/lib/http/params";
 
 /**
  * Authorized document download. Bytes are streamed through this route (never a
@@ -24,6 +25,12 @@ export async function GET(
   }
 
   const { id } = await params;
+  // Cheap reject before touching the DB: a non-UUID segment would otherwise
+  // raise Prisma P2023 and get swallowed by the catch below as a 404 anyway,
+  // after a pointless round trip and a logged database error.
+  if (!isUuid(id)) {
+    return NextResponse.json({ data: null, error: "NOT_FOUND" }, { status: 404 });
+  }
   try {
     const { fileName, mimeType, bytes } = staffSession
       ? await getDocumentForDownload(staffSession, id)

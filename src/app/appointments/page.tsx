@@ -5,6 +5,7 @@ import { listAppointments } from "@/server/appointments";
 import { PermissionError } from "@/lib/permissions/guard";
 import { apptTypeLabel } from "@/lib/labels";
 import { t } from "@/lib/i18n";
+import { formatDateAr } from "@/lib/dates";
 
 export default async function AppointmentsPage() {
   const session = await getSession();
@@ -30,7 +31,7 @@ export default async function AppointmentsPage() {
                 <span className="chip"> {apptTypeLabel(a.type)}</span>
               </span>
               <span className="chip">
-                {new Date(a.scheduledOn).toISOString().slice(0, 10)}
+                {formatDateAr(a.scheduledOn)}
                 {a.scheduledTime ? ` · ${a.scheduledTime}` : ""}
               </span>
             </div>

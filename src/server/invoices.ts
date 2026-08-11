@@ -23,6 +23,7 @@ import {
 import { ACC, assertPeriodOpen, nextNumber, postJournal, withNumberRetry } from "@/lib/finance/ledger";
 import { postTrustMovement } from "./trust";
 import { TrustTxnType } from "@prisma/client";
+import { formatDateAr } from "@/lib/dates";
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
@@ -363,6 +364,9 @@ function toDTO(inv: {
     number: inv.number,
     clientName: inv.client.name,
     caseTitle: inv.case?.title ?? null,
+    // Stays ISO: a DATA field on the DTO, parsed downstream
+    // (`new Date(inv.issueDate)` in src/server/notifications.ts). Display
+    // formatting belongs at the render site, not here.
     issueDate: inv.issueDate.toISOString().slice(0, 10),
     net: inv.netAmount,
     vat: inv.vatAmount,

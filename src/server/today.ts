@@ -9,6 +9,7 @@ import { listPendingApprovals } from "@/server/approvals";
 import { getEmployeeOfWeek, type PulseRankRow } from "@/server/pulse";
 import { requestKindLabel, requestStatusLabel, roleLabel, approvalStageLabel } from "@/lib/labels";
 import { t } from "@/lib/i18n";
+import { formatDateAr } from "@/lib/dates";
 
 /**
  * "اليوم" landing-page aggregation (prototype `renderToday()`, reproduced
@@ -182,7 +183,7 @@ export async function getTodaySummary(session: AppSession): Promise<TodaySummary
         id: tk.id,
         title: tk.title,
         urgent: tk.priority === TaskPriority.URGENT,
-        dueLabel: tk.dueAt ? tk.dueAt.toISOString().slice(0, 10) : null,
+        dueLabel: tk.dueAt ? formatDateAr(tk.dueAt) : null,
         caseTitle: tk.case?.title ?? null,
       }));
   }

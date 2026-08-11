@@ -9,6 +9,7 @@ import { PermissionError } from "@/lib/permissions/guard";
 import { formatSar } from "@/lib/money";
 import { maskIban } from "@/lib/format";
 import { t } from "@/lib/i18n";
+import { requireUuidParam } from "@/lib/http/params";
 
 export default async function PayrollRunPage({
   params,
@@ -20,6 +21,7 @@ export default async function PayrollRunPage({
   const session = await getSession();
   if (!session) redirect("/login");
   const { id } = await params;
+  requireUuidParam(id);
   const { wps } = await searchParams;
 
   let content: React.ReactNode;

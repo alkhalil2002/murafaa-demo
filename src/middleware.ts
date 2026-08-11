@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import NextAuth from "next-auth";
 import { authConfig } from "@/lib/auth/config";
+import { isPublicPath } from "@/lib/auth/public-paths";
 
 // Edge-safe auth instance: uses only authConfig (no Credentials provider, no
 // node:crypto/Prisma), so middleware can run on the Edge runtime.
@@ -15,16 +16,7 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth?.user?.id;
   const { pathname } = req.nextUrl;
 
-  const isPublic =
-    pathname === "/login" ||
-    pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico" ||
-    // Client portal has its own separate session (src/lib/auth/portal-session.ts),
-    // checked in-page — never gated by the staff Auth.js session here.
-    pathname.startsWith("/portal");
-
-  if (!isLoggedIn && !isPublic) {
+  if (!isLoggedIn && !isPublicPath(pathname)) {
     const url = new URL("/login", req.nextUrl.origin);
     return NextResponse.redirect(url);
   }

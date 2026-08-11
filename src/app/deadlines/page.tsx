@@ -6,6 +6,7 @@ import { getDeadlines, type DeadlineItem } from "@/server/deadlines";
 import { PermissionError } from "@/lib/permissions/guard";
 import type { Urgency } from "@/lib/dates";
 import { t } from "@/lib/i18n";
+import { formatDateAr } from "@/lib/dates";
 
 const KIND_LABEL: Record<DeadlineItem["kind"], () => string> = {
   nextHearing: () => t("deadlines.nextHearing"),
@@ -57,7 +58,7 @@ export default async function DeadlinesPage() {
                 <span className="at">
                   {KIND_LABEL[item.kind]()}
                   {item.label ? ` — ${item.label}` : ""} — {item.caseTitle}
-                  <span style={{ color: "var(--ink-soft)", fontSize: 15 }}> ({item.date})</span>
+                  <span style={{ color: "var(--ink-soft)", fontSize: 15 }}> ({formatDateAr(item.date)})</span>
                 </span>
                 <span className="chip" style={{ color, borderColor: color }}>
                   {daysText(item)}

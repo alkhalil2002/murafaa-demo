@@ -473,52 +473,53 @@ model Office {
   updatedAt       DateTime  @updatedAt @map("updated_at")
   deletedAt       DateTime? @map("deleted_at")
 
-  users                User[]
-  clients              Client[]
-  cases                Case[]
-  leads                Lead[]
-  tasks                Task[]
-  appointments         Appointment[]
-  hearings             Hearing[]
-  caseEvents           CaseEvent[]
-  caseReminders        CaseReminder[]
-  conflictFlags        ConflictFlag[]
-  documents            Document[]
-  documentTemplates    DocumentTemplate[]
-  invoices             Invoice[]
-  payments             Payment[]
-  creditNotes          CreditNote[]
-  expenses             Expense[]
-  timeEntries          TimeEntry[]
-  feeAgreements        CaseFeeAgreement[]
-  trustAccounts        TrustAccount[]
-  trustTransactions    TrustTransaction[]
-  chartOfAccounts      ChartOfAccount[]
-  journalEntries       JournalEntry[]
-  accountingPeriods    AccountingPeriod[]
-  aiInteractions       AiInteraction[]
-  permissions          Permission[]
-  fieldDenies          FieldPermission[]
-  caseScopes           RoleCaseScope[]
-  auditLogs            AuditLog[]
-  otps                 OtpChallenge[]
-  employees            Employee[]
-  advances             Advance[]
-  leaves               Leave[]
-  attendance           Attendance[]
-  candidates           Candidate[]
+  subscription           Subscription?
+  users                  User[]
+  clients                Client[]
+  cases                  Case[]
+  leads                  Lead[]
+  tasks                  Task[]
+  appointments           Appointment[]
+  hearings               Hearing[]
+  caseEvents             CaseEvent[]
+  caseReminders          CaseReminder[]
+  conflictFlags          ConflictFlag[]
+  documents              Document[]
+  documentTemplates      DocumentTemplate[]
+  invoices               Invoice[]
+  payments               Payment[]
+  creditNotes            CreditNote[]
+  expenses               Expense[]
+  timeEntries            TimeEntry[]
+  feeAgreements          CaseFeeAgreement[]
+  trustAccounts          TrustAccount[]
+  trustTransactions      TrustTransaction[]
+  chartOfAccounts        ChartOfAccount[]
+  journalEntries         JournalEntry[]
+  accountingPeriods      AccountingPeriod[]
+  aiInteractions         AiInteraction[]
+  permissions            Permission[]
+  fieldDenies            FieldPermission[]
+  caseScopes             RoleCaseScope[]
+  auditLogs              AuditLog[]
+  otps                   OtpChallenge[]
+  employees              Employee[]
+  advances               Advance[]
+  leaves                 Leave[]
+  attendance             Attendance[]
+  candidates             Candidate[]
   integrationConnections IntegrationConnection[]
-  employeeRequests     EmployeeRequest[]
-  payrollRuns          PayrollRun[]
-  performanceEvents    PerformanceEvent[]
-  performanceWeights   OfficePerformanceWeight[]
-  caseApprovals        CaseApproval[]
+  employeeRequests       EmployeeRequest[]
+  payrollRuns            PayrollRun[]
+  performanceEvents      PerformanceEvent[]
+  performanceWeights     OfficePerformanceWeight[]
+  caseApprovals          CaseApproval[]
   clientApprovalRequests ClientApprovalRequest[]
-  caseExecutions       CaseExecution[]
-  procedureRequests    ProcedureRequest[]
-  clientCommunications ClientCommunication[]
-  caseMessages         CaseMessage[]
-  contracts            Contract[]
+  caseExecutions         CaseExecution[]
+  procedureRequests      ProcedureRequest[]
+  clientCommunications   ClientCommunication[]
+  caseMessages           CaseMessage[]
+  contracts              Contract[]
 
   @@map("offices")
 }
@@ -751,26 +752,26 @@ model Case {
   createdById String?   @map("created_by") @db.Uuid
   deletedAt   DateTime? @map("deleted_at")
 
-  assignees         CaseAssignee[]
-  hearings          Hearing[]
-  events            CaseEvent[]
-  reminders         CaseReminder[]
-  tasks             Task[]
-  documents         Document[]
-  invoices          Invoice[]
-  expenses          Expense[]
-  timeEntries       TimeEntry[]
-  feeAgreement      CaseFeeAgreement?
-  aiInteractions    AiInteraction[]
-  conflictFlags     ConflictFlag[]        @relation("ConflictCase")
-  convertedFrom     Lead[]                @relation("LeadConvertedCase")
-  approvals         CaseApproval[]
+  assignees              CaseAssignee[]
+  hearings               Hearing[]
+  events                 CaseEvent[]
+  reminders              CaseReminder[]
+  tasks                  Task[]
+  documents              Document[]
+  invoices               Invoice[]
+  expenses               Expense[]
+  timeEntries            TimeEntry[]
+  feeAgreement           CaseFeeAgreement?
+  aiInteractions         AiInteraction[]
+  conflictFlags          ConflictFlag[]          @relation("ConflictCase")
+  convertedFrom          Lead[]                  @relation("LeadConvertedCase")
+  approvals              CaseApproval[]
   clientApprovalRequests ClientApprovalRequest[]
-  execution         CaseExecution?
-  procedureRequests ProcedureRequest[]
-  communications    ClientCommunication[]
-  messages          CaseMessage[]
-  contracts         Contract[]
+  execution              CaseExecution?
+  procedureRequests      ProcedureRequest[]
+  communications         ClientCommunication[]
+  messages               CaseMessage[]
+  contracts              Contract[]
 
   @@index([officeId])
   @@index([officeId, clientId])
@@ -852,10 +853,10 @@ model Hearing {
   // Client-facing report + approval gate (published to portal in Phase 8).
   // A real request/decide workflow (prototype hrRequestReportApproval/
   // approveReportApproval/rejectReportApproval) — not a self-service toggle.
-  clientReport            String?  @map("client_report")
-  reportApprovalRequested Boolean  @default(false) @map("report_approval_requested")
-  reportSentToClient      Boolean  @default(false) @map("report_sent_to_client")
-  reportApproved          Boolean  @default(false) @map("report_approved")
+  clientReport            String? @map("client_report")
+  reportApprovalRequested Boolean @default(false) @map("report_approval_requested")
+  reportSentToClient      Boolean @default(false) @map("report_sent_to_client")
+  reportApproved          Boolean @default(false) @map("report_approved")
 
   // Pending (incomplete) hearing → recurring reminder (docs BR-CASE-11).
   isPending         Boolean @default(false) @map("is_pending")
@@ -1795,8 +1796,8 @@ model IntegrationConnection {
   office   Office @relation(fields: [officeId], references: [id])
 
   key          IntegrationKey
-  connected    Boolean   @default(false)
-  lastSyncedAt DateTime? @map("last_synced_at")
+  connected    Boolean        @default(false)
+  lastSyncedAt DateTime?      @map("last_synced_at")
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1822,10 +1823,10 @@ model Candidate {
   officeId String @map("office_id") @db.Uuid
   office   Office @relation(fields: [officeId], references: [id])
 
-  name     String
-  roleTitle String? @map("role_title")
-  source   LeadSource @default(OTHER)
-  stage    CandidateStage @default(APPLIED)
+  name      String
+  roleTitle String?        @map("role_title")
+  source    LeadSource     @default(OTHER)
+  stage     CandidateStage @default(APPLIED)
 
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -2296,4 +2297,126 @@ model ExecutionProcedure {
 
   @@index([caseExecutionId])
   @@map("execution_procedures")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PLATFORM / SaaS layer
+// ═══════════════════════════════════════════════════════════════════════════
+// Everything above this line is TENANT data, scoped by officeId. Everything
+// below is the platform that sells the tenancy: subscription plans, each
+// office's subscription, and the Murafaa staff who administer them.
+//
+// PlatformAdmin is deliberately a SEPARATE table from User, not a 7th Role.
+// Cross-tenant access must never be expressible inside the office permission
+// matrix — otherwise one misconfigured Permission row could let an office user
+// read another office's case files. Same isolation the client and employee
+// portals already use (their own session, their own table).
+
+/// Subscription state. TRIALING/GRACE/LOCKED are DERIVED from dates at read
+/// time (see src/lib/billing/lifecycle.ts) rather than flipped by a scheduler —
+/// a missed cron run must never hand an office free access or lock a paying
+/// one out. The stored value is the billing-side truth (did they pay?).
+enum SubscriptionStatus {
+  TRIALING // في الفترة التجريبية
+  ACTIVE // مشترك
+  PAST_DUE // فشل التحصيل
+  CANCELED // ملغى
+}
+
+/// A sellable plan. Prices are integer halalas like all other money in the
+/// system; VAT is added at invoicing (docs/06 §VAT 15%), never stored inline.
+model Plan {
+  id           String  @id @default(uuid()) @db.Uuid
+  /// Stable machine code used in config and tests; the display name is Arabic.
+  code         String  @unique
+  nameAr       String  @map("name_ar")
+  /// Monthly price in halalas, VAT-exclusive.
+  priceHalalas Int     @map("price_halalas")
+  /// Null = unlimited. Enforced at invite time, not retroactively.
+  seatLimit    Int?    @map("seat_limit")
+  isActive     Boolean @default(true) @map("is_active")
+  sortOrder    Int     @default(0) @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+/// One per office. Created at registration in TRIALING with trialEndsAt set.
+model Subscription {
+  id       String @id @default(uuid()) @db.Uuid
+  officeId String @unique @map("office_id") @db.Uuid
+  office   Office @relation(fields: [officeId], references: [id])
+
+  planId String? @map("plan_id") @db.Uuid
+  plan   Plan?   @relation(fields: [planId], references: [id])
+
+  status SubscriptionStatus @default(TRIALING)
+
+  /// End of the free trial. Grace is computed from this, not stored, so the
+  /// grace window can be re-tuned without a data migration.
+  trialEndsAt      DateTime  @map("trial_ends_at")
+  /// End of the current PAID period; null while trialing.
+  currentPeriodEnd DateTime? @map("current_period_end")
+  canceledAt       DateTime? @map("canceled_at")
+
+  /// Opaque customer/subscription ids at the payment gateway. Null until a
+  /// gateway is wired — the adapter fills these in.
+  gatewayCustomerId     String? @map("gateway_customer_id")
+  gatewaySubscriptionId String? @map("gateway_subscription_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  invoices SubscriptionInvoice[]
+
+  @@index([status])
+  @@index([trialEndsAt])
+  @@map("subscriptions")
+}
+
+/// A charge for the subscription itself — distinct from the office's own
+/// client invoicing. Amounts are halalas; VAT follows the same 15% rule.
+model SubscriptionInvoice {
+  id             String       @id @default(uuid()) @db.Uuid
+  subscriptionId String       @map("subscription_id") @db.Uuid
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+  number      String   @unique
+  issuedAt    DateTime @default(now()) @map("issued_at")
+  periodStart DateTime @map("period_start")
+  periodEnd   DateTime @map("period_end")
+
+  netHalalas   Int @map("net_halalas")
+  vatHalalas   Int @map("vat_halalas")
+  totalHalalas Int @map("total_halalas")
+
+  paidAt          DateTime? @map("paid_at")
+  gatewayChargeId String?   @map("gateway_charge_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([subscriptionId])
+  @@map("subscription_invoices")
+}
+
+/// Murafaa staff. Outside the office tenancy model entirely — no officeId, no
+/// Role, no Permission rows. Authenticates by phone OTP against its own
+/// session cookie, like the client and employee portals.
+model PlatformAdmin {
+  id       String  @id @default(uuid()) @db.Uuid
+  name     String
+  phone    String  @unique
+  isActive Boolean @default(true) @map("is_active")
+
+  lastLoginAt DateTime? @map("last_login_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@map("platform_admins")
 }

@@ -19,8 +19,10 @@ import { formatSar } from "@/lib/money";
 import { maskIban } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { terminateEmployeeAction, grantEmployeeAccountAction } from "../actions";
+import { requireUuidParam } from "@/lib/http/params";
+import { formatDateAr } from "@/lib/dates";
 
-const fmtDate = (d: Date) => new Date(d).toISOString().slice(0, 10);
+const fmtDate = (d: Date) => formatDateAr(d);
 
 export default async function EmployeePage({
   params,
@@ -32,6 +34,7 @@ export default async function EmployeePage({
   const session = await getSession();
   if (!session) redirect("/login");
   const { id } = await params;
+  requireUuidParam(id);
   const { err } = await searchParams;
 
   let content: React.ReactNode;

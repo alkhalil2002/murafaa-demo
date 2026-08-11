@@ -146,6 +146,26 @@ export async function moveLead(session: AppSession, id: string, dir: 1 | -1) {
 }
 
 /**
+ * Move a lead to an explicit stage.
+ *
+ * `moveLead` above steps ±1 and is what the back/forward buttons use. Drag and
+ * drop needs an absolute target — a card can be dropped on any column, not
+ * just an adjacent one — so this takes the destination directly. Same module
+ * gate, same tenancy check, same audit action as the stepped move.
+ */
+export async function setLeadStage(session: AppSession, id: string, stage: LeadStage) {
+  await requireModule(session, PermModule.CLIENTS, "edit");
+  const lead = await prisma.lead.findFirst({
+    where: { id, officeId: session.officeId, deletedAt: null },
+  });
+  if (!lead) throw new PermissionError("scope");
+  if (lead.stage === stage) return lead; // dropped on its own column — no-op
+  const updated = await prisma.lead.update({ where: { id }, data: { stage } });
+  await logAudit({ session, action: "lead.move", resource: "clients", targetId: id, detail: stage });
+  return updated;
+}
+
+/**
  * Convert a CONTRACTED lead into a Client + auto Case, atomically
  * (docs BR-CRM-CONVERT). Only CONTRACTED leads are convertible.
  */

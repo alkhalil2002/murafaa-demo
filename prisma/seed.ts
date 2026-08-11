@@ -111,11 +111,20 @@ async function main() {
   const lawyer = users.find((u) => u.role === Role.LAWYER)!;
 
   // ── Clients (شركة النخبة is registered → drives a HIGH conflict) ──
+  //
+  // Phones are required for the CLIENT PORTAL to be reachable at all — it
+  // authenticates by phone lookup (src/lib/auth/portal-otp.ts), so a client
+  // with a null phone has no way to sign in. Ranges are kept distinct per
+  // audience so a number resolves to exactly one identity:
+  //   +96650000000x  staff        (office app)
+  //   +96651000000x  clients      (client portal)
+  //   +96652000000x  employees    (employee portal)
   const imdad = await prisma.client.create({
     data: {
       officeId: office.id,
       name: "شركة الإمداد التجارية",
       city: "الرياض",
+      phone: "+966510000001",
       type: ClientType.COMPANY,
       status: ClientStatus.ACTIVE,
     },
@@ -125,6 +134,7 @@ async function main() {
       officeId: office.id,
       name: "شركة النخبة",
       city: "جدة",
+      phone: "+966510000002",
       type: ClientType.COMPANY,
       status: ClientStatus.ACTIVE,
     },
@@ -289,12 +299,12 @@ async function main() {
   // ── HR: staff (mixed nationalities → Saudization band), + a salary advance ──
   const SAR = riyalsToHalalas;
   const staff: Array<Parameters<typeof createEmployee>[1]> = [
-    { name: "عبدالرحمن التنفيذي", department: "الإدارة", jobTitle: "المدير التنفيذي", nationality: "سعودي", nationalId: "1012345678", iban: "SA0380000000608010167519", hireDate: new Date("2018-03-01"), basicSalary: SAR(20000), allowances: SAR(5000), gosiContribution: SAR(2000), leaveBalanceDays: 24 },
-    { name: "منى المحاسِبة", department: "المالية", jobTitle: "محاسبة", nationality: "سعودي", nationalId: "1023456789", iban: "SA4420000001234567891234", hireDate: new Date("2021-06-15"), basicSalary: SAR(12000), allowances: SAR(2000), gosiContribution: SAR(1200), leaveBalanceDays: 21 },
-    { name: "خالد المحامي", department: "القانوني", jobTitle: "محامٍ", nationality: "سعودي", nationalId: "1034567890", iban: "SA1140000009876543210987", hireDate: new Date("2020-01-10"), basicSalary: SAR(15000), allowances: SAR(3000), gosiContribution: SAR(1500), leaveBalanceDays: 18 },
-    { name: "سارة القحطاني", department: "الاستقبال", jobTitle: "موظفة استقبال", nationality: "سعودي", nationalId: "1045678901", iban: "SA6980000000111122223333", hireDate: new Date("2024-09-01"), basicSalary: SAR(7000), allowances: SAR(1000), gosiContribution: SAR(700), leaveBalanceDays: 21 },
-    { name: "راج كومار", department: "التقنية", jobTitle: "مطوّر", nationality: "هندي", nationalId: "2456789012", iban: "SA2230400108054011300020", hireDate: new Date("2022-04-01"), basicSalary: SAR(10000), allowances: SAR(2000), gosiContribution: 0, leaveBalanceDays: 15 },
-    { name: "أحمد مصطفى", department: "الإداري", jobTitle: "كاتب", nationality: "مصري", nationalId: "2567890123", iban: "SA5510000044445555666677", hireDate: new Date("2023-11-20"), basicSalary: SAR(6000), allowances: SAR(1000), gosiContribution: 0, leaveBalanceDays: 12 },
+    { name: "عبدالرحمن التنفيذي", phone: "+966520000001", department: "الإدارة", jobTitle: "المدير التنفيذي", nationality: "سعودي", nationalId: "1012345678", iban: "SA0380000000608010167519", hireDate: new Date("2018-03-01"), basicSalary: SAR(20000), allowances: SAR(5000), gosiContribution: SAR(2000), leaveBalanceDays: 24 },
+    { name: "منى المحاسِبة", phone: "+966520000002", department: "المالية", jobTitle: "محاسبة", nationality: "سعودي", nationalId: "1023456789", iban: "SA4420000001234567891234", hireDate: new Date("2021-06-15"), basicSalary: SAR(12000), allowances: SAR(2000), gosiContribution: SAR(1200), leaveBalanceDays: 21 },
+    { name: "خالد المحامي", phone: "+966520000003", department: "القانوني", jobTitle: "محامٍ", nationality: "سعودي", nationalId: "1034567890", iban: "SA1140000009876543210987", hireDate: new Date("2020-01-10"), basicSalary: SAR(15000), allowances: SAR(3000), gosiContribution: SAR(1500), leaveBalanceDays: 18 },
+    { name: "سارة القحطاني", phone: "+966520000004", department: "الاستقبال", jobTitle: "موظفة استقبال", nationality: "سعودي", nationalId: "1045678901", iban: "SA6980000000111122223333", hireDate: new Date("2024-09-01"), basicSalary: SAR(7000), allowances: SAR(1000), gosiContribution: SAR(700), leaveBalanceDays: 21 },
+    { name: "راج كومار", phone: "+966520000005", department: "التقنية", jobTitle: "مطوّر", nationality: "هندي", nationalId: "2456789012", iban: "SA2230400108054011300020", hireDate: new Date("2022-04-01"), basicSalary: SAR(10000), allowances: SAR(2000), gosiContribution: 0, leaveBalanceDays: 15 },
+    { name: "أحمد مصطفى", phone: "+966520000006", department: "الإداري", jobTitle: "كاتب", nationality: "مصري", nationalId: "2567890123", iban: "SA5510000044445555666677", hireDate: new Date("2023-11-20"), basicSalary: SAR(6000), allowances: SAR(1000), gosiContribution: 0, leaveBalanceDays: 12 },
   ];
   const employees = [];
   for (const s of staff) employees.push(await createEmployee(finSession, s));

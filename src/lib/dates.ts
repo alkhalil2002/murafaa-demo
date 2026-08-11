@@ -19,6 +19,17 @@ export function now(): Date {
  * regardless of the server's local zone.
  */
 export function riyadhCalendarDate(at: Date = now()): Date {
+  // Intl.format() on an invalid Date throws a bare "RangeError: Invalid time
+  // value" from deep inside the formatter, with no indication of which record
+  // or field was bad — it surfaced as a blank 500 on /dashboard, /alerts and
+  // /notifications. Fail with something actionable instead.
+  if (Number.isNaN(at.getTime())) {
+    throw new TypeError(
+      "riyadhCalendarDate received an invalid Date. A date field reached the " +
+        "deadline math unparseable — check that DTO date fields are still ISO " +
+        "strings and were not replaced with display-formatted text.",
+    );
+  }
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: RIYADH_TZ,
     year: "numeric",
@@ -81,4 +92,35 @@ export function urgencyOf(date: Date | string, at: Date = now()): Urgency {
   if (dl <= 7) return "soon";
   if (dl <= 30) return "upcoming";
   return "normal";
+}
+
+/**
+ * Display formatter for a calendar date in the Arabic UI.
+ *
+ * Replaces the `toISOString().slice(0, 10)` that was scattered across 15 call
+ * sites, which had two defects:
+ *
+ *   1. It renders Latin digits ("2026-08-12") into an Arabic-Indic, RTL
+ *      interface — the only Latin numerals on the screen.
+ *   2. `toISOString()` is UTC, but the platform anchors every deadline to
+ *      Asia/Riyadh (UTC+3). Any timestamp between 00:00 and 03:00 Riyadh
+ *      formatted as the PREVIOUS calendar day — an off-by-one on hearing dates
+ *      and objection deadlines, where a day is legally material.
+ *
+ * Gregorian, not Hijri: the stored values are Gregorian and the surrounding
+ * screens already read as Gregorian. The Hijri equivalent is shown alongside
+ * where both are wanted, rather than silently swapping the calendar here.
+ */
+const AR_DATE_FMT = new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
+  timeZone: RIYADH_TZ,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export function formatDateAr(value: Date | string | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "—";
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return AR_DATE_FMT.format(d);
 }

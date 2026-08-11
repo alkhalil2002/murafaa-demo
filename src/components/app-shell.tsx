@@ -16,6 +16,7 @@ import { t } from "@/lib/i18n";
 import { SideNav, type NavItem, type NavSection } from "./side-nav";
 import { ShellFrame } from "./shell-frame";
 import { IdleLogout } from "./idle-logout";
+import { TrialBanner } from "./trial-banner";
 import {
   BrandMark,
   IconActivity,
@@ -237,6 +238,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       bellCount={notifications.length}
     >
       <IdleLogout />
+      <TrialBanner officeId={session.officeId} />
       {session.previewRole && (
         <div className="panel" style={{ background: "var(--gold-10, #fdf5e6)", display: "flex", alignItems: "center", gap: 10 }}>
           <span className="sub" style={{ marginBottom: 0 }}>

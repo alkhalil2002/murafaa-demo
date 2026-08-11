@@ -4,9 +4,10 @@ import { getPortalSession } from "@/lib/auth/portal-session";
 import { listPortalCases } from "@/server/portal";
 import { caseStatusLabel, stageLabel } from "@/lib/labels";
 import { t } from "@/lib/i18n";
+import { formatDateAr } from "@/lib/dates";
 
 function fmt(d: Date | null | undefined): string {
-  return d ? new Date(d).toISOString().slice(0, 10) : "—";
+  return formatDateAr(d);
 }
 
 export default async function PortalDashboardPage() {

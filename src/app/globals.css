@@ -1235,3 +1235,304 @@
     }
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Charts
+   ═══════════════════════════════════════════════════════════════════════
+   Categorical palette validated with the dataviz six-checks validator
+   (lightness band, chroma floor, CVD separation, normal-vision floor,
+   contrast) against a light parchment surface. Worst adjacent pair:
+   ΔE 11.1 simulated / 22.8 normal vision. Assigned in fixed order and never
+   cycled — a 7th series folds into "أخرى" rather than generating a hue.
+
+   The brand colours are deliberately NOT used as chart hues: --bench and
+   --advocate fall outside the lightness band, --bench and --ok read as gray
+   at chart scale, and --gold measures 2.62:1 against the surface. They stay
+   as chrome; charts get their own validated ramp.
+
+   Status colours are reserved for state (overdue/critical/soon/upcoming) and
+   are never reused as a categorical slot. */
+:root {
+  --chart-1: #008a72;
+  --chart-2: #b8541a;
+  --chart-3: #3d6fd0;
+  --chart-4: #b03a5e;
+  --chart-5: #8f9111;
+  --chart-6: #8a4fc0;
+
+  --chart-critical: #b3242f;
+  --chart-serious: #d1741b;
+  --chart-warning: #c9a227;
+  --chart-good: #2f7d55;
+}
+
+.charts-grid {
+  display: grid;
+  /* 480px floor, not 360: at 360 the 12-month series squeezed to ~4 visible
+     x-labels and the plot read as a sparkline. */
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+  align-items: stretch;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+/* The dashboard shows 5 KPIs; the shared .kpis grid is hard-coded to 4
+   columns, which stranded the 5th alone on a second row. */
+.kpis.kpis-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+@media (max-width: 1200px) {
+  .kpis.kpis-5 {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+.chart-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 20px 14px;
+}
+
+.chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.chart-head h2 {
+  font-family: var(--font-amiri), serif;
+  font-size: 22px;
+  margin: 0;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-legend .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+
+.chart-hint {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.chart-wrap {
+  position: relative;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+/* recessive grid + axes — the data carries the weight, not the frame */
+.chart-grid {
+  stroke: var(--parch-line);
+  stroke-width: 1;
+}
+
+.chart-tick {
+  fill: var(--ink-soft);
+  font-size: 11px;
+  font-family: var(--font-plex-arabic), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 2px surface ring so overlapping markers stay separable */
+.chart-marker {
+  stroke: #fff;
+  stroke-width: 2;
+  transition: r 120ms ease-out;
+}
+
+.chart-tip {
+  position: absolute;
+  transform: translate(50%, -100%);
+  margin-top: -10px;
+  background: var(--ink);
+  color: var(--parch);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 6px 20px -6px rgb(28 26 21 / 0.4);
+  z-index: 5;
+}
+.chart-tip strong {
+  font-weight: 700;
+}
+
+.chart-empty {
+  padding: 28px 8px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+/* ── horizontal bars ─────────────────────────────────────────────────── */
+
+.hbars {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hbars li {
+  display: grid;
+  grid-template-columns: minmax(90px, 34%) 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.hbar-label {
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hbar-track {
+  background: var(--parch);
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+}
+
+/* 4px rounded data-end, anchored to the baseline at the inline start */
+.hbar-fill {
+  display: block;
+  height: 100%;
+  border-start-end-radius: 4px;
+  border-end-end-radius: 4px;
+}
+
+.hbar-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.tone-critical { background: var(--chart-critical); }
+.tone-serious  { background: var(--chart-serious); }
+.tone-warning  { background: var(--chart-warning); }
+.tone-good     { background: var(--chart-good); }
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-marker { transition: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Drag and drop (tasks kanban + lead pipeline)
+   ═══════════════════════════════════════════════════════════════════════
+   The move-back / move-forward buttons on each card are the keyboard path to
+   the same operation — HTML5 drag and drop is pointer-only. Do not remove
+   them on the grounds that dragging now exists. */
+
+.dnd-card {
+  cursor: grab;
+  transition: opacity 140ms ease-out, box-shadow 140ms ease-out;
+}
+.dnd-card:active {
+  cursor: grabbing;
+}
+.dnd-card.is-dragging {
+  opacity: 0.4;
+  box-shadow: 0 8px 22px -8px rgb(28 26 21 / 0.35);
+}
+
+.dnd-col {
+  transition: background-color 140ms ease-out, outline-color 140ms ease-out;
+  outline: 2px dashed transparent;
+  outline-offset: -4px;
+  border-radius: 12px;
+}
+.dnd-col.is-over {
+  background: rgb(194 151 75 / 0.1);
+  outline-color: var(--gold);
+}
+.dnd-col.is-pending {
+  opacity: 0.65;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dnd-card,
+  .dnd-col {
+    transition: none;
+  }
+}
+
+/* Subscription state banner — silent when a paid plan is current. */
+.trial-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  border: 1px solid;
+}
+.trial-banner.tone-trial {
+  background: rgb(194 151 75 / 0.1);
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.trial-banner.tone-grace {
+  background: rgb(178 92 30 / 0.1);
+  border-color: var(--warn);
+  color: var(--ink);
+}
+.trial-banner.tone-locked {
+  background: rgb(122 46 51 / 0.1);
+  border-color: var(--advocate);
+  color: var(--advocate-2);
+  font-weight: 600;
+}

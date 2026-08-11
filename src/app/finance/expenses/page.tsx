@@ -8,6 +8,7 @@ import { expenseCategoryLabel } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { t } from "@/lib/i18n";
 import { reimburseExpenseAction } from "../actions";
+import { formatDateAr } from "@/lib/dates";
 
 export default async function ExpensesPage() {
   const session = await getSession();
@@ -39,7 +40,7 @@ export default async function ExpensesPage() {
                   <td className="p-3 text-ink-soft">{e.vendor ?? "—"}</td>
                   <td className="p-3">{formatSar(e.netAmount)}</td>
                   <td className="p-3 text-ink-soft">{formatSar(e.inputVat)}</td>
-                  <td className="p-3 text-ink-soft">{new Date(e.expenseDate).toISOString().slice(0, 10)}</td>
+                  <td className="p-3 text-ink-soft">{formatDateAr(e.expenseDate)}</td>
                   <td className="p-3">
                     {e.billable && !e.billed && e.clientId ? (
                       <form action={reimburseExpenseAction}>

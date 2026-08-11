@@ -11,6 +11,7 @@ import { formatSar } from "@/lib/money";
 import { RIYADH_TZ } from "@/lib/dates";
 import { t } from "@/lib/i18n";
 import { trustDepositAction, trustWithdrawAction, trustTransferAction } from "../actions";
+import { requireUuidParam } from "@/lib/http/params";
 
 const fmtDate = (d: Date) => new Intl.DateTimeFormat("ar-SA", { timeZone: RIYADH_TZ, dateStyle: "medium" }).format(d);
 
@@ -18,6 +19,7 @@ export default async function TrustLedgerPage({ params }: { params: Promise<{ cl
   const session = await getSession();
   if (!session) redirect("/login");
   const { clientId } = await params;
+  requireUuidParam(clientId);
 
   let content: React.ReactNode;
   try {

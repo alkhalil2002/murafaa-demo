@@ -10,8 +10,9 @@ import { canAction, PermissionError } from "@/lib/permissions/guard";
 import { leaveTypeLabel } from "@/lib/labels";
 import { t } from "@/lib/i18n";
 import { createLeaveAction } from "../actions";
+import { formatDateAr } from "@/lib/dates";
 
-const fmtDate = (d: Date) => new Date(d).toISOString().slice(0, 10);
+const fmtDate = (d: Date) => formatDateAr(d);
 
 export default async function LeavesPage({ searchParams }: { searchParams: Promise<{ err?: string }> }) {
   const session = await getSession();

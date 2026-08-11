@@ -1,0 +1,817 @@
+/*
+ * ─────────────────────────────────────────────────────────────────────────
+ * Murafaa v3 — palette exploration
+ * ─────────────────────────────────────────────────────────────────────────
+ * Carries every layout fix from v2 (bounded measure, 2-col grid, stretched
+ * rows, aligned topbar, large-display type step) and swaps the colour layer
+ * for a three-way comparison:
+ *
+ *   pal-basalt    warm charcoal + saffron    · desert, warm, distinctive
+ *   pal-midnight  cool navy + brass          · corporate, premium, cool
+ *   pal-sage      near-black + muted sage    · calm, modern, bright paper
+ *
+ * Structural rules below reference ONLY semantic names (--accent-*, --paper-*,
+ * --ink-*, --chrome-*), so a palette is a pure token swap with no structural
+ * edits. Switch with /v3/today?p=1|2|3.
+ *
+ * Palettes are declared on `.app-grid:has(...)` rather than on `.v3` itself so
+ * the sidebar and topbar — which live in ShellFrame, outside `.v3` — inherit
+ * them too. Redefining the v1 variable names (--bench, --gold, --parch …)
+ * recolours the entire existing chrome without touching globals.css.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Palette A — Basalt & Saffron
+   ═══════════════════════════════════════════════════════════════════════ */
+.app-grid:has(.v3.pal-basalt) {
+  --bench: #1a1710;
+  --bench-2: #0d0b07;
+  --gold: #c8862a;
+  --gold-soft: #e8c88e;
+  --parch: #f6f1e6;
+  --parch-line: #e4dbc8;
+  --ink: #17140d;
+  --ink-soft: #5a5344;
+  --line: #ddd3be;
+  --advocate: #8e3b2e;
+
+  --chrome-900: #0d0b07;
+  --chrome-800: #1a1710;
+  --heading: #2a2317;
+  --accent-700: #7a5115;
+  --accent-600: #9c6a1e;
+  --accent-500: #c8862a;
+  --accent-400: #dda65c;
+  --accent-300: #ebcf9c;
+  --accent-200: #f5e7c9;
+  --danger-700: #5e2519;
+  --danger-600: #8e3b2e;
+  --danger-500: #a9503f;
+  --paper-50: #fffbf0;
+  --paper-100: #f4edda;
+  --paper-200: #ede4cc;
+  --paper-300: #e0d5bb;
+  --ink-900: #100e09;
+  --ink-800: #17140d;
+  --ink-600: #3d372b;
+  --ink-500: #56503f;
+  --ink-400: #6b6352;
+  --ok-500: #4a7a52;
+  --hairline: rgb(26 23 16 / 0.12);
+  --hairline-2: rgb(26 23 16 / 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Palette B — Midnight & Brass
+   ═══════════════════════════════════════════════════════════════════════ */
+.app-grid:has(.v3.pal-midnight) {
+  --bench: #131c28;
+  --bench-2: #080d14;
+  --gold: #b08d4f;
+  --gold-soft: #dac48e;
+  --parch: #f4f5f3;
+  --parch-line: #dfe2de;
+  --ink: #101720;
+  --ink-soft: #4e5763;
+  --line: #d6dad7;
+  --advocate: #9b3b44;
+
+  --chrome-900: #080d14;
+  --chrome-800: #131c28;
+  --heading: #16202d;
+  --accent-700: #634d23;
+  --accent-600: #806631;
+  --accent-500: #b08d4f;
+  --accent-400: #c9a971;
+  --accent-300: #dac48e;
+  --accent-200: #ebe0c4;
+  --danger-700: #5e2229;
+  --danger-600: #92373f;
+  --danger-500: #b25058;
+  --paper-50: #ffffff;
+  --paper-100: #edf0f3;
+  --paper-200: #e3e8ed;
+  --paper-300: #d5dce4;
+  --ink-900: #0a0f16;
+  --ink-800: #101720;
+  --ink-600: #333c48;
+  --ink-500: #49525e;
+  --ink-400: #5b6470;
+  --ok-500: #2f6e58;
+  --hairline: rgb(16 23 32 / 0.1);
+  --hairline-2: rgb(16 23 32 / 0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Palette C — Obsidian & Sage (dark UI)
+   ═══════════════════════════════════════════════════════════════════════
+   A true dark surface, not a tinted light one. The accent and ink ramps are
+   INVERTED relative to the light palettes — in dark, `-700` is the lightest
+   step because it lands as text on the `-200` fill, not the other way round.
+   Structural CSS is unchanged; only token values differ. */
+.app-grid:has(.v3.pal-obsidian) {
+  /* --parch stays light: globals.css uses it as the SIDEBAR TEXT colour,
+     not as a background. The page ground is --paper-100. */
+  --bench: #0a0c08;
+  --bench-2: #050704;
+  --gold: #8fae84;
+  --gold-soft: #c7d8c0;
+  --parch: #e9ede4;
+  --parch-line: #23281f;
+  --ink: #e9ede4;
+  --ink-soft: #9aa394;
+  --line: #262c20;
+  --advocate: #d9756a;
+
+  --chrome-900: #050704;
+  --chrome-800: #0a0c08;
+  --heading: #e9ede4;
+  --accent-700: #a8c29c;
+  --accent-600: #8fae84;
+  --accent-500: #7a9b70;
+  --accent-400: #4d6645;
+  --accent-300: #35472e;
+  --accent-200: #1e2819;
+  --danger-700: #e9a99f;
+  --danger-600: #d9756a;
+  --danger-500: #c25e52;
+  --paper-50: #14180f;
+  --paper-100: #0d100b;
+  --paper-200: #1b2016;
+  --paper-300: #262c20;
+  --ink-900: #f2f5ee;
+  --ink-800: #e9ede4;
+  --ink-600: #c2c9ba;
+  --ink-500: #9aa394;
+  --ink-400: #848d7e;
+  --ok-500: #6faf86;
+  --hairline: rgb(255 255 255 / 0.09);
+  --hairline-2: rgb(255 255 255 / 0.16);
+}
+
+/* Dark-only chrome corrections: the shared topbar rules set light-mode
+   backgrounds that would leave dark-on-dark text. */
+.app-grid:has(.v3.pal-obsidian) .gsearch input,
+.app-grid:has(.v3.pal-obsidian) .bell,
+.app-grid:has(.v3.pal-obsidian) .menubtn {
+  color: var(--ink-800);
+}
+
+.app-grid:has(.v3.pal-obsidian) .gsearch input::placeholder {
+  color: var(--ink-400);
+}
+
+.app-grid:has(.v3.pal-obsidian) .gsearch button {
+  background: var(--accent-400);
+  color: #fff;
+}
+
+/* Soft shadows vanish on a dark ground — depth has to come from the border. */
+.app-grid:has(.v3.pal-obsidian) .v3-section,
+.app-grid:has(.v3.pal-obsidian) .v3-docket,
+.app-grid:has(.v3.pal-obsidian) .v3-seal-card {
+  box-shadow: none;
+  border-color: var(--hairline-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Structural layer — palette-agnostic
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.v3 {
+  --surface: var(--paper-50);
+  --surface-2: var(--paper-100);
+  --sunk: var(--paper-200);
+  --on: var(--ink-800);
+  --on-muted: var(--ink-500);
+  --on-faint: var(--ink-400);
+  /* --hairline / --hairline-2 come from the palette — a dark palette needs
+     light-on-dark hairlines, so they can't be fixed here. */
+
+  --t-2xs: 0.75rem;
+  --t-xs: 0.8125rem;
+  --t-sm: 0.875rem;
+  --t-base: 1rem;
+  --t-md: 1.0625rem;
+  --t-lg: 1.25rem;
+  --t-xl: 1.5rem;
+  --t-2xl: 1.875rem;
+  --t-3xl: 2.5rem;
+
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s7: 32px;
+  --s8: 40px;
+  --s9: 56px;
+  --s10: 72px;
+
+  --r1: 6px;
+  --r2: 10px;
+  --r3: 14px;
+  --r4: 18px;
+  --rf: 999px;
+
+  --e1: 0 1px 2px rgb(30 24 12 / 0.06), 0 1px 1px rgb(30 24 12 / 0.04);
+  --e2: 0 2px 4px rgb(30 24 12 / 0.05), 0 6px 16px -6px rgb(30 24 12 / 0.14);
+  --e3: 0 10px 30px -10px rgb(30 24 12 / 0.22);
+
+  --dur1: 140ms;
+  --dur2: 220ms;
+  --dur3: 340ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  color: var(--on);
+  font-size: var(--t-base);
+  font-variant-numeric: tabular-nums;
+  max-width: var(--v3-measure, 1600px);
+  margin-inline: auto;
+}
+
+/* ── shell ────────────────────────────────────────────────────────────── */
+
+.app-grid:has(.v3) {
+  --v3-measure: 1600px;
+  background-color: var(--paper-100);
+  background-image:
+    radial-gradient(120% 80% at 85% -10%, rgb(from var(--accent-500) r g b / 0.08), transparent 60%),
+    radial-gradient(90% 70% at 0% 100%, rgb(from var(--chrome-800) r g b / 0.05), transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.3'/%3E%3C/svg%3E");
+  background-attachment: fixed, fixed, fixed;
+}
+
+.app-grid:has(.v3) .main {
+  padding: var(--s6) var(--s8) var(--s10);
+}
+
+.app-grid:has(.v3) .topbar {
+  max-width: var(--v3-measure);
+  margin-inline: auto;
+  margin-bottom: var(--s7);
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--hairline, rgb(20 18 14 / 0.1));
+}
+
+/* Search anchored at the inline start, actions pushed to the opposite end —
+   the standard app-chrome split. Previously `.gsearch` capped at 480px and
+   `.bell` sat immediately beside it, leaving 1066px of empty bar trailing off
+   the other end with every control crammed into one third. */
+.app-grid:has(.v3) .gsearch {
+  max-width: 560px;
+}
+
+.app-grid:has(.v3) .bell {
+  margin-inline-start: auto;
+}
+
+/* 42px was under the 44px minimum touch target (Apple HIG / Material 48dp). */
+.app-grid:has(.v3) .bell,
+.app-grid:has(.v3) .menubtn {
+  width: 44px;
+  height: 44px;
+}
+
+.app-grid:has(.v3) .gsearch input,
+.app-grid:has(.v3) .bell,
+.app-grid:has(.v3) .menubtn {
+  background: var(--paper-50);
+  border-color: rgb(20 18 14 / 0.17);
+  border-radius: var(--r2, 10px);
+  transition: border-color 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-grid:has(.v3) .gsearch input {
+  color: var(--on);
+}
+
+/* Sidebar controls sat at 39px (section toggles) and 27px (account link,
+   sign-out) — under the 44px minimum. Padding rather than height so the
+   nav's visual rhythm is unchanged. */
+.app-grid:has(.v3) .navsec {
+  min-height: 44px;
+}
+
+.app-grid:has(.v3) .suser .u,
+.app-grid:has(.v3) .logout {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.app-grid:has(.v3) .gsearch input:hover,
+.app-grid:has(.v3) .bell:hover {
+  border-color: var(--accent-400);
+}
+
+.app-grid:has(.v3) .gsearch input:focus-visible,
+.app-grid:has(.v3) .bell:focus-visible,
+.app-grid:has(.v3) .menubtn:focus-visible {
+  outline: 2px solid var(--accent-500);
+  outline-offset: 2px;
+}
+
+.app-grid:has(.v3) .gsearch button {
+  background: var(--chrome-800);
+}
+
+/* ── masthead ─────────────────────────────────────────────────────────── */
+
+.v3-masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s6);
+  flex-wrap: wrap;
+  padding-bottom: var(--s4);
+  margin-bottom: var(--s6);
+  position: relative;
+}
+
+.v3-masthead::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    to left,
+    var(--accent-500) 0,
+    var(--accent-500) 88px,
+    var(--hairline-2) 88px,
+    var(--hairline-2) 100%
+  );
+}
+
+.v3-masthead h1 {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-3xl);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--heading);
+  margin: 0;
+}
+
+.v3-masthead .lede {
+  margin-top: var(--s2);
+  font-size: var(--t-md);
+  color: var(--on-muted);
+  max-width: 52ch;
+}
+
+.v3-datestack {
+  text-align: end;
+  line-height: 1.45;
+  flex-shrink: 0;
+}
+
+.v3-datestack .greg {
+  font-size: var(--t-lg);
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.v3-datestack .hijri {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-base);
+  color: var(--accent-600);
+}
+
+/* ── docket + seal band ───────────────────────────────────────────────── */
+
+.v3-topgrid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--s5);
+  align-items: stretch;
+  margin-bottom: var(--s5);
+}
+
+.v3-docket {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  background: var(--surface);
+  border: 1px solid var(--hairline-2);
+  border-radius: var(--r4);
+  box-shadow: var(--e2);
+  overflow: hidden;
+}
+
+.v3-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--s4);
+  border-inline-start: 1px solid var(--hairline);
+}
+.v3-cell:first-child {
+  border-inline-start: none;
+}
+
+.v3-cell::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 2px;
+  background: var(--accent, transparent);
+  opacity: 0.35;
+}
+.v3-cell.is-urgent::before {
+  opacity: 1;
+}
+.v3-cell.is-quiet::before {
+  background: transparent;
+}
+
+.v3-cell .v {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-2xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent, var(--heading));
+  font-variant-numeric: tabular-nums;
+}
+
+.v3-cell .l {
+  margin-top: var(--s1);
+  font-size: var(--t-xs);
+  color: var(--on-muted);
+  line-height: 1.35;
+}
+
+.v3-cell.is-quiet .v {
+  color: var(--on-muted);
+}
+
+/* ── seal card ────────────────────────────────────────────────────────── */
+
+.v3-seal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  border-radius: var(--r4);
+  border: 1px solid var(--accent-400);
+  background:
+    linear-gradient(135deg, rgb(from var(--accent-500) r g b / 0.13), rgb(from var(--chrome-800) r g b / 0.04)),
+    var(--surface);
+  box-shadow: var(--e2);
+  overflow: hidden;
+}
+
+.v3-seal-card::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, var(--accent-400), var(--accent-600));
+}
+
+.v3-seal-card .top {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.v3-seal-card .seal {
+  flex-shrink: 0;
+  color: var(--accent-600);
+}
+
+.v3-seal-card .who {
+  min-width: 0;
+}
+
+.v3-seal-card .badge {
+  font-size: var(--t-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent-700);
+}
+
+.v3-seal-card .name {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-lg);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--heading);
+}
+
+.v3-seal-card .v3-role {
+  font-size: var(--t-sm);
+  color: var(--on-muted);
+}
+
+.v3-seal-card .score {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--accent-300);
+}
+
+.v3-seal-card .score .n {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.v3-seal-card .score .u {
+  font-size: var(--t-2xs);
+  color: var(--on-muted);
+}
+
+.v3-avatar {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent-400);
+}
+
+/* ── sections ─────────────────────────────────────────────────────────── */
+
+.v3-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s5);
+  align-items: stretch;
+  margin-bottom: var(--s5);
+}
+
+@media (max-width: 1000px) {
+  .v3-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.v3-section {
+  background: var(--surface);
+  border: 1px solid var(--hairline-2);
+  border-radius: var(--r4);
+  box-shadow: var(--e1);
+  padding: var(--s5) var(--s6) var(--s4);
+  transition: box-shadow var(--dur2) var(--ease);
+}
+
+.v3-section:hover {
+  box-shadow: var(--e2);
+}
+
+.v3-shead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  padding-bottom: var(--s3);
+  margin-bottom: var(--s2);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.v3-shead .mark {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 var(--s2);
+  border-radius: var(--r1);
+  border: 1px solid var(--accent-400);
+  background: var(--accent-200);
+  color: var(--accent-700);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  align-self: center;
+}
+
+.v3-shead h2 {
+  font-family: var(--font-amiri), serif;
+  font-size: var(--t-xl);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--heading);
+  margin: 0;
+}
+
+.v3-shead .count {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--on-muted);
+  background: var(--sunk);
+  border-radius: var(--rf);
+  padding: 1px var(--s2);
+  font-variant-numeric: tabular-nums;
+  align-self: center;
+}
+
+/* ── rows ─────────────────────────────────────────────────────────────── */
+
+.v3-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s2);
+  border-bottom: 1px solid var(--hairline);
+  border-radius: var(--r1);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color var(--dur1) var(--ease);
+}
+
+.v3-row:last-child {
+  border-bottom: none;
+}
+
+.v3-row::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 25%;
+  width: 3px;
+  border-radius: var(--rf);
+  background: var(--accent, var(--on-faint));
+  transition: inset-block var(--dur2) var(--ease);
+}
+
+.v3-row:hover {
+  background: var(--surface-2);
+}
+.v3-row:hover::before {
+  inset-block: 12%;
+}
+
+.v3-row:focus-visible {
+  outline: 2px solid var(--accent-500);
+  outline-offset: 1px;
+  background: var(--surface-2);
+}
+
+.v3-row .label {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--t-md);
+  line-height: 1.5;
+  padding-inline-start: var(--s3);
+}
+
+.v3-row .sub {
+  color: var(--on-faint);
+  font-size: var(--t-sm);
+}
+
+/* ── chips ────────────────────────────────────────────────────────────── */
+
+.v3-chip {
+  flex-shrink: 0;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  line-height: 1.6;
+  padding: 2px var(--s2);
+  border-radius: var(--r1);
+  border: 1px solid var(--hairline-2);
+  background: var(--sunk);
+  color: var(--on-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The raw accent as chip text measured 3.47–3.84:1 on its own 9% tint — under
+   the 4.5 floor for 14px. Pulling it toward --ink-900 fixes it in BOTH modes:
+   --ink-900 is the strongest text tone in each palette, so the mix darkens on
+   light grounds and lightens on dark ones. */
+.v3-chip.is-accent {
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  color: color-mix(in srgb, var(--accent) 68%, var(--ink-900));
+}
+
+.v3-chip.is-soft {
+  background: transparent;
+  border-color: var(--hairline);
+  color: var(--on-faint);
+  font-weight: 500;
+}
+
+.v3-chip .ic {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-inline-end: 3px;
+}
+
+/* ── empty ────────────────────────────────────────────────────────────── */
+
+.v3-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  min-height: 96px;
+  padding: var(--s5) var(--s3);
+  color: var(--on-muted);
+  font-size: var(--t-sm);
+  text-align: center;
+}
+
+.v3-empty .rule {
+  width: 34px;
+  height: 1px;
+  background: var(--hairline-2);
+}
+
+/* ── entrance ─────────────────────────────────────────────────────────── */
+
+@keyframes v3-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.v3-rise {
+  animation: v3-rise var(--dur3) var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3 *,
+  .v3 *::before,
+  .v3 *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── large-display step ───────────────────────────────────────────────── */
+
+@media (min-width: 1500px) {
+  .v3 {
+    --t-2xs: 0.8125rem;
+    --t-xs: 0.875rem;
+    --t-sm: 0.9375rem;
+    --t-base: 1.0625rem;
+    --t-md: 1.1875rem;
+    --t-lg: 1.4375rem;
+    --t-xl: 1.75rem;
+    --t-2xl: 2.125rem;
+    --t-3xl: 2.875rem;
+  }
+  .v3-section {
+    padding: var(--s6) var(--s7) var(--s5);
+  }
+  .v3-row {
+    padding-block: var(--s4);
+  }
+  .v3-cell {
+    padding: var(--s5);
+  }
+}
+
+/* ── responsive ───────────────────────────────────────────────────────── */
+
+@media (max-width: 1180px) and (min-width: 981px) {
+  .v3-topgrid {
+    grid-template-columns: 1fr 300px;
+  }
+}
+
+@media (max-width: 980px) {
+  .app-grid:has(.v3) .main {
+    padding: var(--s5) var(--s4) var(--s9);
+  }
+  .v3-topgrid {
+    grid-template-columns: 1fr;
+  }
+  .v3-masthead h1 {
+    font-size: var(--t-2xl);
+  }
+  .v3-datestack {
+    text-align: start;
+  }
+  .v3-cell {
+    border-inline-start: none;
+    border-top: 1px solid var(--hairline);
+  }
+  .v3-cell:first-child {
+    border-top: none;
+  }
+}

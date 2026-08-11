@@ -10,11 +10,14 @@ import { invoiceStatusLabel, payMethodLabel } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { t } from "@/lib/i18n";
 import { creditNoteAction, recordPaymentAction, writeOffAction } from "../actions";
+import { requireUuidParam } from "@/lib/http/params";
+import { formatDateAr } from "@/lib/dates";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) redirect("/login");
   const { id } = await params;
+  requireUuidParam(id);
 
   let content: React.ReactNode;
   try {
@@ -32,7 +35,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         <div className="vhead">
           <h2>{inv.number}</h2>
           <span className="pill">
-            {d.clientName} · {d.issueDate} · {invoiceStatusLabel(d.status)}
+            {d.clientName} · {formatDateAr(d.issueDate)} · {invoiceStatusLabel(d.status)}
           </span>
         </div>
 
@@ -74,7 +77,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                   <span className="font-medium">{p.number}</span>
                   <span>{formatSar(p.amount)}</span>
                   <span className="text-ink-soft">{payMethodLabel(p.method)}</span>
-                  <span className="text-ink-soft">{new Date(p.paymentDate).toISOString().slice(0, 10)}</span>
+                  <span className="text-ink-soft">{formatDateAr(p.paymentDate)}</span>
                 </li>
               ))}
             </ul>

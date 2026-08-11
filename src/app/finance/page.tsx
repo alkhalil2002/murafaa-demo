@@ -8,6 +8,7 @@ import { PermissionError } from "@/lib/permissions/guard";
 import { invoiceStatusLabel } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
 import { t } from "@/lib/i18n";
+import { formatDateAr } from "@/lib/dates";
 
 export default async function FinancePage() {
   const session = await getSession();
@@ -30,7 +31,7 @@ export default async function FinancePage() {
               <span className="ndot" style={{ background: "var(--bench)" }} />
               <span className="at">
                 {inv.number} — {inv.clientName}
-                <span style={{ color: "var(--ink-soft)", fontSize: 15 }}> ({inv.issueDate})</span>
+                <span style={{ color: "var(--ink-soft)", fontSize: 15 }}> ({formatDateAr(inv.issueDate)})</span>
               </span>
               <span className="chip">{formatSar(inv.remaining)} {t("inv.remaining")}</span>
               <span className={`chip st${inv.status === "PAID" ? "" : " done"}`}>

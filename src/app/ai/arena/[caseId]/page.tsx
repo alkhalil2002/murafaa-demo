@@ -11,11 +11,13 @@ import { loadOfficePolicy } from "@/lib/permissions/policy";
 import { PermissionError } from "@/lib/permissions/guard";
 import { t } from "@/lib/i18n";
 import { arenaRoundAction, arenaResetAction } from "../../actions";
+import { requireUuidParam } from "@/lib/http/params";
 
 export default async function ArenaPage({ params }: { params: Promise<{ caseId: string }> }) {
   const session = await getSession();
   if (!session) redirect("/login");
   const { caseId } = await params;
+  requireUuidParam(caseId);
 
   let content: React.ReactNode;
   try {

@@ -101,8 +101,9 @@ import {
   clientApprovalStatusLabel,
 } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
-import { daysLeft, daysAgo } from "@/lib/dates";
+import { daysLeft, daysAgo, formatDateAr } from "@/lib/dates";
 import { t, type MessageKey } from "@/lib/i18n";
+import { requireUuidParam } from "@/lib/http/params";
 
 const HEARING_KINDS = Object.values(HearingKind);
 const PROC_STAGES = Object.values(ProcStage);
@@ -125,7 +126,7 @@ const AI_SMART_TOOLS = [
 const EXEC_FILE_STATUSES = Object.values(ExecutionFileStatus);
 
 function fmt(d: Date | null | undefined): string {
-  return d ? new Date(d).toISOString().slice(0, 10) : "—";
+  return formatDateAr(d);
 }
 
 function relTime(d: Date | null | undefined): string {
@@ -161,6 +162,7 @@ export default async function CaseDetailPage({
   const session = await getSession();
   if (!session) redirect("/login");
   const { id } = await params;
+  requireUuidParam(id);
   const {
     tab: tabParam,
     evf: eventFilterParam,
