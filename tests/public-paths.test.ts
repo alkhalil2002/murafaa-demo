@@ -31,6 +31,12 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/api/emp-portal-auth/verify")).toBe(true);
   });
 
+  it("allows the PWA surface — the browser fetches these uncredentialed", () => {
+    for (const p of ["/manifest.webmanifest", "/sw.js", "/offline.html", "/icons/icon-192.png"]) {
+      expect(isPublicPath(p)).toBe(true);
+    }
+  });
+
   it("still gates every staff route", () => {
     for (const p of [
       "/today",

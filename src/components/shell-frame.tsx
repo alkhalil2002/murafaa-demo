@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { IconBell } from "./icons";
+import { BottomNav } from "./bottom-nav";
+import type { NavItem } from "./side-nav";
 import { t, type MessageKey } from "@/lib/i18n";
 import type { SearchResults } from "@/server/search";
 
@@ -30,6 +32,7 @@ export function ShellFrame({
   menuLabel,
   bellLabel,
   bellCount = 0,
+  bottomNavItems = [],
   children,
 }: {
   sidebar: React.ReactNode;
@@ -38,6 +41,8 @@ export function ShellFrame({
   menuLabel: string;
   bellLabel: string;
   bellCount?: number;
+  /** Permission-filtered destinations for the mobile bottom bar. */
+  bottomNavItems?: NavItem[];
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -175,6 +180,7 @@ export function ShellFrame({
         </div>
         {children}
       </main>
+      <BottomNav items={bottomNavItems} moreLabel={menuLabel} onMore={() => setOpen((v) => !v)} />
     </div>
   );
 }

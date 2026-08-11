@@ -10,7 +10,18 @@
  * through. Their OTP endpoints must be public for the same reason: a portal
  * user is by definition not staff-authenticated when requesting a code.
  */
-const PUBLIC_EXACT = new Set(["/login", "/signup", "/favicon.ico", "/api/health"]);
+const PUBLIC_EXACT = new Set([
+  "/login",
+  "/signup",
+  "/favicon.ico",
+  "/api/health",
+  // PWA surface. These MUST be reachable while signed out: the browser fetches
+  // the manifest and service worker without credentials, and redirecting them
+  // to /login silently prevents the app from ever being installable.
+  "/manifest.webmanifest",
+  "/sw.js",
+  "/offline.html",
+]);
 
 const PUBLIC_PREFIXES = [
   "/api/auth",
@@ -22,6 +33,7 @@ const PUBLIC_PREFIXES = [
   // Platform admin: its own session and its own login, outside office tenancy.
   "/admin",
   "/api/platform-auth",
+  "/icons",
 ] as const;
 
 export function isPublicPath(pathname: string): boolean {

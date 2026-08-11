@@ -1229,7 +1229,18 @@
     .gsearch {
       max-width: none;
     }
+    /* 2-up, not 1: a single KPI per row turns five numbers into five
+       screenfuls of scrolling on a phone. */
     .kpis,
+    .kpis.kpis-5 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .kpi {
+      padding: 12px 14px;
+    }
+    .kpi .v {
+      font-size: 28px;
+    }
     .grid2 {
       grid-template-columns: 1fr;
     }
@@ -1583,4 +1594,94 @@
   display: inline-block;
   margin-inline-end: 7px;
   vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Mobile bottom navigation (PWA)
+   ═══════════════════════════════════════════════════════════════════════
+   Primary navigation under 980px. The off-canvas drawer stays, reached via
+   "المزيد" — it just stops being the only way to move around, which is the
+   wrong default on a phone. Hidden entirely on desktop, where the sidebar is
+   already permanently visible. */
+
+.bottomnav {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  .bottomnav {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    background: linear-gradient(180deg, var(--bench), var(--bench-2));
+    border-top: 1px solid rgb(231 210 164 / 0.18);
+    /* Clears the iOS home indicator; pairs with viewportFit:"cover". */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .bn-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    /* 56px + the label keeps every target past the 44px minimum. */
+    min-height: 56px;
+    padding: 8px 2px;
+    background: none;
+    border: none;
+    font-family: inherit;
+    color: var(--gold-soft);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 140ms ease-out, background-color 140ms ease-out;
+  }
+
+  .bn-item.on {
+    color: #fff;
+    background: rgb(194 151 75 / 0.18);
+  }
+
+  .bn-item:active {
+    background: rgb(255 255 255 / 0.08);
+  }
+
+  .bn-icon {
+    display: grid;
+    place-items: center;
+    height: 20px;
+  }
+  .bn-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .bn-label {
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Content must not sit under the fixed bar. */
+  .app-grid:has(.bottomnav) .main {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* The drawer now sits above the bar when open. */
+  .side {
+    z-index: 70;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bn-item {
+    transition: none;
+  }
 }

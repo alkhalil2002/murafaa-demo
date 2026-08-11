@@ -236,6 +236,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       menuLabel={t("nav.menu")}
       bellLabel={t("notif.title")}
       bellCount={notifications.length}
+      bottomNavItems={sections.flatMap((s) => s.items)}
     >
       <IdleLogout />
       <TrialBanner officeId={session.officeId} />

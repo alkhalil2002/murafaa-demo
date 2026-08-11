@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { AppShell } from "@/components/app-shell";
 import { getTodaySummary, type TodayHearingItem, type TodayDeadlineItem } from "@/server/today";
 import { t } from "@/lib/i18n";
+import { SealMark, ScaleMark } from "@/components/v2/marks";
 
 /** Arabic-Indic numeral formatting, matching the prototype's `arNum()`. */
 const arNum = (n: number) => n.toLocaleString("ar-SA");
@@ -90,7 +91,7 @@ function EmployeeOfWeekCard({ eow }: { eow: { name: string; roleLabel: string; p
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ fontSize: 37.5 }}>🏆</div>
+        <span style={{ color: "var(--gold)" }}><SealMark size={38} /></span>
         <InitialsAvatar name={eow.name} size={52} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="sub" style={{ fontSize: 14.375, color: "var(--gold)", fontWeight: 700, letterSpacing: 1, marginBottom: 0 }}>
@@ -264,7 +265,7 @@ export default async function TodayPage() {
                 />
                 <span className="at">
                   {item.title}
-                  {item.caseTitle ? <span className="chip"> ⚖ {item.caseTitle}</span> : null}
+                  {item.caseTitle ? <span className="chip"> <ScaleMark /> {item.caseTitle}</span> : null}
                 </span>
                 <span className="chip">{item.dueLabel ?? ""}</span>
               </Link>

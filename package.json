@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "node .next/standalone/server.js",
     "lint": "next lint && tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -14,7 +14,9 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed:platform": "tsx scripts/seed-platform.ts"
+    "db:seed:platform": "tsx scripts/seed-platform.ts",
+    "start:next": "next start",
+    "postbuild": "node scripts/assemble-standalone.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
