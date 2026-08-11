@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Emits .next/standalone with a minimal server + only the traced deps, so the
+  // Cloud Run image does not ship the full node_modules tree.
+  output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
   eslint: {

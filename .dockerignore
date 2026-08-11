@@ -1,0 +1,25 @@
+# Never ship secrets or local state into the image.
+.env
+.env.*
+!.env.example
+
+node_modules
+.next
+.git
+.gitignore
+
+# Local dev / tooling
+.claude
+.storage
+tests
+prototype
+docs
+*.zip
+*.md
+!README.md
+
+# Build artefacts and caches
+npm-debug.log*
+coverage
+.vscode
+.idea

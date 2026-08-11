@@ -10,7 +10,7 @@
  * through. Their OTP endpoints must be public for the same reason: a portal
  * user is by definition not staff-authenticated when requesting a code.
  */
-const PUBLIC_EXACT = new Set(["/login", "/signup", "/favicon.ico"]);
+const PUBLIC_EXACT = new Set(["/login", "/signup", "/favicon.ico", "/api/health"]);
 
 const PUBLIC_PREFIXES = [
   "/api/auth",
