@@ -921,10 +921,19 @@
     color: var(--ink-soft);
     font-size: 15.625px;
   }
+  /* Allow-list by EXCLUSION, not by listing types.
+     This was an enumerated list of text/date only, which silently left every
+     input[type="number"] in the product unstyled — 27 of them, including the
+     lead deal amount and every money field in finance and HR. They fell back
+     to the tiny browser default next to full-width styled siblings.
+     Excluding the handful of controls that must NOT look like a text box means
+     a future input type is styled by default rather than invisibly broken. */
   .panel select,
   .panel textarea,
-  .panel input[type="text"],
-  .panel input[type="date"] {
+  .field select,
+  .field textarea,
+  .panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="range"]),
+  .field input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="range"]) {
     width: 100%;
     font-size: 18.125px;
     color: var(--ink);
@@ -1684,4 +1693,41 @@
   .bn-item {
     transition: none;
   }
+}
+
+/* Number fields: drop the spinners.
+   They add no value on a money or day-count field, they overlap the padding in
+   RTL, and they make an amount field look different from every text field
+   beside it — which is the exact inconsistency this pairs with fixing. */
+.panel input[type="number"],
+.field input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.panel input[type="number"]::-webkit-outer-spin-button,
+.panel input[type="number"]::-webkit-inner-spin-button,
+.field input[type="number"]::-webkit-outer-spin-button,
+.field input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Money field: a currency affix inside the control, so the unit is never
+   ambiguous. The value is entered in RIYALS and stored as halalas. */
+.money {
+  position: relative;
+  display: block;
+}
+.money input {
+  /* Room for the affix at the inline end. */
+  padding-inline-end: 52px !important;
+}
+.money .cur {
+  position: absolute;
+  inset-inline-end: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 15px;
+  color: var(--ink-soft);
+  pointer-events: none;
 }

@@ -159,6 +159,8 @@ export const ar = {
   "admin.state.active": "مشترك",
   "admin.state.locked": "موقوف (اطّلاع فقط)",
   "admin.state.none": "بدون اشتراك",
+  "common.sar": "ر.س",
+  "leads.expectedValue.hint": "المبلغ بالريال السعودي",
   "signup.tagline": "ابدأ تجربة مجانية ٧ أيام",
   "signup.officeName": "اسم المكتب",
   "signup.adminName": "اسمك",

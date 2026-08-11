@@ -52,7 +52,14 @@ export default async function LeadsPage() {
               </div>
               <div className="field">
                 <label>{t("leads.expectedValue")}</label>
-                <input type="number" name="expectedValue" min="0" step="0.01" />
+                {/* The action multiplies by 100 to store halalas, so this field
+                    is RIYALS. Without the affix nothing on screen said so, and a
+                    user thinking in halalas was out by 100x. */}
+                <div className="money">
+                  <input type="number" name="expectedValue" min="0" step="0.01" inputMode="decimal" />
+                  <span className="cur">{t("common.sar")}</span>
+                </div>
+                <span className="hint">{t("leads.expectedValue.hint")}</span>
               </div>
               <div className="field">
                 <label>{t("leads.phonePlaceholder")}</label>
