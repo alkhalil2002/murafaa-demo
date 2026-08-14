@@ -136,6 +136,46 @@ curl -X POST https://<service>.up.railway.app/api/auth/otp \
 
 ---
 
+## 4a. Things that only showed up against a real deployment
+
+Three bugs survived every local test and appeared only on Railway. All are
+fixed; they are recorded because each is a class of failure, not a one-off.
+
+**The volume mounts root-owned.** Railway attaches it `root:root 0755`, and the
+app runs as uid 1001, so every upload would have failed with `EACCES` while
+`/api/health` returned 200 and the container looked healthy. Local runs used
+bind mounts, which inherit a writable owner, so this could not reproduce.
+`docker-entrypoint.sh` now chowns the mount as root and drops to uid 1001 via
+`gosu` before exec'ing the server.
+
+Note what this means for the startup guard: it validates *configuration*, and
+this was correct configuration over a filesystem the app could not write to.
+Config checks cannot see permissions.
+
+**The OTP endpoint echoed the login code.** With `OTP_PROVIDER=console`, an
+unauthenticated POST returned `{"sent":true,"devCode":"470453"}` — a full
+authentication bypass for anyone who can guess a phone number. The echo is now
+gated on `NODE_ENV`, not on the provider, because "console in production" is a
+configuration this project deliberately supports for staging.
+
+**Railway blocks builds on dependency CVEs.** The first deploy was refused for
+`next@15.1.4`. This is a feature, not an obstacle — but it means a patch bump
+can be a deploy blocker, so keep dependencies current rather than discovering
+four CVEs at deploy time.
+
+## 4b. Signing in while OTP_PROVIDER=console
+
+Codes are never returned in the HTTP response outside development. Read them
+from the log:
+
+```bash
+railway logs -s murafaa | grep "otp:console"
+```
+
+Seeded staff numbers are `0500000001`–`0500000006` (one per role); the platform
+admin is `+966555000001`. Allow a few seconds for the log to flush, and note the
+30-second resend cooldown per phone.
+
 ## 5. Residency — the limit of this path
 
 `CLAUDE.md` requires all data to stay in-Kingdom for PDPL, which is why the
