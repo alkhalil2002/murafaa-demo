@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { getProgress, mayRunOnboarding } from "@/server/onboarding";
 import { AppShell } from "@/components/app-shell";
 import { getTodaySummary, type TodayHearingItem, type TodayDeadlineItem } from "@/server/today";
 import { t } from "@/lib/i18n";
@@ -161,6 +162,13 @@ function DeadlineRow({ item }: { item: TodayDeadlineItem }) {
 export default async function TodayPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  // A brand-new office lands on the wizard rather than an empty dashboard.
+  // Only the partner is sent there — a colleague joining a configured office
+  // has nothing to set up. Skipping or finishing stamps onboardingDoneAt, so
+  // this fires once and never nags.
+  const onboarding = await getProgress(session);
+  if (!onboarding.done && mayRunOnboarding(session)) redirect("/onboarding");
 
   const summary = await getTodaySummary(session);
 

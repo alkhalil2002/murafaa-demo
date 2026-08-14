@@ -469,6 +469,13 @@ model Office {
   /// Staff login IP allowlist (exact addresses or CIDR-style prefixes as plain
   /// strings, matched by src/lib/security/ip.ts). Empty = unrestricted (default).
   ipAllowlist     String[]  @default([]) @map("ip_allowlist")
+  /// Furthest onboarding step this office has reached, so a wizard abandoned
+  /// midway resumes where it stopped instead of restarting. 0 = not begun.
+  onboardingStep  Int       @default(0) @map("onboarding_step")
+  /// Set when the office finishes or skips the wizard. Null means the wizard
+  /// still owns the post-login landing. Nullable rather than a boolean so the
+  /// completion date is available for activation reporting.
+  onboardingDoneAt DateTime? @map("onboarding_done_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   deletedAt       DateTime? @map("deleted_at")
