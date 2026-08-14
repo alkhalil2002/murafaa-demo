@@ -54,27 +54,38 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PORT=8080
 ENV HOSTNAME=0.0.0.0
 
+# Run unprivileged. Chromium must never run as root, and neither should a
+# process handling other people's case files.
+#
+# The user is created BEFORE the copies so ownership can be set by COPY --chown.
+# Doing it afterwards with `chown -R /app` cost 241MB: chown rewrites every
+# file, and a rewritten file is a new file to the layer store, so the whole
+# application tree was stored twice in the image.
+RUN useradd --system --uid 1001 --create-home murafaa
+
 # The GCS SDK is loaded through a non-literal dynamic import and is intentionally
 # absent from package.json (see src/lib/storage/gcs.ts) so dev never needs it.
-# Production does — install it here, not in the repo.
+# Production does — install it here, not in the repo. Left root-owned: the app
+# only ever reads it, and code the runtime user cannot rewrite is the safer
+# arrangement anyway.
 RUN npm install --no-save --omit=dev @google-cloud/storage@^7
 
 # Standalone server + the assets Next does not trace into it.
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=murafaa:murafaa /app/.next/standalone ./
+COPY --from=builder --chown=murafaa:murafaa /app/.next/static ./.next/static
+COPY --from=builder --chown=murafaa:murafaa /app/public ./public
 
 # Prisma's generated client and its query engine binary are not picked up by
 # Next's tracing reliably; copy them explicitly.
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=murafaa:murafaa /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=murafaa:murafaa /app/node_modules/@prisma ./node_modules/@prisma
 # Shipped so migrations can be applied by a separate job from this same image.
-COPY --from=builder /app/prisma ./prisma
+COPY --from=builder --chown=murafaa:murafaa /app/prisma ./prisma
 
-# Run unprivileged. Chromium must never run as root, and neither should a
-# process handling other people's case files.
-RUN useradd --system --uid 1001 --create-home murafaa \
-    && chown -R murafaa:murafaa /app
+# Next writes its runtime cache here; the rest of /app stays read-only to the
+# app user.
+RUN mkdir -p /app/.next/cache && chown murafaa:murafaa /app/.next/cache
+
 USER murafaa
 
 EXPOSE 8080
