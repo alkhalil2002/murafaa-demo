@@ -27,6 +27,10 @@ export async function POST(req: Request) {
       return fail({ code: result.code, messageKey: "auth.error.userNotFound" }, 404);
     case "RATE_LIMITED":
       return fail({ code: result.code, messageKey: "auth.otp.rateLimited" }, 429);
+    case "DELIVERY_FAILED":
+      // 502: our side is fine, the WhatsApp webhook is not. Distinct from a
+      // 500 so uptime checks attribute the failure to the vendor.
+      return fail({ code: result.code, messageKey: "auth.otp.deliveryFailed" }, 502);
     default:
       return fail({ code: "GENERIC", messageKey: "auth.error.generic" }, 400);
   }

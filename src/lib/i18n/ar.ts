@@ -82,6 +82,7 @@ export const ar = {
   "auth.otp.rateLimited": "الرجاء الانتظار قبل طلب رمز جديد",
   "auth.error.phoneInvalid": "رقم الجوال غير صالح",
   "auth.error.userNotFound": "لا يوجد حساب مرتبط بهذا الرقم",
+  "auth.otp.deliveryFailed": "تعذّر إرسال الرمز عبر واتساب، حاول مرة أخرى",
   "auth.error.generic": "تعذّر إتمام العملية، حاول مجدداً",
   "auth.signout": "تسجيل الخروج",
 

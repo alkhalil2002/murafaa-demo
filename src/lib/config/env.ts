@@ -48,29 +48,63 @@ export function checkEnv(env: EnvLike): EnvIssue[] {
   }
 
   // The data-loss guard. Local storage is correct in dev and catastrophic on
-  // Cloud Run, so production must opt in to a durable driver explicitly.
+  // any host with an ephemeral container filesystem (Cloud Run, Vercel, a
+  // Railway service with no volume attached), so production must opt in to a
+  // durable target explicitly. "volume" is that opt-in: same filesystem
+  // driver, but the operator is asserting a persistent disk is mounted there.
   const driver = env.STORAGE_DRIVER ?? "local";
   if (isProd && driver === "local") {
     issues.push({
       level: "fatal",
       key: "STORAGE_DRIVER",
       message:
-        "is 'local' in production. Cloud Run's filesystem is ephemeral, so every uploaded document " +
-        "would be destroyed on the next restart — silently. Set STORAGE_DRIVER=gcs with a GCS_BUCKET.",
+        "is 'local' in production. The container filesystem is ephemeral, so every uploaded document " +
+        "would be destroyed on the next restart or redeploy — silently. Set STORAGE_DRIVER=gcs with a " +
+        "GCS_BUCKET, or STORAGE_DRIVER=volume with STORAGE_LOCAL_DIR pointing at a mounted persistent disk.",
     });
   }
   if (driver === "gcs" && !env.GCS_BUCKET) {
     issues.push({ level: "fatal", key: "GCS_BUCKET", message: "required when STORAGE_DRIVER=gcs" });
   }
+  if (driver === "volume" && !env.STORAGE_LOCAL_DIR) {
+    issues.push({
+      level: "fatal",
+      key: "STORAGE_LOCAL_DIR",
+      message:
+        "required when STORAGE_DRIVER=volume — it must be the mount path of the persistent disk. " +
+        "Without it the driver would write to the ephemeral default and lose every document.",
+    });
+  }
+  if (isProd && driver === "volume") {
+    issues.push({
+      level: "warn",
+      key: "STORAGE_DRIVER",
+      message:
+        "is 'volume' — documents live on one disk attached to one instance. That rules out running " +
+        "more than one replica, and backups are your responsibility (a bucket has neither limit).",
+    });
+  }
+
+  const otp = env.OTP_PROVIDER ?? "console";
+  if (otp === "whatsapp") {
+    // Both are required together; a provider with one of them is a login
+    // system that fails on first use rather than at boot.
+    if (!env.WHATSAPP_OTP_URL) {
+      issues.push({ level: "fatal", key: "WHATSAPP_OTP_URL", message: "required when OTP_PROVIDER=whatsapp" });
+    }
+    if (!env.WHATSAPP_OTP_TOKEN) {
+      issues.push({ level: "fatal", key: "WHATSAPP_OTP_TOKEN", message: "required when OTP_PROVIDER=whatsapp" });
+    }
+  }
 
   // Not fatal: an internal staging deploy legitimately reads codes from the
   // logs. It must never be quiet about it, though.
-  if (isProd && (env.OTP_PROVIDER ?? "console") === "console") {
+  if (isProd && otp === "console") {
     issues.push({
       level: "warn",
       key: "OTP_PROVIDER",
       message:
-        "is 'console' in production — login codes are written to the server log and no SMS is sent. " +
+        "is 'console' in production — login codes are written to the server log and nothing is sent. " +
         "Acceptable for internal staging only; real users cannot sign in.",
     });
   }

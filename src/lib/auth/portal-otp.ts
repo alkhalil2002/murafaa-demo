@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { logSystemAudit } from "@/lib/audit";
 import { normalizeSaudiPhone } from "./phone";
 import { getOtpProvider, type OtpChannel } from "./otp-provider";
+import { deliverOtp } from "./otp-deliver";
 
 /**
  * Client-portal OTP send/verify — mirrors src/lib/auth/otp.ts exactly, but
@@ -18,7 +19,7 @@ const RESEND_COOLDOWN_SECONDS = 30;
 
 export type PortalOtpSendResult =
   | { ok: true; devCode?: string }
-  | { ok: false; code: "PHONE_INVALID" | "CLIENT_NOT_FOUND" | "RATE_LIMITED" };
+  | { ok: false; code: "PHONE_INVALID" | "CLIENT_NOT_FOUND" | "RATE_LIMITED" | "DELIVERY_FAILED" };
 
 export type PortalOtpVerifyResult =
   | { ok: true; client: { id: string; officeId: string; name: string; phone: string } }
@@ -60,12 +61,13 @@ export async function sendClientOtp(rawPhone: string, channel: OtpChannel = "wha
 
   const code = generateCode();
   const expiresAt = new Date(Date.now() + TTL_SECONDS * 1000);
-  await prisma.otpChallenge.create({
+  const challenge = await prisma.otpChallenge.create({
     data: { officeId: client.officeId, phone, codeHash: hashCode(phone, code), expiresAt },
   });
 
   const provider = getOtpProvider();
-  await provider.send(phone, code, channel);
+  const delivered = await deliverOtp(provider, phone, code, channel, challenge.id);
+  if (!delivered) return { ok: false, code: "DELIVERY_FAILED" };
   await logSystemAudit(client.officeId, "portal.otp.sent", `portal otp sent to ${phone}`);
   return provider.name === "console" ? { ok: true, devCode: code } : { ok: true };
 }

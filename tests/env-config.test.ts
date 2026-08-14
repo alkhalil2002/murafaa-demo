@@ -58,3 +58,43 @@ describe("checkEnv — production", () => {
     expect(issues.find((i) => i.key === "OTP_PROVIDER")?.level).toBe("warn");
   });
 });
+
+describe("checkEnv — non-GCP hosting (Railway / Vercel)", () => {
+  const prod: EnvLike = {
+    NODE_ENV: "production",
+    DATABASE_URL: "postgresql://x",
+    AUTH_SECRET: "0123456789012345678901234567890123456789",
+  };
+  const fatalKeys = (env: EnvLike) => checkEnv(env).filter((i) => i.level === "fatal").map((i) => i.key);
+
+  it("accepts a mounted volume as durable storage", () => {
+    expect(fatalKeys({ ...prod, STORAGE_DRIVER: "volume", STORAGE_LOCAL_DIR: "/data" })).toEqual([]);
+  });
+
+  it("refuses 'volume' without a mount path — it would fall back to ephemeral disk", () => {
+    expect(fatalKeys({ ...prod, STORAGE_DRIVER: "volume" })).toContain("STORAGE_LOCAL_DIR");
+  });
+
+  it("warns that a volume pins the service to a single replica", () => {
+    const issues = checkEnv({ ...prod, STORAGE_DRIVER: "volume", STORAGE_LOCAL_DIR: "/data" });
+    expect(issues.find((i) => i.key === "STORAGE_DRIVER")?.level).toBe("warn");
+  });
+
+  it("refuses OTP_PROVIDER=whatsapp without webhook credentials", () => {
+    const keys = fatalKeys({ ...prod, STORAGE_DRIVER: "volume", STORAGE_LOCAL_DIR: "/d", OTP_PROVIDER: "whatsapp" });
+    expect(keys).toContain("WHATSAPP_OTP_URL");
+    expect(keys).toContain("WHATSAPP_OTP_TOKEN");
+  });
+
+  it("a fully configured WhatsApp production deploy is clean of the OTP warning", () => {
+    const issues = checkEnv({
+      ...prod,
+      STORAGE_DRIVER: "gcs",
+      GCS_BUCKET: "b",
+      OTP_PROVIDER: "whatsapp",
+      WHATSAPP_OTP_URL: "https://example.invalid/hook",
+      WHATSAPP_OTP_TOKEN: "t",
+    });
+    expect(issues).toEqual([]);
+  });
+});

@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { prisma } from "@/lib/db";
 import { normalizeSaudiPhone } from "./phone";
 import { getOtpProvider, type OtpChannel } from "./otp-provider";
+import { deliverOtp } from "./otp-deliver";
 
 /**
  * Platform-admin OTP. Mirrors src/lib/auth/otp.ts, resolving against
@@ -18,7 +19,7 @@ const RESEND_COOLDOWN_SECONDS = 30;
 
 export type PlatformOtpSendResult =
   | { ok: true; devCode?: string }
-  | { ok: false; code: "PHONE_INVALID" | "ADMIN_NOT_FOUND" | "RATE_LIMITED" };
+  | { ok: false; code: "PHONE_INVALID" | "ADMIN_NOT_FOUND" | "RATE_LIMITED" | "DELIVERY_FAILED" };
 
 export type PlatformOtpVerifyResult =
   | { ok: true; admin: { id: string; name: string; phone: string } }
@@ -61,7 +62,7 @@ export async function sendPlatformOtp(
   }
 
   const code = generateCode();
-  await prisma.otpChallenge.create({
+  const challenge = await prisma.otpChallenge.create({
     data: {
       officeId: null,
       phone,
@@ -71,7 +72,8 @@ export async function sendPlatformOtp(
   });
 
   const provider = getOtpProvider();
-  await provider.send(phone, code, channel);
+  const delivered = await deliverOtp(provider, phone, code, channel, challenge.id);
+  if (!delivered) return { ok: false, code: "DELIVERY_FAILED" };
   return provider.name === "console" ? { ok: true, devCode: code } : { ok: true };
 }
 

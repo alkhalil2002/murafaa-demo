@@ -16,5 +16,11 @@ export async function POST(req: Request) {
   // and a distinct response would let anyone enumerate which numbers are
   // platform staff.
   if (result.code === "RATE_LIMITED") return fail({ code: result.code }, 429);
+  // Adds no enumeration signal that 200-vs-400 above does not already give:
+  // a valid admin number returns 200 and an unknown one returns 400, so this
+  // endpoint is already distinguishable. (Closing that gap means returning an
+  // identical response in both cases — a deliberate change to admin login, not
+  // something to slip in here.)
+  if (result.code === "DELIVERY_FAILED") return fail({ code: result.code }, 502);
   return fail({ code: "INVALID" }, 400);
 }

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { logSystemAudit } from "@/lib/audit";
 import { normalizeSaudiPhone } from "./phone";
 import { getOtpProvider, type OtpChannel } from "./otp-provider";
+import { deliverOtp } from "./otp-deliver";
 
 /**
  * OTP send/verify (docs/02 §8). Codes are stored HMAC-hashed (never plaintext),
@@ -17,7 +18,7 @@ const RESEND_COOLDOWN_SECONDS = 30;
 
 export type OtpSendResult =
   | { ok: true; devCode?: string }
-  | { ok: false; code: "PHONE_INVALID" | "USER_NOT_FOUND" | "RATE_LIMITED" };
+  | { ok: false; code: "PHONE_INVALID" | "USER_NOT_FOUND" | "RATE_LIMITED" | "DELIVERY_FAILED" };
 
 export type OtpVerifyResult =
   | {
@@ -76,7 +77,7 @@ export async function sendOtp(
 
   const code = generateCode();
   const expiresAt = new Date(Date.now() + TTL_SECONDS * 1000);
-  await prisma.otpChallenge.create({
+  const challenge = await prisma.otpChallenge.create({
     data: {
       officeId: user.officeId,
       phone,
@@ -86,7 +87,8 @@ export async function sendOtp(
   });
 
   const provider = getOtpProvider();
-  await provider.send(phone, code, channel);
+  const delivered = await deliverOtp(provider, phone, code, channel, challenge.id);
+  if (!delivered) return { ok: false, code: "DELIVERY_FAILED" };
   await logSystemAudit(user.officeId, "auth.otp.sent", `otp sent to ${phone}`);
   // Dev convenience only: the console provider doesn't actually deliver
   // anywhere, so surface the code in the response instead of requiring a
