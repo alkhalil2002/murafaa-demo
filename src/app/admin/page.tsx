@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { SubscriptionStatus } from "@prisma/client";
 import { getPlatformSession, destroyPlatformSession } from "@/lib/auth/platform-session";
-import { getPlatformOverview, type OfficeRow } from "@/server/platform";
+import { getPlatformOverview, listPlans, type OfficeRow } from "@/server/platform";
+import { PlansPanel } from "@/components/admin/plans-panel";
 import { formatSar } from "@/lib/money";
 import { formatDateAr } from "@/lib/dates";
 import { t } from "@/lib/i18n";
@@ -28,7 +29,10 @@ export default async function AdminDashboardPage() {
   const session = await getPlatformSession();
   if (!session) redirect("/admin/login");
 
-  const { offices, totals } = await getPlatformOverview(session);
+  const [{ offices, totals }, plans] = await Promise.all([
+    getPlatformOverview(session),
+    listPlans(session),
+  ]);
 
   async function signOut() {
     "use server";
@@ -106,6 +110,10 @@ export default async function AdminDashboardPage() {
             ))}
           </tbody>
         </table>
+      </section>
+
+      <section style={{ marginTop: 22 }}>
+        <PlansPanel plans={plans} />
       </section>
     </div>
   );

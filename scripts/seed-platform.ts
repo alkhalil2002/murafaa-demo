@@ -18,7 +18,13 @@ const PLANS = [
   { code: "firm", nameAr: "المؤسسة", priceHalalas: riyalsToHalalas(2999), seatLimit: null, sortOrder: 3 },
 ];
 
-const ADMINS = [{ name: "مدير المنصّة", phone: "+966555000001" }];
+// The owner's real number. Upsert keys on `phone`, so changing this value
+// creates a NEW admin rather than renaming the old one — the previous
+// placeholder is deactivated explicitly below.
+const ADMINS = [{ name: "مدير المنصّة", phone: "+966590015636" }];
+
+/** Placeholder numbers from earlier seeds, retired rather than left able to sign in. */
+const RETIRED_ADMIN_PHONES = ["+966555000001"];
 
 async function main() {
   for (const p of PLANS) {
@@ -31,7 +37,13 @@ async function main() {
       create: a,
     });
   }
-  console.info(`Seeded ${PLANS.length} plans and ${ADMINS.length} platform admin(s).`);
+  const retired = await prisma.platformAdmin.updateMany({
+    where: { phone: { in: RETIRED_ADMIN_PHONES } },
+    data: { isActive: false },
+  });
+  console.info(
+    `Seeded ${PLANS.length} plans and ${ADMINS.length} platform admin(s); retired ${retired.count}.`,
+  );
 }
 
 main()

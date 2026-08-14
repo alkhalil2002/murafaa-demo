@@ -2052,3 +2052,33 @@
   color: var(--advocate);
   font-weight: 700;
 }
+
+/* ── Platform admin: plan catalogue ─────────────────────────────────────── */
+.plan-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tinybtn.danger {
+  border-color: var(--advocate);
+  color: var(--advocate);
+}
+.tinybtn.danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+.plan-retired {
+  opacity: 0.62;
+}
+.plan-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.plan-form-actions {
+  display: flex;
+  align-items: end;
+}
