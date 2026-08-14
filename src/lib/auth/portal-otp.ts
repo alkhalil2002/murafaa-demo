@@ -5,6 +5,7 @@ import { logSystemAudit } from "@/lib/audit";
 import { normalizeSaudiPhone } from "./phone";
 import { getOtpProvider, type OtpChannel } from "./otp-provider";
 import { deliverOtp } from "./otp-deliver";
+import { mayEchoCode } from "./otp-echo";
 
 /**
  * Client-portal OTP send/verify — mirrors src/lib/auth/otp.ts exactly, but
@@ -69,7 +70,7 @@ export async function sendClientOtp(rawPhone: string, channel: OtpChannel = "wha
   const delivered = await deliverOtp(provider, phone, code, channel, challenge.id);
   if (!delivered) return { ok: false, code: "DELIVERY_FAILED" };
   await logSystemAudit(client.officeId, "portal.otp.sent", `portal otp sent to ${phone}`);
-  return provider.name === "console" ? { ok: true, devCode: code } : { ok: true };
+  return mayEchoCode(provider) ? { ok: true, devCode: code } : { ok: true };
 }
 
 export async function verifyClientOtp(rawPhone: string, code: string): Promise<PortalOtpVerifyResult> {

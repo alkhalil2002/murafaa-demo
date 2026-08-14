@@ -5,6 +5,7 @@ import { logSystemAudit } from "@/lib/audit";
 import { normalizeSaudiPhone } from "./phone";
 import { getOtpProvider, type OtpChannel } from "./otp-provider";
 import { deliverOtp } from "./otp-deliver";
+import { mayEchoCode } from "./otp-echo";
 
 /**
  * Employee-portal OTP send/verify — mirrors portal-otp.ts (client portal)
@@ -69,7 +70,7 @@ export async function sendEmpPortalOtp(rawPhone: string, channel: OtpChannel = "
   const delivered = await deliverOtp(provider, phone, code, channel, challenge.id);
   if (!delivered) return { ok: false, code: "DELIVERY_FAILED" };
   await logSystemAudit(employee.officeId, "empPortal.otp.sent", `emp portal otp sent to ${phone}`);
-  return provider.name === "console" ? { ok: true, devCode: code } : { ok: true };
+  return mayEchoCode(provider) ? { ok: true, devCode: code } : { ok: true };
 }
 
 export async function verifyEmpPortalOtp(rawPhone: string, code: string): Promise<EmpPortalOtpVerifyResult> {

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { normalizeSaudiPhone } from "./phone";
 import { getOtpProvider, type OtpChannel } from "./otp-provider";
 import { deliverOtp } from "./otp-deliver";
+import { mayEchoCode } from "./otp-echo";
 
 /**
  * Platform-admin OTP. Mirrors src/lib/auth/otp.ts, resolving against
@@ -74,7 +75,7 @@ export async function sendPlatformOtp(
   const provider = getOtpProvider();
   const delivered = await deliverOtp(provider, phone, code, channel, challenge.id);
   if (!delivered) return { ok: false, code: "DELIVERY_FAILED" };
-  return provider.name === "console" ? { ok: true, devCode: code } : { ok: true };
+  return mayEchoCode(provider) ? { ok: true, devCode: code } : { ok: true };
 }
 
 export async function verifyPlatformOtp(

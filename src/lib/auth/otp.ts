@@ -5,6 +5,7 @@ import { logSystemAudit } from "@/lib/audit";
 import { normalizeSaudiPhone } from "./phone";
 import { getOtpProvider, type OtpChannel } from "./otp-provider";
 import { deliverOtp } from "./otp-deliver";
+import { mayEchoCode } from "./otp-echo";
 
 /**
  * OTP send/verify (docs/02 §8). Codes are stored HMAC-hashed (never plaintext),
@@ -90,10 +91,9 @@ export async function sendOtp(
   const delivered = await deliverOtp(provider, phone, code, channel, challenge.id);
   if (!delivered) return { ok: false, code: "DELIVERY_FAILED" };
   await logSystemAudit(user.officeId, "auth.otp.sent", `otp sent to ${phone}`);
-  // Dev convenience only: the console provider doesn't actually deliver
-  // anywhere, so surface the code in the response instead of requiring a
-  // server-log lookup. Never happens with a real provider (unifonic etc).
-  return provider.name === "console" ? { ok: true, devCode: code } : { ok: true };
+  // Local development only — see otp-echo.ts. This endpoint is unauthenticated,
+  // so echoing the code anywhere else is an authentication bypass.
+  return mayEchoCode(provider) ? { ok: true, devCode: code } : { ok: true };
 }
 
 export async function verifyOtp(

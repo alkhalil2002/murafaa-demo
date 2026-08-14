@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getOtpProvider, whatsappOtpPayload, OtpDeliveryError } from "@/lib/auth/otp-provider";
+import { mayEchoCode } from "@/lib/auth/otp-echo";
 import { normalizeSaudiPhone } from "@/lib/auth/phone";
 
 const ENDPOINT = "https://example.invalid/outbound/webhook/test";
@@ -106,5 +107,32 @@ describe("WhatsApp provider delivery", () => {
   it("refuses to construct without credentials rather than failing mid-login", () => {
     vi.stubEnv("WHATSAPP_OTP_TOKEN", "");
     expect(() => getOtpProvider()).toThrow(OtpDeliveryError);
+  });
+});
+
+describe("mayEchoCode — the OTP request endpoint is unauthenticated", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  const consoleProvider = { name: "console", send: async () => {} };
+  const whatsappProvider = { name: "whatsapp", send: async () => {} };
+
+  it("echoes the code in development, where it is a convenience", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    expect(mayEchoCode(consoleProvider)).toBe(true);
+  });
+
+  it("NEVER echoes in production, even with the console provider", () => {
+    // Observed live: an anonymous POST to /api/auth/otp answered
+    // {"sent":true,"devCode":"470453"} for a seeded account. Anyone who can
+    // guess a phone number could then complete the login.
+    vi.stubEnv("NODE_ENV", "production");
+    expect(mayEchoCode(consoleProvider)).toBe(false);
+  });
+
+  it("never echoes for a real delivery provider in any environment", () => {
+    for (const env of ["development", "test", "production"]) {
+      vi.stubEnv("NODE_ENV", env);
+      expect(mayEchoCode(whatsappProvider)).toBe(false);
+    }
   });
 });
