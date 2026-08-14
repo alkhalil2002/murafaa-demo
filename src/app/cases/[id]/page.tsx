@@ -43,6 +43,8 @@ import {
 } from "@/lib/labels";
 import { shareDocumentAction, deleteDocumentAction, clearOpeningPackageAction } from "@/app/documents/actions";
 import { uploadDocumentAction } from "@/app/documents/upload-actions";
+import { CaseDropZone } from "@/components/documents/drop-zone";
+import { UPLOAD_MIME_ALLOW, MAX_UPLOAD_BYTES } from "@/server/documents";
 import {
   addProcedureRequestAction,
   cycleProcedureRequestStatusAction,
@@ -1535,7 +1537,15 @@ export default async function CaseDetailPage({
                 <h2 style={{ marginTop: 0 }}>
                   <span className="n">{t("cases.tag.documents")}</span> {t("documents.upload")}
                 </h2>
-                <form action={uploadDocumentAction} encType="multipart/form-data">
+                {/* Drag-and-drop for the common case: several files, no
+                    metadata. The detailed form below stays for uploads that
+                    need a party or a document type set. */}
+                <CaseDropZone
+                  caseId={id}
+                  accept={[...UPLOAD_MIME_ALLOW]}
+                  maxBytes={MAX_UPLOAD_BYTES}
+                />
+                <form action={uploadDocumentAction} encType="multipart/form-data" style={{ marginTop: 14 }}>
                   <input type="hidden" name="caseId" value={id} />
                   <div className="three">
                     <div className="field">

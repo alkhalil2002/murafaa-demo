@@ -1939,3 +1939,89 @@
     order: -1;
   }
 }
+
+/* ── Drag-and-drop upload zone (src/components/documents/drop-zone.tsx) ──── */
+.dropzone {
+  border: 2px dashed var(--line);
+  border-radius: 13px;
+  background: var(--parch);
+  padding: 18px 16px;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.dropzone.over {
+  border-color: var(--bench);
+  background: #f2efe2;
+}
+.dropzone.busy {
+  opacity: 0.85;
+}
+/* Visually hidden, NOT display:none — the label targets it, and a hidden input
+   must stay focusable so the keyboard path works. */
+.dropzone-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.dropzone-label {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--bench);
+  cursor: pointer;
+  font-size: 17.5px;
+}
+.dropzone-input:focus-visible + .dropzone-label {
+  outline: 2px solid var(--bench);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.dropzone-hint {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+.dropzone-rows {
+  list-style: none;
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+  text-align: start;
+}
+.drop-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 7px 11px;
+  font-size: 15px;
+}
+.drop-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drop-state {
+  flex: 0 0 auto;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.drop-row.done .drop-state {
+  color: var(--ok);
+}
+/* Failures carry the reason as text, never colour alone. */
+.drop-row.failed {
+  border-color: var(--advocate);
+}
+.drop-row.failed .drop-state {
+  color: var(--advocate);
+  font-weight: 600;
+}

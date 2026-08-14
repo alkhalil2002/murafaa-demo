@@ -23,8 +23,13 @@ import { getTemplateByKey, templateFields } from "./templates";
  * DB row is metadata + storage key.
  */
 
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
-const UPLOAD_MIME_ALLOW = new Set([
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+/**
+ * Accepted upload types. Exported so the drag-and-drop zone can reject an
+ * obviously wrong file before spending an upload on it — the check here stays
+ * authoritative, since a browser's reported MIME type is a hint, not a fact.
+ */
+export const UPLOAD_MIME_ALLOW = new Set([
   "application/pdf",
   "image/jpeg",
   "image/png",

@@ -1501,6 +1501,15 @@ export const ar = {
   "today.since": "منذ {n} يوم",
   "today.within": "خلال {n} يوم",
 
+  // ── Drag-and-drop upload ──
+  "documents.drop.prompt": "أفلِت الملفات هنا أو اختر من جهازك",
+  "documents.drop.hint": "PDF، صور، Word، نص — بحد أقصى 25 ميجابايت للملف",
+  "documents.drop.done": "تم الرفع",
+  "documents.drop.errType": "نوع الملف غير مدعوم",
+  "documents.drop.errSize": "حجم الملف يتجاوز الحد",
+  "documents.drop.errEmpty": "الملف فارغ",
+  "documents.drop.errForbidden": "لا تملك صلاحية الرفع",
+
   // ── Renameable terminology (src/lib/i18n/glossary.ts) ──
   // Defaults for concepts an office may rename during onboarding. Only the
   // terms without an existing nav/module label live here.
