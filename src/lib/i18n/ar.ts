@@ -1500,6 +1500,48 @@ export const ar = {
   "today.empty.tasks": "لا مهام مفتوحة.",
   "today.since": "منذ {n} يوم",
   "today.within": "خلال {n} يوم",
+
+  // ── Renameable terminology (src/lib/i18n/glossary.ts) ──
+  // Defaults for concepts an office may rename during onboarding. Only the
+  // terms without an existing nav/module label live here.
+  "term.hearing.default": "الجلسات",
+  "term.invoice.default": "الفواتير",
+  "term.employee.default": "الموظفون",
+  "term.trust.default": "الأمانات",
+  "term.fee.default": "الأتعاب",
+  "term.expense.default": "المصروفات",
+
+  // ── Onboarding ──
+  "onboarding.title": "لنُجهّز مكتبك",
+  "onboarding.subtitle": "خطوات سريعة، ويمكنك تخطّي أيّها والعودة لاحقاً",
+  "onboarding.skip": "تخطّي",
+  "onboarding.back": "السابق",
+  "onboarding.next": "التالي",
+  "onboarding.finish": "ابدأ العمل",
+  "onboarding.stepOf": "الخطوة {n} من {total}",
+  "onboarding.step.identity": "هوية المكتب",
+  "onboarding.step.terms": "المُسمّيات",
+  "onboarding.step.team": "الفريق",
+  "onboarding.step.finance": "الأتعاب والضريبة",
+  "onboarding.step.done": "جاهز",
+  "onboarding.terms.title": "سَمِّ الأشياء بأسمائك",
+  "onboarding.terms.intro": "لكل مكتب مصطلحاته. غيّر ما تشاء، واترك الباقي كما هو.",
+  "onboarding.terms.reset": "إعادة الافتراضي",
+  "onboarding.terms.preview": "معاينة",
+  "onboarding.terms.hint.case": "الملف الذي يتابعه المحامي أمام الجهة القضائية",
+  "onboarding.terms.hint.client": "الجهة أو الشخص الذي يمثّله المكتب",
+  "onboarding.terms.hint.lead": "عميل محتمل لم يتعاقد بعد",
+  "onboarding.terms.hint.task": "عمل مطلوب إنجازه",
+  "onboarding.terms.hint.hearing": "موعد المرافعة أمام المحكمة",
+  "onboarding.terms.hint.document": "الملفات والمرفقات",
+  "onboarding.terms.hint.invoice": "المطالبة المالية للعميل",
+  "onboarding.terms.hint.employee": "منسوبو المكتب",
+  "onboarding.terms.hint.appointment": "اللقاءات والمواعيد",
+  "onboarding.terms.hint.deadline": "التواريخ النظامية الملزمة",
+  "onboarding.terms.hint.trust": "مبالغ العملاء المحفوظة لدى المكتب",
+  "onboarding.terms.hint.fee": "مقابل خدمات المكتب",
+  "onboarding.terms.hint.expense": "ما يصرفه المكتب على القضية",
+  "onboarding.terms.hint.report": "الإحصاءات والتقارير",
 } as const;
 
 export type MessageKey = keyof typeof ar;
