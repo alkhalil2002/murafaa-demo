@@ -843,6 +843,13 @@
     font-family: inherit;
     font-size: 18.75px;
     font-weight: 600;
+    /* The background belongs on the base class, not only on the .wa/.go
+       modifiers. With `color: #fff` and no background, a bare `.lbtn` rendered
+       white-on-transparent: present in the DOM, clickable, and completely
+       invisible. That is what hid the signup verification button and the
+       platform-admin sign-in button — the two places that happened to use the
+       base class alone. A default here means the failure cannot recur. */
+    background: var(--bench);
     color: #fff;
     cursor: pointer;
     display: flex;
