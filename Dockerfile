@@ -44,6 +44,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       # Arabic-capable font: without it every generated PDF renders Arabic as
       # empty boxes, which is silent and only shows up in the output file.
       fonts-noto-core \
+      # Drops root in the entrypoint after fixing volume ownership. `su` mangles
+      # signal forwarding and setpriv is not in this base image.
+      gosu \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
@@ -86,7 +89,13 @@ COPY --from=builder --chown=murafaa:murafaa /app/prisma ./prisma
 # app user.
 RUN mkdir -p /app/.next/cache && chown murafaa:murafaa /app/.next/cache
 
-USER murafaa
+# Deliberately NOT `USER murafaa`. A mounted volume arrives root-owned, and only
+# root can hand it to the app user — so the entrypoint does that and then execs
+# as uid 1001 via gosu. The application process is unprivileged either way; this
+# just moves the privilege drop from build time to startup, after the one
+# operation that needs root. See docker-entrypoint.sh.
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/murafaa-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/murafaa-entrypoint.sh"]
 
 EXPOSE 8080
 
