@@ -28,12 +28,11 @@ export function IdentityStep({ officeName }: { officeName: string }) {
         <label htmlFor="ob-tag">{t("onboarding.identity.tagline")}</label>
         <input id="ob-tag" name="tagline" maxLength={160} />
       </div>
-      <div className="ob-actions">
-        <StepNav back={0} />
+      <StepNav back={0} next={2}>
         <button type="submit" className="ob-btn" disabled={pending}>
           {pending ? t("common.loading") : t("onboarding.next")}
         </button>
-      </div>
+      </StepNav>
       {state.error && <div className="lerr">{t("signup.error.validation")}</div>}
     </form>
   );

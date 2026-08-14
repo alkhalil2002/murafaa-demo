@@ -51,13 +51,13 @@ export function TeamStep({ teamCount }: { teamCount: number }) {
             ))}
           </select>
         </div>
-        <button type="submit" className="ob-btn" disabled={pending}>
-          {pending ? t("common.loading") : t("onboarding.next")}
+        <button type="submit" className="ob-btn ghost" disabled={pending}>
+          {pending ? t("common.loading") : t("onboarding.team.add")}
         </button>
         {state.error && <div className="lerr">{t(ERROR_KEY[state.error] ?? "auth.error.generic")}</div>}
         {state.ok && <div className="lhint">{t("onboarding.step.team")} — {teamCount}</div>}
       </form>
-      <StepNav back={1} next={4} />
+      <StepNav back={2} next={4} />
     </>
   );
 }

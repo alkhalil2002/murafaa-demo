@@ -2025,3 +2025,22 @@
   color: var(--advocate);
   font-weight: 600;
 }
+
+/* Leaving setup is deliberately quiet and set apart from the step controls, so
+   it reads as "not now" rather than as the primary action. */
+.ob-actions-spacer {
+  flex: 1;
+}
+.ob-later {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 15.5px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.ob-later:hover {
+  color: var(--bench);
+}

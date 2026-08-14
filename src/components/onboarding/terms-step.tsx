@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { GLOSSARY, MAX_TERM_LENGTH, type TermId } from "@/lib/i18n/glossary";
 import { saveTermsAction, type StepState } from "@/app/onboarding/actions";
 import { t } from "@/lib/i18n";
+import { StepNav } from "./step-nav";
 
 /**
  * "Name things your way" — the terminology step.
@@ -68,14 +69,14 @@ export function TermsStep({
         </ul>
       </aside>
 
-      <div className="ob-actions">
+      <StepNav back={1} next={3}>
         <button type="button" className="ob-btn ghost" onClick={resetAll}>
           {t("onboarding.terms.reset")}
         </button>
         <button type="submit" className="ob-btn" disabled={pending}>
           {pending ? t("common.loading") : t("onboarding.next")}
         </button>
-      </div>
+      </StepNav>
       {state.error && <div className="lerr">{t("auth.error.generic")}</div>}
     </form>
   );
