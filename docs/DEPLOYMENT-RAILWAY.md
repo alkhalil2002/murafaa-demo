@@ -25,6 +25,29 @@ runs a container with a volume. Substitute freely; only the CLI differs.
 
 ---
 
+## 1a. What you need from Google: nothing
+
+Railway supplies both halves. Postgres is a plugin, and documents live on a
+Railway **volume** (`STORAGE_DRIVER=volume`). There is no GCP project, no
+service account, and no bucket in this path.
+
+GCS becomes worthwhile later for two reasons — in-Kingdom document residency,
+and lifting the single-replica limit that a volume imposes. Switching is a
+variable change plus a copy of the existing files:
+
+```
+STORAGE_DRIVER=gcs
+GCS_BUCKET=<dammam-bucket>
+GOOGLE_APPLICATION_CREDENTIALS=<service-account json>
+```
+
+Nothing in the application changes — storage is an adapter (`src/lib/storage`).
+
+Note what a volume does *not* solve: the **database** holds case data, client
+names, and hearing notes, and on Railway it sits outside the Kingdom too.
+Moving documents to a Dammam bucket while leaving Postgres on Railway is a
+partial measure, not compliance. See §5.
+
 ## 2. Services to create
 
 Three, in one Railway project:
@@ -68,11 +91,21 @@ startup, read the log — it names the exact variable.
 
 ---
 
+## 3a. railway.json
+
+Committed at the repo root, and it takes precedence over the dashboard:
+
+| Setting | Why |
+|---|---|
+| `builder: DOCKERFILE` | Use the repo's Dockerfile, not Nixpacks. Nixpacks would produce an image without Chromium and PDF generation would fail at runtime, not at build. |
+| `healthcheckPath: /api/health` | The probe does a real `SELECT 1`, so a deploy that cannot reach Postgres never takes traffic. |
+| `numReplicas: 1` | **Load-bearing.** A Railway volume attaches to one instance. Scaling to 2 gives each replica its own disk, so uploads land on whichever machine served the request and half of them 404 afterwards — silently, and only for some users. Raise this only after moving to `STORAGE_DRIVER=gcs`. |
+
 ## 4. Deploy
 
 ```bash
-railway login
-railway link                       # select the project
+railway login                      # opens a browser — interactive
+railway init                       # or: railway link, for an existing project
 railway up                         # builds the Dockerfile, deploys
 
 # migrations do NOT run at startup, by design — run them explicitly
