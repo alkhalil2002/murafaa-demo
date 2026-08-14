@@ -13,7 +13,9 @@ export async function createCaseAction(formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const clientId = String(formData.get("clientId") ?? "") || null;
+  // Required (docs/06 §case-client). Empty stays empty rather than becoming
+  // null, so the schema reports CLIENT_REQUIRED instead of a type mismatch.
+  const clientId = String(formData.get("clientId") ?? "").trim();
   const opposingParty = String(formData.get("opposingParty") ?? "").trim() || null;
 
   const created = await createCase(session, {

@@ -524,7 +524,6 @@ export const ar = {
   "cases.new.plaintiffHint": "أنت من رفع الدعوى — تطالب بحق وعليك إثباته.",
   "cases.new.defendantHint": "رُفعت ضدك دعوى — تردّ وتثير الدفوع.",
   "cases.new.client": "الموكّل",
-  "cases.new.clientNone": "بلا موكّل (يُحدَّد لاحقاً)",
   "cases.new.clientsUnavailable": "لا تملك صلاحية عرض قائمة العملاء — اترك الموكّل فارغاً وحدّده لاحقاً من ملف القضية.",
   "cases.new.opponent": "الخصم",
   "cases.new.opponentPlaceholder": "اسم الطرف الآخر",
@@ -1500,6 +1499,9 @@ export const ar = {
   "today.empty.tasks": "لا مهام مفتوحة.",
   "today.since": "منذ {n} يوم",
   "today.within": "خلال {n} يوم",
+
+  "cases.new.clientPick": "اختر العميل —إلزامي",
+  "cases.error.clientRequired": "لا يمكن إنشاء قضية دون ربطها بعميل",
 
   // ── Drag-and-drop upload ──
   "documents.drop.prompt": "أفلِت الملفات هنا أو اختر من جهازك",

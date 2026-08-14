@@ -2044,3 +2044,11 @@
 .ob-later:hover {
   color: var(--bench);
 }
+
+/* Required-field marker. Paired with `required` on the control and a wording
+   change on the empty option — the asterisk alone is not an accessible signal,
+   which is why it is aria-hidden and the label text carries the meaning. */
+.req {
+  color: var(--advocate);
+  font-weight: 700;
+}

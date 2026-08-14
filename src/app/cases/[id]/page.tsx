@@ -566,10 +566,21 @@ export default async function CaseDetailPage({
                   <RolePicker defaultValue={c.clientRole} />
                   <div className="two">
                     <div className="field">
-                      <label>{t("cases.new.client")}</label>
+                      <label>
+                        {t("cases.new.client")} <span className="req" aria-hidden="true">*</span>
+                      </label>
                       {clientsAvailable ? (
-                        <select name="clientId" defaultValue={c.clientId ?? ""}>
-                          <option value="">{t("cases.new.clientNone")}</option>
+                        /* Required (docs/06 §case-client). The "no client"
+                           option is offered ONLY to a case that predates the
+                           rule and still has none — otherwise it would let a
+                           linked case be unlinked, which the server refuses,
+                           so the control would appear to work and quietly do
+                           nothing. Legacy cases keep it so the form can be
+                           submitted at all until a client is chosen. */
+                        <select name="clientId" defaultValue={c.clientId ?? ""} required={c.clientId !== null}>
+                          {c.clientId === null && (
+                            <option value="">{t("cases.new.clientPick")}</option>
+                          )}
                           {clients.map((cl) => (
                             <option key={cl.id} value={cl.id}>
                               {cl.name}

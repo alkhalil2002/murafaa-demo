@@ -10,7 +10,10 @@ export async function updateCaseAction(formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session) redirect("/login");
   const caseId = String(formData.get("caseId") ?? "");
-  const clientId = String(formData.get("clientId") ?? "") || null;
+  // Omitted when blank rather than sent as null: the rule forbids UNLINKING a
+  // case, while a case that predates the rule must still be editable.
+  const clientIdRaw = String(formData.get("clientId") ?? "").trim();
+  const clientId = clientIdRaw || undefined;
   const statusRaw = String(formData.get("status") ?? "");
 
   await updateCase(session, caseId, {

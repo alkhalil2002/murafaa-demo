@@ -65,10 +65,16 @@ export default async function NewCasePage() {
 
         <div className="two">
           <div className="field">
-            <label>{t("cases.new.client")}</label>
+            <label>
+              {t("cases.new.client")} <span className="req" aria-hidden="true">*</span>
+            </label>
             {clientsAvailable ? (
-              <select name="clientId" defaultValue="">
-                <option value="">{t("cases.new.clientNone")}</option>
+              /* Required (docs/06 §case-client). `required` on a select with an
+                 empty-valued first option is what makes the browser block
+                 submission — the server enforces it regardless, this just says
+                 so before a round trip. */
+              <select name="clientId" defaultValue="" required>
+                <option value="">{t("cases.new.clientPick")}</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}

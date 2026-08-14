@@ -20,7 +20,18 @@ const createSchema = z.object({
   number: z.string().min(1),
   title: z.string().min(1),
   clientRole: z.enum(["PLAINTIFF", "DEFENDANT"]).optional(),
-  clientId: z.string().uuid().nullish(),
+  /**
+   * Required (docs/06 §case-client). A case is work done FOR someone: without
+   * the link there is nobody to bill, no conflict check to run, and no client
+   * portal entry — the case exists but half the product does not apply to it.
+   *
+   * `entity` is NOT a substitute. It is free text for the organisation on our
+   * side and carries no relation, so it cannot drive any of the above.
+   *
+   * The column itself is still nullable, because rows created before this rule
+   * exist. See the note on updateSchema.
+   */
+  clientId: z.string().uuid({ message: "CLIENT_REQUIRED" }),
   opposingParty: z.string().trim().nullish(),
   entity: z.string().trim().nullish(),
   najizMainClass: z.string().nullish(),
@@ -33,8 +44,28 @@ const createSchema = z.object({
 });
 export type CreateCaseInput = z.infer<typeof createSchema>;
 
-const updateSchema = createSchema.partial();
+/**
+ * Update allows omitting clientId (leave it as it is) but never clearing it.
+ *
+ * `.partial()` alone would make the field optional, which is right, but the
+ * type must still forbid null — otherwise a case created under the rule could
+ * be unlinked afterwards through the edit form, and the rule would hold only
+ * for the first five seconds of a case's life.
+ *
+ * Cases that predate the rule keep their null and stay editable; requiring a
+ * client on every update would make them impossible to touch at all, which
+ * punishes the user for our schema history. They are reported by
+ * `countCasesWithoutClient` so they can be fixed deliberately.
+ */
+const updateSchema = createSchema.partial().extend({
+  clientId: z.string().uuid().optional(),
+});
 export type UpdateCaseInput = z.infer<typeof updateSchema>;
+
+/** How many cases predate the client-required rule. Surfaced in settings. */
+export async function countCasesWithoutClient(officeId: string): Promise<number> {
+  return prisma.case.count({ where: { officeId, clientId: null, deletedAt: null } });
+}
 
 /** Derived effective stage: the latest HELD hearing's stage, else the baseline. */
 const STAGE_BY_INDEX: ProcStage[] = [
@@ -139,13 +170,14 @@ export async function createCase(session: AppSession, raw: CreateCaseInput) {
   const created = await prisma.$transaction(async (tx) => {
     // Tenancy: the client and every assignee MUST belong to this office. The
     // single-column FKs can't enforce it, so validate here (docs guardrail 3).
-    if (input.clientId) {
-      const owned = await tx.client.findFirst({
-        where: { id: input.clientId, officeId: session.officeId, deletedAt: null },
-        select: { id: true },
-      });
-      if (!owned) throw new PermissionError("scope");
-    }
+    // clientId is required by the schema, so this is unconditional now: the
+    // client must exist AND belong to this office. A uuid for another tenant's
+    // client is a scope violation, not a validation error.
+    const owned = await tx.client.findFirst({
+      where: { id: input.clientId, officeId: session.officeId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!owned) throw new PermissionError("scope");
     const assigneeCount = await tx.user.count({
       where: { id: { in: [...ids] }, officeId: session.officeId, deletedAt: null },
     });
@@ -158,7 +190,7 @@ export async function createCase(session: AppSession, raw: CreateCaseInput) {
         number: input.number,
         title: input.title,
         clientRole: input.clientRole ?? "PLAINTIFF",
-        clientId: input.clientId ?? null,
+        clientId: input.clientId,
         opposingParty: input.opposingParty ?? null,
         najizMainClass: input.najizMainClass ?? null,
         najizSubClass: input.najizSubClass ?? null,
