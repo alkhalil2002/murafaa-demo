@@ -31,8 +31,17 @@ export function parseProcedureRequestRows(formData: FormData) {
   const parties = formData.getAll("procedureRequests[].party").map(String);
   const types = formData.getAll("procedureRequests[].type").map(String);
   const texts = formData.getAll("procedureRequests[].text").map(String);
+  // getAll also returns a row's file entry even when nothing was chosen (an
+  // empty File with size 0) — keep the raw entries so the caller can zip by
+  // the same index, but only treat a non-empty File as "attached".
+  const files = formData.getAll("procedureRequests[].file");
   return texts
-    .map((text, i) => ({ text: text.trim(), party: parties[i] || "", type: types[i] || "" }))
+    .map((text, i) => ({
+      text: text.trim(),
+      party: parties[i] || "",
+      type: types[i] || "",
+      file: files[i] instanceof File && (files[i] as File).size > 0 ? (files[i] as File) : null,
+    }))
     .filter((r) => r.text)
     .map((r) => ({
       text: r.text,
@@ -40,5 +49,6 @@ export function parseProcedureRequestRows(formData: FormData) {
       type: (PROC_REQUEST_TYPES as readonly string[]).includes(r.type)
         ? (r.type as (typeof PROC_REQUEST_TYPES)[number])
         : null,
+      file: r.file,
     }));
 }

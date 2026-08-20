@@ -1,10 +1,12 @@
 import {
   CaseEventType,
   DocParty,
+  DocSource,
   HearingKind,
   HearingStatus,
   PermModule,
   Prisma,
+  ProcedureRequestDocRole,
   TaskCategory,
   TaskColumn,
   TaskPriority,
@@ -21,7 +23,7 @@ import type { AppSession } from "@/lib/auth/types";
 import { PermissionError, canAction, requireModule } from "@/lib/permissions/guard";
 import { isCaseVisible, caseScopeWhere } from "@/lib/permissions/scope";
 import { createAutoTask } from "./tasks";
-import { generateHearingReportPdf } from "./documents";
+import { generateHearingReportPdf, kindForMime } from "./documents";
 import { PROC_REQUEST_TYPES } from "./procedure-requests";
 import { sendCaseMessage } from "./messages";
 
@@ -37,6 +39,25 @@ type Db = Prisma.TransactionClient | typeof prisma;
 /** The two pending-item kinds from the prototype's wizard step 4 (docs BR-CASE-11). */
 export const HEARING_PENDING_ITEMS = ["minutes", "nextHearing"] as const;
 export type HearingPendingItem = (typeof HEARING_PENDING_ITEMS)[number];
+
+/** A file already written to storage by the action layer (hearing-actions.ts)
+ * before the wizard's $transaction opens — storage I/O must not run inside
+ * the transaction, so by the time it reaches this schema the bytes are
+ * already safely stored and this is just the primitive record to link. */
+const stagedDocumentSchema = z.object({
+  id: z.string().uuid(),
+  storageKey: z.string().min(1),
+  fileName: z.string().min(1),
+  mimeType: z.string().min(1),
+  sizeBytes: z.number().int().positive(),
+});
+
+const procedureRequestRowSchema = z.object({
+  party: z.nativeEnum(DocParty).nullish(),
+  type: z.enum(PROC_REQUEST_TYPES).nullish(),
+  text: z.string().trim().min(1),
+  document: stagedDocumentSchema.nullish(),
+});
 
 const recordSchema = z.object({
   hearingDate: z.coerce.date(),
@@ -76,15 +97,7 @@ const recordSchema = z.object({
       }),
     )
     .optional(),
-  procedureRequests: z
-    .array(
-      z.object({
-        party: z.nativeEnum(DocParty).nullish(),
-        type: z.enum(PROC_REQUEST_TYPES).nullish(),
-        text: z.string().trim().min(1),
-      }),
-    )
-    .optional(),
+  procedureRequests: z.array(procedureRequestRowSchema).optional(),
   /** Wizard step 4 "اطلب اعتماد التقرير فور الحفظ" — skips the extra trip back
    * to the saved hearing's card to click "طلب اعتماد" separately. No-op when
    * clientReport is empty (nothing to approve). */
@@ -117,7 +130,12 @@ async function createHearingFollowUps(
     fallbackDueOn: Date;
     reminders: { text: string; dueOn?: Date | null }[];
     tasks: { title: string; assigneeId?: string | null; dueAt?: Date | null }[];
-    procedureRequests: { party?: DocParty | null; type?: (typeof PROC_REQUEST_TYPES)[number] | null; text: string }[];
+    procedureRequests: {
+      party?: DocParty | null;
+      type?: (typeof PROC_REQUEST_TYPES)[number] | null;
+      text: string;
+      document?: { id: string; storageKey: string; fileName: string; mimeType: string; sizeBytes: number } | null;
+    }[];
   },
 ) {
   const { caseId, hearingId, stageIndex, fallbackDueOn, reminders, tasks, procedureRequests } = params;
@@ -172,6 +190,36 @@ async function createHearingFollowUps(
       actorUserId: session.userId,
       procedureRequestId: created.id,
     });
+
+    if (row.document) {
+      // Bytes are already in storage (staged by the action layer before this
+      // transaction opened) — this is just the fast DB link, safe to run here.
+      await tx.document.create({
+        data: {
+          id: row.document.id,
+          officeId: session.officeId,
+          caseId,
+          createdById: session.userId,
+          fileName: row.document.fileName,
+          kind: kindForMime(row.document.mimeType),
+          source: DocSource.PROCEDURAL_REQUEST,
+          procedureRequestId: created.id,
+          procedureDocRole: ProcedureRequestDocRole.REQUEST,
+          storageKey: row.document.storageKey,
+          mimeType: row.document.mimeType,
+          sizeBytes: row.document.sizeBytes,
+          needsOcr: row.document.mimeType.startsWith("image/"),
+        },
+      });
+      await logCaseEvent(tx, {
+        officeId: session.officeId,
+        caseId,
+        type: CaseEventType.DOC,
+        description: t("event.docUploaded", { name: row.document.fileName }),
+        actorUserId: session.userId,
+        procedureRequestId: created.id,
+      });
+    }
   }
 }
 
@@ -445,15 +493,7 @@ const updateSchema = z.object({
       }),
     )
     .optional(),
-  procedureRequests: z
-    .array(
-      z.object({
-        party: z.nativeEnum(DocParty).nullish(),
-        type: z.enum(PROC_REQUEST_TYPES).nullish(),
-        text: z.string().trim().min(1),
-      }),
-    )
-    .optional(),
+  procedureRequests: z.array(procedureRequestRowSchema).optional(),
   /** Same "اطلب اعتماد التقرير فور الحفظ" convenience as recordSchema — a
    * no-op if there's no report text, or one is already requested/sent, so
    * re-saving the resume wizard can never accidentally re-trigger it. */

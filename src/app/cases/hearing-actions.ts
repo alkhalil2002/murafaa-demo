@@ -22,8 +22,28 @@ import {
   decideReportApproval,
   remindClientAboutUpcomingHearing,
 } from "@/server/hearings";
-import { generateHearingReportPdf } from "@/server/documents";
+import { generateHearingReportPdf, stageDocumentUpload } from "@/server/documents";
+import type { AppSession } from "@/lib/auth/types";
 import { parseReminderRows, parseTaskRows, parseProcedureRequestRows } from "@/lib/forms/repeatable-rows";
+
+/**
+ * Uploads each row's attached file to storage ahead of the hearing wizard's
+ * own $transaction (which must not do slow storage I/O — see
+ * stageDocumentUpload's doc comment), returning rows ready to hand straight
+ * to recordHearing/updateHearing's procedureRequests input.
+ */
+async function stageProcedureRequestFiles(
+  session: AppSession,
+  caseId: string,
+  rows: ReturnType<typeof parseProcedureRequestRows>,
+) {
+  return Promise.all(
+    rows.map(async ({ file, ...row }) => ({
+      ...row,
+      document: file ? await stageDocumentUpload(session, caseId, { fileName: file.name, mimeType: file.type || "application/octet-stream", bytes: Buffer.from(await file.arrayBuffer()) }) : null,
+    })),
+  );
+}
 
 export async function recordHearingAction(formData: FormData): Promise<void> {
   const session = await getSession();
@@ -55,7 +75,7 @@ export async function recordHearingAction(formData: FormData): Promise<void> {
   // into positional rows (src/lib/forms/repeatable-rows.ts).
   const reminders = parseReminderRows(formData);
   const tasks = parseTaskRows(formData);
-  const procedureRequests = parseProcedureRequestRows(formData);
+  const procedureRequests = await stageProcedureRequestFiles(session, caseId, parseProcedureRequestRows(formData));
 
   await recordHearing(session, caseId, {
     hearingDate: new Date(String(formData.get("hearingDate") ?? "")),
@@ -119,7 +139,7 @@ export async function updateHearingAction(formData: FormData): Promise<void> {
     reminderRecurDays: recurDaysRaw ? Number(recurDaysRaw) : null,
     reminders: parseReminderRows(formData),
     tasks: parseTaskRows(formData),
-    procedureRequests: parseProcedureRequestRows(formData),
+    procedureRequests: await stageProcedureRequestFiles(session, caseId, parseProcedureRequestRows(formData)),
     requestApprovalNow: formData.get("requestApprovalNow") === "on",
   });
 

@@ -791,7 +791,7 @@ export default async function CaseDetailPage({
                   <summary style={{ cursor: "pointer", fontFamily: "var(--font-amiri), serif", fontSize: 26.25, fontWeight: 700 }}>
                     <span className="n">{t("cases.tag.dates")}</span> {t("cases.hearings.record")}
                   </summary>
-                <form action={recordHearingAction} style={{ marginTop: 12 }}>
+                <form action={recordHearingAction} encType="multipart/form-data" style={{ marginTop: 12 }}>
                   <input type="hidden" name="caseId" value={id} />
                   <HearingWizard
                     submitLabel={t("cases.hearings.save")}
@@ -1245,7 +1245,7 @@ export default async function CaseDetailPage({
                         <div className="sub" style={{ marginTop: 8 }}>
                           {t("cases.hearings.resumeHint")}
                         </div>
-                        <form action={updateHearingAction} style={{ marginTop: 10 }}>
+                        <form action={updateHearingAction} encType="multipart/form-data" style={{ marginTop: 10 }}>
                           <input type="hidden" name="caseId" value={id} />
                           <input type="hidden" name="hearingId" value={h.id} />
                           <HearingWizard
@@ -1396,7 +1396,7 @@ export default async function CaseDetailPage({
                         <div className="sub" style={{ marginTop: 6 }}>
                           {t("cases.hearings.editHint")}
                         </div>
-                        <form action={updateHearingAction} style={{ marginTop: 10 }}>
+                        <form action={updateHearingAction} encType="multipart/form-data" style={{ marginTop: 10 }}>
                           <input type="hidden" name="caseId" value={id} />
                           <input type="hidden" name="hearingId" value={h.id} />
                           <div className="two">

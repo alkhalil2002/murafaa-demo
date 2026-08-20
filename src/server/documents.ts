@@ -39,7 +39,7 @@ export const UPLOAD_MIME_ALLOW = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 
-function kindForMime(mime: string): DocKind {
+export function kindForMime(mime: string): DocKind {
   if (mime.startsWith("image/")) return DocKind.IMAGE;
   if (mime === "text/plain") return DocKind.TEXT;
   if (mime === "application/pdf") return DocKind.DOCUMENT;
@@ -301,6 +301,32 @@ export async function uploadDocument(session: AppSession, raw: UploadInput, byte
   });
   await logAudit({ session, action: "document.upload", resource: "documents", targetId: doc.id });
   return doc;
+}
+
+export type StagedDocument = { id: string; storageKey: string; fileName: string; mimeType: string; sizeBytes: number };
+
+/**
+ * Writes file bytes to storage ahead of a DB row that will reference them
+ * once it exists — e.g. a procedure request created in the same wizard
+ * submit that first uploaded the file. Storage I/O must not run inside the
+ * Prisma $transaction that creates the referencing row (this codebase's
+ * established convention — see sendApprovalToClient), so callers do this
+ * staging step first and pass the returned primitive record into the
+ * transaction to link.
+ */
+export async function stageDocumentUpload(
+  session: AppSession,
+  caseId: string,
+  file: { fileName: string; mimeType: string; bytes: Buffer },
+): Promise<StagedDocument> {
+  await requireModule(session, PermModule.DOCUMENTS, "edit");
+  if (!UPLOAD_MIME_ALLOW.has(file.mimeType)) throw new Error("UPLOAD_MIME_REJECTED");
+  if (file.bytes.length === 0 || file.bytes.length > MAX_UPLOAD_BYTES) throw new Error("UPLOAD_SIZE_REJECTED");
+  await loadCaseForDocs(session, caseId);
+  const id = randomUUID();
+  const storageKey = documentKey({ officeId: session.officeId, caseId, documentId: id, filename: file.fileName });
+  await getStorage().put(storageKey, file.bytes, file.mimeType);
+  return { id, storageKey, fileName: file.fileName, mimeType: file.mimeType, sizeBytes: file.bytes.length };
 }
 
 export async function listDocuments(session: AppSession, caseId: string) {

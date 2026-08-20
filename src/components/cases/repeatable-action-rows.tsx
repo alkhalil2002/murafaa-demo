@@ -132,6 +132,10 @@ export function ProcedureRequestRows({
             placeholder={t("cases.procRequests.typeLabel")}
             style={{ gridColumn: "span 2" }}
           />
+          <div className="field" style={{ gridColumn: "span 2" }}>
+            <label>{t("cases.procRequests.attachRequest")}</label>
+            <input type="file" name="procedureRequests[].file" />
+          </div>
           {ids.length > 1 && (
             <button type="button" className="tinybtn del" onClick={() => remove(id)} style={{ gridColumn: "span 2" }}>
               {t("cases.hearings.actionDelete")}

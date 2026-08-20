@@ -60,6 +60,22 @@ describe("parseProcedureRequestRows", () => {
       ["procedureRequests[].text", "طلب ندب خبير"],
     ]);
     const rows = parseProcedureRequestRows(f);
-    expect(rows).toEqual([{ text: "طلب ندب خبير", party: null, type: null }]);
+    expect(rows).toEqual([{ text: "طلب ندب خبير", party: null, type: null, file: null }]);
+  });
+
+  it("keeps a non-empty attached file and drops an empty one", () => {
+    const f = new FormData();
+    f.append("procedureRequests[].party", "OURS");
+    f.append("procedureRequests[].type", "");
+    f.append("procedureRequests[].text", "طلب أول");
+    f.append("procedureRequests[].file", new File(["content"], "a.pdf", { type: "application/pdf" }));
+    f.append("procedureRequests[].party", "OURS");
+    f.append("procedureRequests[].type", "");
+    f.append("procedureRequests[].text", "طلب ثانٍ");
+    f.append("procedureRequests[].file", new File([], "", { type: "application/octet-stream" }));
+    const rows = parseProcedureRequestRows(f);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.file?.name).toBe("a.pdf");
+    expect(rows[1]?.file).toBeNull();
   });
 });
