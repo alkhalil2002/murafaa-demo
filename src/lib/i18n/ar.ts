@@ -270,6 +270,10 @@ export const ar = {
   "settings.office.logoHint": "يظهر أعلى يمين ديباجة كل مستند مُولَّد (تقارير الجلسات، المذكرات المرسلة للعميل، وغيرها). PNG أو JPEG أو WEBP، حتى 2 ميجابايت.",
   "settings.office.logoUpload": "رفع الشعار",
   "settings.office.logoRemove": "إزالة الشعار",
+  "settings.office.footerImage": "صورة تذييل المستند",
+  "settings.office.footerImageHint": "شريط كامل العرض يظهر أسفل كل صفحة (بيانات التواصل، إلخ) — يستبدل سطر التواصل النصي أعلى الديباجة تفادياً للتكرار. PNG أو JPEG أو WEBP، حتى 2 ميجابايت.",
+  "settings.office.footerImageUpload": "رفع صورة التذييل",
+  "settings.office.footerImageRemove": "إزالة صورة التذييل",
 
   // ── WhatsApp (واتساب) ──
   "whatsapp.title": "واتساب",

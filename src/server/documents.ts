@@ -14,7 +14,7 @@ import { renderPdf } from "@/lib/pdf/render";
 import { escapeHtml, letterheadHtml, resolveBranding } from "@/lib/pdf/letterhead";
 import { formatHijri, prepareFields, renderBody, type CaseAutofill } from "@/lib/documents/render";
 import { getTemplateByKey, templateFields } from "./templates";
-import { resolveLogoDataUri } from "./office-settings";
+import { resolveLogoDataUri, resolveFooterImageDataUri } from "./office-settings";
 
 /**
  * Documents service (docs/03, docs/05, docs/06 §doc rules). Generates letterhead
@@ -136,7 +136,10 @@ export async function generateFromTemplate(session: AppSession, raw: GenerateInp
     select: { name: true, branding: true },
   });
   const branding = resolveBranding(office.branding ?? { name: office.name });
-  const logoDataUri = await resolveLogoDataUri(branding);
+  const [logoDataUri, footerImageDataUri] = await Promise.all([
+    resolveLogoDataUri(branding),
+    resolveFooterImageDataUri(branding),
+  ]);
 
   const generatedDate = new Date();
   const bodyHtml = renderBody(template.bodyTemplate, finalValues, branding.name);
@@ -146,6 +149,7 @@ export async function generateFromTemplate(session: AppSession, raw: GenerateInp
     bodyHtml,
     hijriDate: formatHijri(generatedDate),
     logoDataUri,
+    footerImageDataUri,
   });
   const pdf = await renderPdf(html);
 
@@ -439,7 +443,10 @@ export async function renderLetterheadPdfFromBody(
     select: { name: true, branding: true },
   });
   const branding = resolveBranding(office.branding ?? { name: office.name });
-  const logoDataUri = await resolveLogoDataUri(branding);
+  const [logoDataUri, footerImageDataUri] = await Promise.all([
+    resolveLogoDataUri(branding),
+    resolveFooterImageDataUri(branding),
+  ]);
   const bodyHtml = `<p>${escapeHtml(body).replace(/\n/g, "<br/>")}</p>`;
   const html = letterheadHtml({
     branding,
@@ -447,6 +454,7 @@ export async function renderLetterheadPdfFromBody(
     bodyHtml,
     hijriDate: formatHijri(generatedAt),
     logoDataUri,
+    footerImageDataUri,
   });
   return renderPdf(html);
 }

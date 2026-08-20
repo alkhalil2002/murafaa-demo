@@ -50,31 +50,53 @@ export async function updateOfficeBranding(session: AppSession, raw: UpdateOffic
   await logAudit({ session, action: "office.branding.update", resource: "offices", targetId: session.officeId });
 }
 
-const LOGO_MIME_ALLOW = new Set(["image/png", "image/jpeg", "image/webp"]);
-const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const IMAGE_MIME_ALLOW = new Set(["image/png", "image/jpeg", "image/webp"]);
+const MAX_BRANDING_IMAGE_BYTES = 2 * 1024 * 1024;
+
+/** The two letterhead image slots — a small logo mark (top of the header)
+ * and a full-width decorative footer band. Same storage/validation rules,
+ * different branding fields, so upload/remove/resolve are shared here
+ * rather than duplicated per slot. */
+const BRANDING_IMAGE_SLOTS = {
+  logo: { keyField: "logoStorageKey", mimeField: "logoMimeType", auditAction: "office.branding.logo" },
+  footer: { keyField: "footerImageStorageKey", mimeField: "footerImageMimeType", auditAction: "office.branding.footerImage" },
+} as const;
+type BrandingImageSlot = keyof typeof BRANDING_IMAGE_SLOTS;
+
+async function resolveBrandingImageDataUri(
+  storageKey: string | null | undefined,
+  mimeType: string | null | undefined,
+): Promise<string | null> {
+  if (!storageKey) return null;
+  try {
+    const bytes = await getStorage().get(storageKey);
+    return `data:${mimeType || "image/png"};base64,${bytes.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
 
 /** Reads the stored logo bytes back as a `data:` URI for embedding — in the
  * PDF letterhead (no network access there) and as an on-screen preview in
  * Settings. Never throws: a missing/corrupted object degrades to no logo
  * rather than breaking the page or a generated document. */
 export async function resolveLogoDataUri(branding: OfficeBranding): Promise<string | null> {
-  if (!branding.logoStorageKey) return null;
-  try {
-    const bytes = await getStorage().get(branding.logoStorageKey);
-    const mime = branding.logoMimeType || "image/png";
-    return `data:${mime};base64,${bytes.toString("base64")}`;
-  } catch {
-    return null;
-  }
+  return resolveBrandingImageDataUri(branding.logoStorageKey, branding.logoMimeType);
 }
 
-export async function uploadOfficeLogo(
+export async function resolveFooterImageDataUri(branding: OfficeBranding): Promise<string | null> {
+  return resolveBrandingImageDataUri(branding.footerImageStorageKey, branding.footerImageMimeType);
+}
+
+async function uploadBrandingImage(
   session: AppSession,
+  slot: BrandingImageSlot,
   file: { fileName: string; mimeType: string; bytes: Buffer },
 ): Promise<void> {
   if (effectiveRole(session) !== Role.PARTNER) throw new Error("PARTNER_ONLY");
-  if (!LOGO_MIME_ALLOW.has(file.mimeType)) throw new Error("LOGO_MIME_REJECTED");
-  if (file.bytes.length === 0 || file.bytes.length > MAX_LOGO_BYTES) throw new Error("LOGO_SIZE_REJECTED");
+  if (!IMAGE_MIME_ALLOW.has(file.mimeType)) throw new Error("LOGO_MIME_REJECTED");
+  if (file.bytes.length === 0 || file.bytes.length > MAX_BRANDING_IMAGE_BYTES) throw new Error("LOGO_SIZE_REJECTED");
+  const { keyField, mimeField, auditAction } = BRANDING_IMAGE_SLOTS[slot];
   const office = await prisma.office.findUniqueOrThrow({ where: { id: session.officeId }, select: { branding: true } });
   const current = resolveBranding(office.branding);
   const storageKey = documentKey({
@@ -84,21 +106,35 @@ export async function uploadOfficeLogo(
     filename: file.fileName,
   });
   await getStorage().put(storageKey, file.bytes, file.mimeType);
-  const oldKey = current.logoStorageKey;
-  const merged = { ...current, logoStorageKey: storageKey, logoMimeType: file.mimeType };
+  const oldKey = current[keyField];
+  const merged = { ...current, [keyField]: storageKey, [mimeField]: file.mimeType };
   await prisma.office.update({ where: { id: session.officeId }, data: { branding: merged } });
   if (oldKey) await getStorage().delete(oldKey).catch(() => {});
-  await logAudit({ session, action: "office.branding.logoUpload", resource: "offices", targetId: session.officeId });
+  await logAudit({ session, action: `${auditAction}.upload`, resource: "offices", targetId: session.officeId });
 }
 
-export async function removeOfficeLogo(session: AppSession): Promise<void> {
+async function removeBrandingImage(session: AppSession, slot: BrandingImageSlot): Promise<void> {
   if (effectiveRole(session) !== Role.PARTNER) throw new Error("PARTNER_ONLY");
+  const { keyField, mimeField, auditAction } = BRANDING_IMAGE_SLOTS[slot];
   const office = await prisma.office.findUniqueOrThrow({ where: { id: session.officeId }, select: { branding: true } });
   const current = resolveBranding(office.branding);
-  if (!current.logoStorageKey) return;
-  const oldKey = current.logoStorageKey;
-  const merged = { ...current, logoStorageKey: null, logoMimeType: null };
+  const oldKey = current[keyField];
+  if (!oldKey) return;
+  const merged = { ...current, [keyField]: null, [mimeField]: null };
   await prisma.office.update({ where: { id: session.officeId }, data: { branding: merged } });
   await getStorage().delete(oldKey).catch(() => {});
-  await logAudit({ session, action: "office.branding.logoRemove", resource: "offices", targetId: session.officeId });
+  await logAudit({ session, action: `${auditAction}.remove`, resource: "offices", targetId: session.officeId });
+}
+
+export async function uploadOfficeLogo(session: AppSession, file: { fileName: string; mimeType: string; bytes: Buffer }) {
+  return uploadBrandingImage(session, "logo", file);
+}
+export async function removeOfficeLogo(session: AppSession) {
+  return removeBrandingImage(session, "logo");
+}
+export async function uploadOfficeFooterImage(session: AppSession, file: { fileName: string; mimeType: string; bytes: Buffer }) {
+  return uploadBrandingImage(session, "footer", file);
+}
+export async function removeOfficeFooterImage(session: AppSession) {
+  return removeBrandingImage(session, "footer");
 }

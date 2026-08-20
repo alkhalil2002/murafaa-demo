@@ -4,7 +4,13 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/session";
 import { restoreRecycleItem, purgeRecycleBin, type RecycleKind } from "@/server/settings";
-import { updateOfficeBranding, uploadOfficeLogo, removeOfficeLogo } from "@/server/office-settings";
+import {
+  updateOfficeBranding,
+  uploadOfficeLogo,
+  removeOfficeLogo,
+  uploadOfficeFooterImage,
+  removeOfficeFooterImage,
+} from "@/server/office-settings";
 
 export async function restoreRecycleItemAction(formData: FormData): Promise<void> {
   const session = await getSession();
@@ -52,5 +58,22 @@ export async function removeOfficeLogoAction(): Promise<void> {
   const session = await getSession();
   if (!session) redirect("/login");
   await removeOfficeLogo(session);
+  revalidatePath("/settings");
+}
+
+export async function uploadOfficeFooterImageAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) throw new Error("LOGO_NO_FILE");
+  const bytes = Buffer.from(await file.arrayBuffer());
+  await uploadOfficeFooterImage(session, { fileName: file.name, mimeType: file.type || "application/octet-stream", bytes });
+  revalidatePath("/settings");
+}
+
+export async function removeOfficeFooterImageAction(): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  await removeOfficeFooterImage(session);
   revalidatePath("/settings");
 }

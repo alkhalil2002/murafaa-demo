@@ -22,6 +22,11 @@ export type OfficeBranding = {
   confidentialityNotice: string;
   logoStorageKey?: string | null;
   logoMimeType?: string | null;
+  /** Full-width decorative footer band (contact icons, watermark, etc.) —
+   * distinct from the logo: this replaces the whole footer visually rather
+   * than sitting inline next to text. */
+  footerImageStorageKey?: string | null;
+  footerImageMimeType?: string | null;
 };
 
 /** Defaults mirror the prototype OFFICE object (safe placeholders). */
@@ -86,6 +91,11 @@ export function letterheadHtml(opts: {
    * bytes and base64-encodes them; this stays pure/sync like the rest of
    * this file. */
   logoDataUri?: string | null;
+  /** Full-width footer band, same `data:` URI rule as logoDataUri. When set,
+   * it replaces the plain-text foot's visual weight (it already carries
+   * contact details/branding) — the dynamic date/confidentiality/signature
+   * lines still render, positioned just above the image instead of on it. */
+  footerImageDataUri?: string | null;
 }): string {
   const b = opts.branding;
   const title = escapeHtml(opts.title);
@@ -94,6 +104,8 @@ export function letterheadHtml(opts: {
   // interpolate a caller-controlled string here (same CSS-injection concern
   // as safeColor above, this one via a broken-out `src` attribute).
   const logo = opts.logoDataUri && opts.logoDataUri.startsWith("data:image/") ? opts.logoDataUri : null;
+  const footerImage =
+    opts.footerImageDataUri && opts.footerImageDataUri.startsWith("data:image/") ? opts.footerImageDataUri : null;
   return `<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -111,7 +123,7 @@ export function letterheadHtml(opts: {
   .head { display: flex; justify-content: space-between; align-items: flex-start;
     border-bottom: 3px solid ${b.primaryColor}; padding-bottom: 10px; }
   .office { max-width: 60%; display: flex; align-items: center; gap: 12px; }
-  .office .logo { max-height: 52px; max-width: 140px; object-fit: contain; }
+  .office .logo { max-height: 68px; max-width: 220px; object-fit: contain; }
   .office .name { font-family: "Amiri", "Noto Naskh Arabic", serif; font-size: 22px; font-weight: 700; color: ${b.primaryColor}; }
   .office .tag { font-size: 12px; color: #5A5446; margin-top: 3px; }
   .contact { text-align: left; font-size: 11.5px; color: #5A5446; line-height: 1.9; }
@@ -119,29 +131,37 @@ export function letterheadHtml(opts: {
   .title { text-align: center; font-family: "Amiri", "Noto Naskh Arabic", serif; font-size: 20px; color: ${b.primaryColor}; margin: 26px 0 18px; }
   .body { font-size: 13.5px; line-height: 2.05; white-space: normal; }
   .body p { margin: 0 0 10px; }
-  .foot { position: absolute; bottom: 14mm; left: 16mm; right: 16mm;
+  .foot { position: absolute; bottom: ${footerImage ? "26mm" : "14mm"}; left: 16mm; right: 16mm;
     border-top: 1px solid ${b.accentColor}; padding-top: 8px;
     display: flex; justify-content: space-between; align-items: flex-end; font-size: 11.5px; color: #5A5446; }
   .foot .sign { text-align: center; }
   .foot .sign .line { margin-top: 22px; border-top: 1px solid #5A5446; width: 160px; }
   .confid { margin-top: 6px; font-size: 10px; color: #8a8372; }
+  .foot-band { position: absolute; bottom: 0; left: 0; width: 210mm; display: block; }
 </style>
 </head>
 <body>
   <div class="page">
     <div class="head">
       <div class="office">
-        ${logo ? `<img class="logo" src="${logo}" alt="" />` : ""}
-        <div>
+        ${
+          logo
+            ? `<img class="logo" src="${logo}" alt="" />`
+            : `<div>
           <div class="name">${escapeHtml(b.name)}</div>
           <div class="tag">${escapeHtml(b.tagline)}</div>
-        </div>
+        </div>`
+        }
       </div>
-      <div class="contact">
+      ${
+        footerImage
+          ? ""
+          : `<div class="contact">
         <div class="num">${escapeHtml(b.phone)}</div>
         <div>${escapeHtml(b.email)}</div>
         <div>${escapeHtml(b.address)}</div>
-      </div>
+      </div>`
+      }
     </div>
     <div class="title">${title}</div>
     <div class="body">${opts.bodyHtml}</div>
@@ -157,6 +177,7 @@ export function letterheadHtml(opts: {
         <div>التوقيع</div>
       </div>
     </div>
+    ${footerImage ? `<img class="foot-band" src="${footerImage}" alt="" />` : ""}
   </div>
 </body>
 </html>`;
