@@ -3,9 +3,15 @@ import { AppShell } from "@/components/app-shell";
 import { getSession } from "@/lib/auth/session";
 import { signOut } from "@/lib/auth";
 import { listRecycleBin } from "@/server/settings";
-import { getOfficeBranding } from "@/server/office-settings";
+import { getOfficeBranding, resolveLogoDataUri } from "@/server/office-settings";
 import { effectiveRole } from "@/lib/permissions/engine";
-import { restoreRecycleItemAction, purgeRecycleBinAction, updateOfficeBrandingAction } from "./actions";
+import {
+  restoreRecycleItemAction,
+  purgeRecycleBinAction,
+  updateOfficeBrandingAction,
+  uploadOfficeLogoAction,
+  removeOfficeLogoAction,
+} from "./actions";
 import { RIYADH_TZ } from "@/lib/dates";
 import { t, type MessageKey } from "@/lib/i18n";
 
@@ -19,6 +25,7 @@ export default async function SettingsPage() {
 
   const [items, branding] = await Promise.all([listRecycleBin(session), getOfficeBranding(session)]);
   const isPartner = effectiveRole(session) === "PARTNER";
+  const logoDataUri = await resolveLogoDataUri(branding);
 
   return (
     <AppShell>
@@ -77,6 +84,31 @@ export default async function SettingsPage() {
               <button type="submit" className="act b-add">{t("settings.office.save")}</button>
             </div>
           </form>
+        )}
+        {isPartner && (
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
+            <div className="sub" style={{ fontWeight: 600, marginBottom: 8 }}>{t("settings.office.logo")}</div>
+            <div className="sub" style={{ marginBottom: 10 }}>{t("settings.office.logoHint")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              {logoDataUri && (
+                // eslint-disable-next-line @next/next/no-img-element -- data: URI preview, next/image can't optimize it anyway
+                <img
+                  src={logoDataUri}
+                  alt=""
+                  style={{ maxHeight: 60, maxWidth: 160, objectFit: "contain", border: "1px solid var(--line)", borderRadius: 8, padding: 6, background: "#fff" }}
+                />
+              )}
+              <form action={uploadOfficeLogoAction} encType="multipart/form-data" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input type="file" name="file" accept="image/png,image/jpeg,image/webp" required />
+                <button type="submit" className="act b-add">{t("settings.office.logoUpload")}</button>
+              </form>
+              {logoDataUri && (
+                <form action={removeOfficeLogoAction}>
+                  <button type="submit" className="tinybtn del">{t("settings.office.logoRemove")}</button>
+                </form>
+              )}
+            </div>
+          </div>
         )}
       </div>
 

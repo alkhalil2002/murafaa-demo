@@ -266,6 +266,10 @@ export const ar = {
   "settings.office.confidentialityNotice": "إشعار السرّية",
   "settings.office.save": "حفظ",
   "settings.office.deniedNote": "متاح للشريك فقط.",
+  "settings.office.logo": "شعار المكتب",
+  "settings.office.logoHint": "يظهر أعلى يمين ديباجة كل مستند مُولَّد (تقارير الجلسات، المذكرات المرسلة للعميل، وغيرها). PNG أو JPEG أو WEBP، حتى 2 ميجابايت.",
+  "settings.office.logoUpload": "رفع الشعار",
+  "settings.office.logoRemove": "إزالة الشعار",
 
   // ── WhatsApp (واتساب) ──
   "whatsapp.title": "واتساب",

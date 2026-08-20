@@ -21,6 +21,7 @@ export type OfficeBranding = {
   accentColor: string;
   confidentialityNotice: string;
   logoStorageKey?: string | null;
+  logoMimeType?: string | null;
 };
 
 /** Defaults mirror the prototype OFFICE object (safe placeholders). */
@@ -80,10 +81,19 @@ export function letterheadHtml(opts: {
   title: string;
   bodyHtml: string;
   hijriDate: string;
+  /** Pre-resolved `data:` URI (never a network/storage URL — the PDF render
+   * has no network access, see the CSP below). Caller reads the stored logo
+   * bytes and base64-encodes them; this stays pure/sync like the rest of
+   * this file. */
+  logoDataUri?: string | null;
 }): string {
   const b = opts.branding;
   const title = escapeHtml(opts.title);
   const hijri = escapeHtml(opts.hijriDate);
+  // Only ever a data: URI we built ourselves from stored bytes — never
+  // interpolate a caller-controlled string here (same CSS-injection concern
+  // as safeColor above, this one via a broken-out `src` attribute).
+  const logo = opts.logoDataUri && opts.logoDataUri.startsWith("data:image/") ? opts.logoDataUri : null;
   return `<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -100,7 +110,8 @@ export function letterheadHtml(opts: {
   .page { width: 210mm; min-height: 297mm; padding: 18mm 16mm; position: relative; }
   .head { display: flex; justify-content: space-between; align-items: flex-start;
     border-bottom: 3px solid ${b.primaryColor}; padding-bottom: 10px; }
-  .office { max-width: 60%; }
+  .office { max-width: 60%; display: flex; align-items: center; gap: 12px; }
+  .office .logo { max-height: 52px; max-width: 140px; object-fit: contain; }
   .office .name { font-family: "Amiri", "Noto Naskh Arabic", serif; font-size: 22px; font-weight: 700; color: ${b.primaryColor}; }
   .office .tag { font-size: 12px; color: #5A5446; margin-top: 3px; }
   .contact { text-align: left; font-size: 11.5px; color: #5A5446; line-height: 1.9; }
@@ -120,8 +131,11 @@ export function letterheadHtml(opts: {
   <div class="page">
     <div class="head">
       <div class="office">
-        <div class="name">${escapeHtml(b.name)}</div>
-        <div class="tag">${escapeHtml(b.tagline)}</div>
+        ${logo ? `<img class="logo" src="${logo}" alt="" />` : ""}
+        <div>
+          <div class="name">${escapeHtml(b.name)}</div>
+          <div class="tag">${escapeHtml(b.tagline)}</div>
+        </div>
       </div>
       <div class="contact">
         <div class="num">${escapeHtml(b.phone)}</div>
