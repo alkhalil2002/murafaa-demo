@@ -16,6 +16,7 @@ export async function uploadDocumentAction(formData: FormData): Promise<void> {
   const sessionLabel = String(formData.get("sessionLabel") ?? "") || null;
   const procedureRequestId = String(formData.get("procedureRequestId") ?? "") || null;
   const procedureDocRoleRaw = String(formData.get("procedureDocRole") ?? "");
+  const approvalId = String(formData.get("approvalId") ?? "") || null;
   const sourceRaw = String(formData.get("source") ?? "");
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) throw new Error("UPLOAD_NO_FILE");
@@ -36,6 +37,7 @@ export async function uploadDocumentAction(formData: FormData): Promise<void> {
         procedureDocRoleRaw && procedureDocRoleRaw in ProcedureRequestDocRole
           ? (procedureDocRoleRaw as ProcedureRequestDocRole)
           : null,
+      approvalId,
       source: sourceRaw && sourceRaw in DocSource ? (sourceRaw as DocSource) : null,
     },
     bytes,

@@ -98,7 +98,7 @@ export async function getJourneySummary(session: AppSession): Promise<JourneySum
         deletedAt: null,
         baseStatus: { in: [InvoiceBaseStatus.DUE, InvoiceBaseStatus.OVERDUE] },
       },
-      select: { totalAmount: true, payments: { select: { amount: true } } },
+      select: { totalAmount: true, payments: { where: { isApproved: true }, select: { amount: true } } },
     });
     invoicesDue = invoices.length;
     uncollectedMinor = invoices.reduce((sum, inv) => sum + remainingOf(inv.totalAmount, paidOf(inv.payments)), 0);

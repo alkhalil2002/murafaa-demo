@@ -14,6 +14,7 @@ import { draftHearingReportAction } from "@/app/cases/hearing-ai-actions";
  */
 export function AiDraftHearingButton() {
   const [status, setStatus] = useState<"idle" | "loading" | "unavailable" | "error" | "needsNotes" | "done">("idle");
+  const [suggestedNotes, setSuggestedNotes] = useState<string[]>([]);
 
   async function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     const form = e.currentTarget.closest("form");
@@ -36,12 +37,35 @@ export function AiDraftHearingButton() {
     if (minutesEl) minutesEl.value = result.draft.minutes;
     if (resultEl) resultEl.value = result.draft.result;
     if (reportEl) reportEl.value = result.draft.clientReport;
+
+    const notes: string[] = [];
+    if (result.draft.nextHearingDate) {
+      const nextDateEl = form.elements.namedItem("nextHearingDate") as HTMLInputElement | null;
+      if (nextDateEl) {
+        nextDateEl.value = result.draft.nextHearingDate;
+        notes.push(t("cases.hearings.aiSuggestedNextDate"));
+      }
+    }
+    const action = result.draft.suggestedAction;
+    if (action) {
+      // Fills the wizard's first repeatable row for the matching kind
+      // (repeatable-action-rows.tsx renders one row by default) — only when
+      // that row is still empty, so it never clobbers something the lawyer
+      // already typed.
+      const fieldName =
+        action.kind === "reminder" ? "reminders[].text" : action.kind === "task" ? "tasks[].title" : "procedureRequests[].text";
+      const el = form.elements.namedItem(fieldName);
+      const target = el instanceof RadioNodeList ? (el[0] as HTMLInputElement) : (el as HTMLInputElement | null);
+      if (target && !target.value) target.value = action.text;
+      notes.push(t("cases.hearings.aiSuggestedAction"));
+    }
+    setSuggestedNotes(notes);
     setStatus("done");
   }
 
   return (
     <div style={{ marginTop: 8 }}>
-      <button type="button" className="tinybtn" onClick={handleClick} disabled={status === "loading"}>
+      <button type="button" className="act b-judge" onClick={handleClick} disabled={status === "loading"}>
         {status === "loading" ? t("cases.hearings.aiDraftLoading") : t("cases.hearings.aiDraft")}
       </button>
       {status === "unavailable" && (
@@ -62,6 +86,9 @@ export function AiDraftHearingButton() {
       {status === "done" && (
         <div className="sub" style={{ marginTop: 4, color: "var(--ok)" }}>
           {t("cases.hearings.aiDraftDone")}
+          {suggestedNotes.map((note) => (
+            <div key={note}>{note}</div>
+          ))}
         </div>
       )}
     </div>

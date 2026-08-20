@@ -9,6 +9,7 @@ import { getEmbedder } from "@/lib/ai/embed";
 import { getLlm } from "@/lib/ai/llm";
 import { loadKbIndex, searchKb } from "@/lib/ai/vector";
 import { runGate } from "@/lib/ai/gate";
+import { formatDateAr } from "@/lib/dates";
 
 /**
  * Legal-AI service (docs/02 §6). The one place any legal AI output is produced —
@@ -42,16 +43,32 @@ async function caseContext(session: AppSession, caseId: string): Promise<string>
       najizCaseType: true,
       factSummary: true,
       assignees: { select: { userId: true } },
+      hearings: {
+        where: { status: "UPCOMING", deletedAt: null },
+        orderBy: { hearingDate: "asc" },
+        take: 1,
+        select: { hearingDate: true },
+      },
+      reminders: {
+        where: { deletedAt: null, dueOn: { gte: new Date() } },
+        orderBy: { dueOn: "asc" },
+        take: 5,
+        select: { text: true, dueOn: true },
+      },
     },
   });
   if (!c) throw new PermissionError("scope");
   await requireCaseAccess(session, caseId, c.assignees.map((a) => a.userId));
+  const upcoming = c.hearings[0];
+  const deadlines = c.reminders.map((r) => `${r.text} (${formatDateAr(r.dueOn)})`).join("، ");
   // Deliberately excludes client/opponent identities and contact PII.
   return [
     `القضية: ${c.title}`,
     `المرحلة: ${c.stage}`,
     c.najizCaseType ? `النوع: ${c.najizCaseType}` : "",
     c.factSummary ? `ملخص الوقائع: ${c.factSummary}` : "",
+    upcoming ? `الجلسة القادمة: ${formatDateAr(upcoming.hearingDate)}` : "",
+    deadlines ? `المواعيد والمهل: ${deadlines}` : "",
   ]
     .filter(Boolean)
     .join("\n");

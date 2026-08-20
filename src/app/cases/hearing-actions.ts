@@ -20,8 +20,10 @@ import {
   requestReportApproval,
   cancelReportApprovalRequest,
   decideReportApproval,
+  remindClientAboutUpcomingHearing,
 } from "@/server/hearings";
 import { generateHearingReportPdf } from "@/server/documents";
+import { parseReminderRows, parseTaskRows, parseProcedureRequestRows } from "@/lib/forms/repeatable-rows";
 
 export async function recordHearingAction(formData: FormData): Promise<void> {
   const session = await getSession();
@@ -47,6 +49,14 @@ export async function recordHearingAction(formData: FormData): Promise<void> {
     ? (requestTypeRaw as (typeof PROC_REQUEST_TYPES)[number])
     : null;
 
+  // Repeatable rows added via the wizard's "＋ إجراء"/"＋ طلب" buttons
+  // (repeatable-action-rows.tsx): each row repeats the same field `name`;
+  // parseReminderRows/parseTaskRows/parseProcedureRequestRows zip them back
+  // into positional rows (src/lib/forms/repeatable-rows.ts).
+  const reminders = parseReminderRows(formData);
+  const tasks = parseTaskRows(formData);
+  const procedureRequests = parseProcedureRequestRows(formData);
+
   await recordHearing(session, caseId, {
     hearingDate: new Date(String(formData.get("hearingDate") ?? "")),
     kind: kindRaw && kindRaw in HearingKind ? (kindRaw as HearingKind) : undefined,
@@ -66,6 +76,10 @@ export async function recordHearingAction(formData: FormData): Promise<void> {
     actionRequestParty: requestPartyRaw && requestPartyRaw in DocParty ? (requestPartyRaw as DocParty) : null,
     actionRequestType: requestType,
     actionRequestText: requestText || null,
+    reminders,
+    tasks,
+    procedureRequests,
+    requestApprovalNow: formData.get("requestApprovalNow") === "on",
   });
 
   revalidatePath(`/cases/${caseId}`);
@@ -103,6 +117,10 @@ export async function updateHearingAction(formData: FormData): Promise<void> {
     isPending: formData.get("isPending") === "on",
     pendingItems,
     reminderRecurDays: recurDaysRaw ? Number(recurDaysRaw) : null,
+    reminders: parseReminderRows(formData),
+    tasks: parseTaskRows(formData),
+    procedureRequests: parseProcedureRequestRows(formData),
+    requestApprovalNow: formData.get("requestApprovalNow") === "on",
   });
 
   revalidatePath(`/cases/${caseId}`);
@@ -239,6 +257,14 @@ export async function rejectReportAction(formData: FormData): Promise<void> {
   const caseId = String(formData.get("caseId") ?? "");
   const hearingId = String(formData.get("hearingId") ?? "");
   await decideReportApproval(session, caseId, hearingId, false);
+  revalidatePath(`/cases/${caseId}`);
+}
+
+export async function remindClientAboutHearingAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const caseId = String(formData.get("caseId") ?? "");
+  await remindClientAboutUpcomingHearing(session, caseId);
   revalidatePath(`/cases/${caseId}`);
 }
 

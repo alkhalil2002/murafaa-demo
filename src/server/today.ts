@@ -6,6 +6,7 @@ import { getDeadlines } from "@/server/deadlines";
 import { listTasks } from "@/server/tasks";
 import { listRequests } from "@/server/hr/requests";
 import { listPendingApprovals } from "@/server/approvals";
+import { listPendingReportApprovals } from "@/server/hearings";
 import { getEmployeeOfWeek, type PulseRankRow } from "@/server/pulse";
 import { requestKindLabel, requestStatusLabel, roleLabel, approvalStageLabel } from "@/lib/labels";
 import { t } from "@/lib/i18n";
@@ -59,6 +60,13 @@ export type TodayApprovalItem =
       caseId: string;
       caseTitle: string;
       stageLabel: string;
+    }
+  | {
+      kind: "hearingReport";
+      id: string;
+      caseId: string;
+      caseTitle: string;
+      sessionNo: number;
     };
 
 export type TodayTaskItem = {
@@ -170,6 +178,17 @@ export async function getTodaySummary(session: AppSession): Promise<TodaySummary
           caseTitle: a.case.title,
           stageLabel: approvalStageLabel(a.stage),
         })),
+    );
+
+    const pendingReports = await listPendingReportApprovals(session);
+    approvalsAll.push(
+      ...pendingReports.map((h): TodayApprovalItem => ({
+        kind: "hearingReport",
+        id: h.id,
+        caseId: h.case.id,
+        caseTitle: h.case.title,
+        sessionNo: h.sequenceNo ?? 0,
+      })),
     );
   }
 

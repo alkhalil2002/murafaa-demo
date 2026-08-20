@@ -63,7 +63,7 @@ export async function agingReport(session: AppSession, now: Date = new Date()): 
   await requireModule(session, PermModule.FINANCE, "view");
   const invoices = await prisma.invoice.findMany({
     where: { officeId: session.officeId, deletedAt: null, isCredited: false, isBadDebt: false },
-    include: { client: { select: { name: true } }, payments: { select: { amount: true } } },
+    include: { client: { select: { name: true } }, payments: { where: { isApproved: true }, select: { amount: true } } },
   });
   const buckets: Record<AgingBucket, number> = { b0_30: 0, b31_60: 0, b61_90: 0, b90_plus: 0 };
   const rows: AgingReport["rows"] = [];
@@ -165,7 +165,10 @@ export async function getCashFlowStatement(session: AppSession): Promise<CashFlo
   await requireModule(session, PermModule.FINANCE, "view");
   const officeId = session.officeId;
   const [paymentsAgg, trustAgg, expenses, rows] = await Promise.all([
-    prisma.payment.aggregate({ where: { officeId, invoice: { deletedAt: null } }, _sum: { amount: true } }),
+    prisma.payment.aggregate({
+      where: { officeId, isApproved: true, invoice: { deletedAt: null } },
+      _sum: { amount: true },
+    }),
     prisma.trustTransaction.aggregate({
       where: { officeId, type: TrustTxnType.TRANSFER_TO_FEES },
       _sum: { amountMinor: true },

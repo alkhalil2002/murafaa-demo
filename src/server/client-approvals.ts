@@ -45,8 +45,15 @@ const createSchema = z.object({
 });
 export type CreateClientApprovalInput = z.infer<typeof createSchema>;
 
+/**
+ * Partner-tier gated (docs guardrail #1: nothing reaches the client without
+ * passing a higher-trust checkpoint) — this creates a client-facing request
+ * directly, with none of the internal 5-stage review that `sendApprovalToClient`
+ * (src/server/approvals.ts) enforces on its own track. Regular case-edit
+ * staff must route through that reviewed track instead.
+ */
 export async function createClientApprovalRequest(session: AppSession, caseId: string, raw: CreateClientApprovalInput) {
-  await requireModule(session, PermModule.CASES, "edit");
+  await requireModule(session, PermModule.CASES, "delete");
   const input = createSchema.parse(raw);
   await loadVisibleCase(session, caseId);
   const created = await prisma.clientApprovalRequest.create({

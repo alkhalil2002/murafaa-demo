@@ -52,7 +52,14 @@ import {
 } from "../procedure-request-actions";
 import { setOutcomeAction, generateFeeInvoiceAction, saveFeeAgreementAction } from "../actions";
 import { reimburseExpenseAction } from "@/app/finance/actions";
-import { createApprovalAction, advanceApprovalAction, rejectApprovalAction, deleteApprovalAction } from "../approvals-actions";
+import {
+  createApprovalAction,
+  advanceApprovalAction,
+  rejectApprovalAction,
+  deleteApprovalAction,
+  updateApprovalBodyAction,
+  sendApprovalToClientAction,
+} from "../approvals-actions";
 import { createClientApprovalRequestAction } from "../client-approvals-actions";
 import {
   recordHearingAction,
@@ -71,6 +78,7 @@ import {
   approveReportAction,
   rejectReportAction,
   generateHearingReportPdfAction,
+  remindClientAboutHearingAction,
 } from "../hearing-actions";
 import { updateCaseAction, assignUserAction, unassignUserAction } from "../edit-actions";
 import { promoteStageAction, remandStageAction, endProcedureAction, reopenProcedureAction } from "../proc-actions";
@@ -90,6 +98,12 @@ import { NajizPicker, NajizFieldLabel } from "@/components/cases/najiz-picker";
 import { RolePicker } from "@/components/cases/role-picker";
 import { HearingWizard } from "@/components/cases/hearing-wizard";
 import { AiDraftHearingButton } from "@/components/cases/ai-draft-hearing-button";
+import { ReminderRows, TaskRows, ProcedureRequestRows } from "@/components/cases/repeatable-action-rows";
+import { PreviewHearingReportButton } from "@/components/cases/preview-hearing-report-button";
+import { ExpandTargetLink } from "@/components/cases/expand-target-link";
+import { QuickPhraseButtons } from "@/components/cases/quick-phrase-buttons";
+import { FeeTypeFields } from "@/components/cases/fee-type-fields";
+import { ArchiveCaseButton } from "@/components/cases/archive-case-button";
 import { CLOSING_CHECKLIST_ITEMS } from "@/server/cases";
 import { SAUDI_CITIES } from "@/lib/cities";
 import {
@@ -103,7 +117,7 @@ import {
   clientApprovalStatusLabel,
 } from "@/lib/labels";
 import { formatSar } from "@/lib/money";
-import { daysLeft, daysAgo, formatDateAr } from "@/lib/dates";
+import { daysLeft, daysAgo, formatDateAr, toDateInputValue } from "@/lib/dates";
 import { t, type MessageKey } from "@/lib/i18n";
 import { requireUuidParam } from "@/lib/http/params";
 
@@ -159,7 +173,7 @@ export default async function CaseDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; evf?: string; docsrc?: string; docparty?: string; docgroup?: string }>;
+  searchParams: Promise<{ tab?: string; evf?: string; docsrc?: string; docparty?: string; docgroup?: string; err?: string }>;
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -171,7 +185,14 @@ export default async function CaseDetailPage({
     docsrc: docSrcParam,
     docparty: docPartyParam,
     docgroup: docGroupParam,
+    err: errParam,
   } = await searchParams;
+  const financeError =
+    errParam === "FEE_AGREEMENT_MISSING"
+      ? t("cases.finance.errFeeAgreementMissing")
+      : errParam === "FEE_NET_NONPOSITIVE"
+        ? t("cases.finance.errFeeNetNonpositive")
+        : null;
   const tab: TabKey = (TABS.find((x) => x.key === tabParam)?.key ?? "overview") as TabKey;
 
   let content: React.ReactNode;
@@ -416,7 +437,7 @@ export default async function CaseDetailPage({
                     ))}
                   </select>
                   <select name="party" defaultValue="OURS">
-                    {DOC_PARTIES.filter((p) => p !== "COURT").map((p) => (
+                    {DOC_PARTIES.filter((p) => p !== "EXPERT").map((p) => (
                       <option key={p} value={p}>
                         {docPartyLabel(p)}
                       </option>
@@ -675,7 +696,10 @@ export default async function CaseDetailPage({
         const upcoming = c.hearings.find((h) => h.status === "UPCOMING");
         const held = c.hearings
           .filter((h) => h.status === "HELD")
-          .sort((a, b) => b.hearingDate.getTime() - a.hearingDate.getTime());
+          .sort(
+            (a, b) =>
+              b.hearingDate.getTime() - a.hearingDate.getTime() || (b.sequenceNo ?? 0) - (a.sequenceNo ?? 0),
+          );
         const assignableUsers = canEditCase ? await listAssignableUsers(session) : [];
         const hearingActionsById = canEditCase
           ? Object.fromEntries(
@@ -696,12 +720,17 @@ export default async function CaseDetailPage({
 
         tabBody = (
           <>
+            <div className="sub" style={{ fontWeight: 600, fontSize: 18.75, marginBottom: 8 }}>
+              {t("cases.hearings")} ({(held.length + (upcoming ? 1 : 0)).toLocaleString("ar-SA")})
+            </div>
+
             {canEditCase && (
-              <div className="panel">
+              <div className="panel" id="record-hearing-form" style={{ border: "1px solid var(--bench)" }}>
                 <h2 style={{ marginTop: 0 }}>
                   <span className="n">{t("cases.tag.dates")}</span>{" "}
                   {upcoming ? t("cases.nextHearing") : t("cases.hearings.schedule")}
                 </h2>
+                <div className="disclaimer">{t("cases.hearings.recordIntro")}</div>
                 {upcoming ? (
                   <div
                     className="approve-row"
@@ -715,13 +744,19 @@ export default async function CaseDetailPage({
                     <a href="#record-hearing-form" className="tinybtn" style={{ background: "var(--bench)", color: "#fff" }}>
                       {t("cases.hearings.recordNow")}
                     </a>
+                    <form action={remindClientAboutHearingAction} style={{ display: "inline-block" }}>
+                      <input type="hidden" name="caseId" value={id} />
+                      <button type="submit" className="tinybtn">
+                        {t("cases.hearings.remindClient")}
+                      </button>
+                    </form>
                     <details style={{ display: "inline-block" }}>
                       <summary className="tinybtn" style={{ display: "inline-block", cursor: "pointer" }}>
                         {t("cases.hearings.editDate")}
                       </summary>
                       <form action={setNextHearingAction} style={{ display: "flex", gap: 6, marginTop: 6 }}>
                         <input type="hidden" name="caseId" value={id} />
-                        <input type="date" name="date" defaultValue={fmt(upcoming.hearingDate)} required />
+                        <input type="date" name="date" defaultValue={toDateInputValue(upcoming.hearingDate)} required />
                         <button type="submit" className="tinybtn" style={{ background: "var(--bench)", color: "#fff" }}>
                           {t("common.save")}
                         </button>
@@ -744,18 +779,18 @@ export default async function CaseDetailPage({
                     </button>
                   </form>
                 )}
-              </div>
-            )}
 
-            {canEditCase && (
-              <div className="panel" id="record-hearing-form">
-                <details open={Boolean(upcoming)}>
-                  <summary style={{ cursor: "pointer", fontSize: 18.75, fontWeight: 700 }}>
+                {/* Keyed on the upcoming hearing's id so this remounts (and
+                    re-opens) whenever the schedule state actually changes —
+                    same fix as the held-hearing cards below: a plain
+                    `open={Boolean(upcoming)}` only applies on first mount,
+                    and React won't re-apply it after the user has natively
+                    toggled the <details> and some unrelated server action
+                    elsewhere on the page revalidates this tree. */}
+                <details key={upcoming?.id ?? "none"} open={Boolean(upcoming)} style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+                  <summary style={{ cursor: "pointer", fontFamily: "var(--font-amiri), serif", fontSize: 26.25, fontWeight: 700 }}>
                     <span className="n">{t("cases.tag.dates")}</span> {t("cases.hearings.record")}
                   </summary>
-                  <div className="sub" style={{ marginTop: 8 }}>
-                    {t("cases.hearings.recordIntro")}
-                  </div>
                 <form action={recordHearingAction} style={{ marginTop: 12 }}>
                   <input type="hidden" name="caseId" value={id} />
                   <HearingWizard
@@ -764,11 +799,11 @@ export default async function CaseDetailPage({
                       <>
                         <div className="field">
                           <label>{t("cases.hearings.date")}</label>
-                          <input type="date" name="hearingDate" defaultValue={upcoming ? fmt(upcoming.hearingDate) : undefined} required />
+                          <input type="date" name="hearingDate" defaultValue={upcoming ? toDateInputValue(upcoming.hearingDate) : undefined} required />
                         </div>
                         <div className="field">
                           <label>{t("cases.hearings.rawNotes")}</label>
-                          <textarea name="minutes" rows={4} />
+                          <textarea name="minutes" rows={4} placeholder={t("cases.hearings.rawNotesPlaceholder")} />
                           <AiDraftHearingButton />
                         </div>
                       </>
@@ -809,57 +844,25 @@ export default async function CaseDetailPage({
                           <label>{t("cases.hearings.nextDate")}</label>
                           <input type="date" name="nextHearingDate" />
                         </div>
-                        <div className="two">
-                          <div className="field">
-                            <label>{t("cases.hearings.addReminder").replace("＋ ", "")}</label>
-                            <input type="text" name="actionReminderText" placeholder={t("cases.hearings.addReminder").replace("＋ ", "")} />
+                        <div className="field" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}>
+                          <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                            {t("cases.hearings.actionsTitle")}
                           </div>
-                          <div className="field">
-                            <label>{t("tasks.dueAt")}</label>
-                            <input type="date" name="actionReminderDueOn" />
-                          </div>
-                          <div className="field">
-                            <label>{t("cases.hearings.addTask").replace("＋ ", "")}</label>
-                            <input type="text" name="actionTaskTitle" placeholder={t("cases.hearings.addTask").replace("＋ ", "")} />
-                          </div>
-                          <div className="field">
-                            <label>{t("tasks.assignee")}</label>
-                            <select name="actionTaskAssigneeId" defaultValue="">
-                              <option value="">{t("tasks.unassigned")}</option>
-                              {assignableUsers.map((u) => (
-                                <option key={u.id} value={u.id}>
-                                  {u.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="field">
-                            <label>{t("tasks.dueAt")}</label>
-                            <input type="date" name="actionTaskDueAt" />
-                          </div>
+                          <ReminderRows />
+                          <div style={{ height: 10 }} />
+                          <TaskRows assignableUsers={assignableUsers} />
                         </div>
                         <div className="field" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}>
                           <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
                             {t("cases.hearings.requestHint")}
                           </div>
-                          <div className="two">
-                            <select name="actionRequestParty" defaultValue="OURS">
-                              {DOC_PARTIES.filter((p) => p !== "COURT").map((p) => (
-                                <option key={p} value={p}>
-                                  {docPartyLabel(p)}
-                                </option>
-                              ))}
-                            </select>
-                            <select name="actionRequestType" defaultValue="">
-                              <option value="">{t("cases.procRequests.typeLabel")}</option>
-                              {PROC_REQUEST_TYPES.map((ty) => (
-                                <option key={ty} value={ty}>
-                                  {ty}
-                                </option>
-                              ))}
-                            </select>
-                            <input type="text" name="actionRequestText" placeholder={t("cases.procRequests.typeLabel")} style={{ gridColumn: "span 2" }} />
-                          </div>
+                          <ProcedureRequestRows
+                            parties={DOC_PARTIES.filter((p) => p !== "EXPERT").map((p) => ({
+                              value: p,
+                              label: docPartyLabel(p),
+                            }))}
+                            requestTypes={PROC_REQUEST_TYPES}
+                          />
                         </div>
                         <div className="sub" style={{ marginTop: 8, marginBottom: 0 }}>
                           {t("cases.hearings.actionsAfterSaveHint")}
@@ -871,7 +874,13 @@ export default async function CaseDetailPage({
                         <div className="field">
                           <label>{t("cases.hearings.clientReport")}</label>
                           <textarea name="clientReport" rows={3} />
+                          <QuickPhraseButtons targetName="clientReport" />
+                          <PreviewHearingReportButton />
                         </div>
+                        <label className="sub" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                          <input type="checkbox" name="requestApprovalNow" />
+                          {t("cases.hearings.requestApprovalOnSave")}
+                        </label>
                         <div
                           className="field"
                           style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}
@@ -907,19 +916,24 @@ export default async function CaseDetailPage({
               </div>
             )}
 
-            <div className="sub" style={{ fontWeight: 600, fontSize: 18.75, marginBottom: 8 }}>
-              {t("cases.hearings")} ({held.length.toLocaleString("ar-SA")})
-            </div>
-            {held.length === 0 ? (
+            {held.length === 0 && !canEditCase && (
               <div className="panel">
                 <Empty>{t("common.none")}</Empty>
               </div>
-            ) : (
+            )}
+            {held.length > 0 && (
               held.map((h) => {
                 const acts = hearingActionsById[h.id];
                 return (
-                  <div className="panel" key={h.id}>
-                    <details open>
+                  <div className="panel" id={`hearing-${h.id}`} key={h.id}>
+                    {/* Keyed on updatedAt so a native <details> the user
+                        manually collapsed remounts (and re-opens) after any
+                        edit to this hearing — otherwise React reuses the
+                        existing DOM node across a server-action revalidation
+                        and never re-applies the unconditional `open` prop,
+                        leaving the card stuck collapsed for the rest of the
+                        session. */}
+                    <details key={h.updatedAt.getTime()} open>
                       <summary className="hsummary">
                         <span className="chip" style={{ color: "var(--bench)", borderColor: "var(--bench)" }}>
                           {t("cases.hearings.sessionNo", { no: (h.sequenceNo ?? 0).toLocaleString("ar-SA") })}
@@ -928,6 +942,16 @@ export default async function CaseDetailPage({
                         <span className="chip">{fmt(h.hearingDate)}</span>
                         {h.result && <span className="chip" style={{ color: "var(--gold)", borderColor: "var(--gold)" }}>{h.result}</span>}
                         {h.isPending && <span className="chip" style={{ color: "var(--gold)", borderColor: "var(--gold)" }}>{t("cases.hearings.pendingBadge")}</span>}
+                        {canEditCase && (
+                          <span style={{ marginInlineStart: "auto", display: "flex", gap: 6 }}>
+                            <ExpandTargetLink targetId={`hearing-edit-${h.id}`} className="tinybtn" title={t("cases.hearings.edit")}>
+                              ✎
+                            </ExpandTargetLink>
+                            <ExpandTargetLink targetId={`hearing-attach-${h.id}`} className="tinybtn" title={t("cases.hearings.attachDoc")}>
+                              📎
+                            </ExpandTargetLink>
+                          </span>
+                        )}
                       </summary>
                     <div style={{ marginTop: 10 }}>
                     {h.isPending && Array.isArray(h.pendingItems) && h.pendingItems.length > 0 && (
@@ -1041,7 +1065,7 @@ export default async function CaseDetailPage({
                                 <span className="ndot" style={{ background: "#0a7ea4" }} />
                                 <span className="chip">{t("cases.hearings.addReminder").replace("＋ ", "")}</span>
                                 <input type="text" name="text" defaultValue={r.text} style={{ flex: "1 1 160px", minWidth: 120 }} />
-                                <input type="date" name="dueOn" defaultValue={fmt(r.dueOn)} />
+                                <input type="date" name="dueOn" defaultValue={toDateInputValue(r.dueOn)} />
                                 <button type="submit" className="tinybtn">
                                   {t("cases.hearings.actionSave")}
                                 </button>
@@ -1088,7 +1112,7 @@ export default async function CaseDetailPage({
                                     </option>
                                   ))}
                                 </select>
-                                <input type="date" name="dueAt" defaultValue={tk.dueAt ? fmt(tk.dueAt) : ""} />
+                                <input type="date" name="dueAt" defaultValue={toDateInputValue(tk.dueAt)} />
                                 <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 15 }}>
                                   <input type="checkbox" name="done" defaultChecked={tk.status === "DONE"} />
                                   {t("cases.hearings.actionDone")}
@@ -1161,7 +1185,7 @@ export default async function CaseDetailPage({
                     )}
 
                     {canEditCase && (
-                      <details style={{ marginTop: 12 }}>
+                      <details id={`hearing-attach-${h.id}`} style={{ marginTop: 12 }}>
                         <summary style={{ cursor: "pointer", fontSize: 15.625, color: "var(--bench)", fontWeight: 600 }}>
                           {t("cases.hearings.attachDoc")}
                         </summary>
@@ -1207,17 +1231,178 @@ export default async function CaseDetailPage({
                     )}
 
                     {canEditCase && (
-                      <details style={{ marginTop: 12 }}>
+                      <details className="wizard-box" style={{ marginTop: 12 }}>
+                        <summary
+                          className={h.isPending ? "tinybtn" : undefined}
+                          style={
+                            h.isPending
+                              ? { cursor: "pointer", background: "var(--gold)", color: "#fff", borderColor: "var(--gold)", fontWeight: 700 }
+                              : { cursor: "pointer", fontSize: 15.625, color: "var(--bench)", fontWeight: 600 }
+                          }
+                        >
+                          {h.isPending ? t("cases.hearings.resumePending") : t("cases.hearings.resume")}
+                        </summary>
+                        <div className="sub" style={{ marginTop: 8 }}>
+                          {t("cases.hearings.resumeHint")}
+                        </div>
+                        <form action={updateHearingAction} style={{ marginTop: 10 }}>
+                          <input type="hidden" name="caseId" value={id} />
+                          <input type="hidden" name="hearingId" value={h.id} />
+                          <HearingWizard
+                            submitLabel={t("cases.hearings.saveEdit")}
+                            step1={
+                              <>
+                                <div className="field">
+                                  <label>{t("cases.hearings.date")}</label>
+                                  <input type="date" name="hearingDate" defaultValue={toDateInputValue(h.hearingDate)} required />
+                                </div>
+                                <div className="field">
+                                  <label>{t("cases.hearings.minutes")}</label>
+                                  <textarea name="minutes" rows={4} defaultValue={h.minutes ?? ""} />
+                                </div>
+                              </>
+                            }
+                            step2={
+                              <div className="two">
+                                <div className="field">
+                                  <label>{t("cases.hearings.kind")}</label>
+                                  <select name="kind" defaultValue={h.kind ?? ""}>
+                                    <option value="">—</option>
+                                    {HEARING_KINDS.map((k) => (
+                                      <option key={k} value={k}>
+                                        {hearingKindLabel(k)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="field">
+                                  <label>{t("cases.hearings.stage")}</label>
+                                  <select name="stageIndex" defaultValue={h.stageIndex ?? ""}>
+                                    <option value="">—</option>
+                                    {PROC_STAGES.map((s, i) => (
+                                      <option key={s} value={i}>
+                                        {stageLabel(s)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="field" style={{ gridColumn: "span 2" }}>
+                                  <label>{t("cases.hearings.result")}</label>
+                                  <input type="text" name="result" defaultValue={h.result ?? ""} />
+                                </div>
+                              </div>
+                            }
+                            step3={
+                              <>
+                                <div className="field" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}>
+                                  <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                                    {t("cases.hearings.actionsTitle")}
+                                  </div>
+                                  <ReminderRows />
+                                  <div style={{ height: 10 }} />
+                                  <TaskRows assignableUsers={assignableUsers} />
+                                </div>
+                                <div className="field" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}>
+                                  <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                                    {t("cases.hearings.requestHint")}
+                                  </div>
+                                  <ProcedureRequestRows
+                                    parties={DOC_PARTIES.filter((p) => p !== "EXPERT").map((p) => ({
+                                      value: p,
+                                      label: docPartyLabel(p),
+                                    }))}
+                                    requestTypes={PROC_REQUEST_TYPES}
+                                  />
+                                </div>
+                              </>
+                            }
+                            step4={
+                              <>
+                                <div className="field">
+                                  <label>{t("cases.hearings.clientReport")}</label>
+                                  <textarea name="clientReport" rows={3} defaultValue={h.clientReport ?? ""} />
+                                  <QuickPhraseButtons targetName="clientReport" />
+                                  <PreviewHearingReportButton />
+                                </div>
+                                {!h.reportApprovalRequested && !h.reportSentToClient && (
+                                  <label className="sub" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                                    <input type="checkbox" name="requestApprovalNow" />
+                                    {t("cases.hearings.requestApprovalOnSave")}
+                                  </label>
+                                )}
+                                {(() => {
+                                  const existingPendingItems = Array.isArray(h.pendingItems) ? (h.pendingItems as string[]) : [];
+                                  return (
+                                    <div
+                                      className="field"
+                                      style={{
+                                        border: `1px solid ${h.isPending ? "var(--gold)" : "var(--line)"}`,
+                                        borderRadius: 12,
+                                        padding: 12,
+                                        background: h.isPending ? "rgba(194,151,75,.05)" : "#fff",
+                                      }}
+                                    >
+                                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+                                        <input type="checkbox" name="isPending" defaultChecked={h.isPending} />
+                                        {t("cases.hearings.pendingHint")}
+                                      </label>
+                                      <div style={{ marginTop: 10 }}>
+                                        <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                                          {t("cases.hearings.pendingItems.title")}
+                                        </div>
+                                        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, marginInlineEnd: 14 }}>
+                                          <input
+                                            type="checkbox"
+                                            name="pendingItem_minutes"
+                                            defaultChecked={existingPendingItems.includes("minutes")}
+                                          />
+                                          {t("cases.hearings.pendingItems.minutes")}
+                                        </label>
+                                        <label style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                                          <input
+                                            type="checkbox"
+                                            name="pendingItem_nextHearing"
+                                            defaultChecked={existingPendingItems.includes("nextHearing")}
+                                          />
+                                          {t("cases.hearings.pendingItems.nextHearing")}
+                                        </label>
+                                        <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                          <span className="sub">{t("cases.hearings.recurLabel")}</span>
+                                          <input
+                                            type="number"
+                                            name="reminderRecurDays"
+                                            min={1}
+                                            defaultValue={h.reminderRecurDays ?? 7}
+                                            style={{ width: 70 }}
+                                          />
+                                          <span className="sub">{t("cases.hearings.recurUnit")}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </>
+                            }
+                          />
+                        </form>
+                      </details>
+                    )}
+
+                    {canEditCase && (
+                      <details id={`hearing-edit-${h.id}`} style={{ marginTop: 12 }}>
                         <summary style={{ cursor: "pointer", fontSize: 15.625, color: "var(--bench)", fontWeight: 600 }}>
                           {t("cases.hearings.edit")}
                         </summary>
+                        <div className="sub" style={{ marginTop: 6 }}>
+                          {t("cases.hearings.editHint")}
+                        </div>
                         <form action={updateHearingAction} style={{ marginTop: 10 }}>
                           <input type="hidden" name="caseId" value={id} />
                           <input type="hidden" name="hearingId" value={h.id} />
                           <div className="two">
                             <div className="field">
                               <label>{t("cases.hearings.date")}</label>
-                              <input type="date" name="hearingDate" defaultValue={fmt(h.hearingDate)} />
+                              <input type="date" name="hearingDate" defaultValue={toDateInputValue(h.hearingDate)} />
                             </div>
                             <div className="field">
                               <label>{t("cases.hearings.kind")}</label>
@@ -1347,19 +1532,22 @@ export default async function CaseDetailPage({
         tabBody = (
           <>
             <Panel n={t("cases.tag.parties")} title={t("cases.tab.parties")}>
-              <div className="approve-row">
-                <span className="ndot" style={{ background: "var(--bench)" }} />
-                <span className="at">
-                  {t("cases.parties.client")}: {c.client?.name ?? "—"}
-                  {c.client?.phone && <span className="chip"> {c.client.phone}</span>}
-                </span>
-                <span className="chip">{partyRoleLabel(c.clientRole)}</span>
-              </div>
-              <div className="approve-row">
-                <span className="ndot" style={{ background: "var(--advocate)" }} />
-                <span className="at">
-                  {t("cases.parties.opponent")}: {c.opposingParty ?? "—"}
-                </span>
+              <div className="grid2">
+                <div className="dcard">
+                  <div className="chips">
+                    <span className="chip">{t("cases.parties.client")}</span>
+                    <span className="chip st">{partyRoleLabel(c.clientRole)}</span>
+                  </div>
+                  <h3>{c.client?.name ?? "—"}</h3>
+                  {c.client?.phone && <div className="sub">{c.client.phone}</div>}
+                </div>
+                <div className="dcard">
+                  <div className="chips">
+                    <span className="chip">{t("cases.parties.opponent")}</span>
+                    {opponentRole && <span className="chip st done">{partyRoleLabel(opponentRole)}</span>}
+                  </div>
+                  <h3>{c.opposingParty ?? "—"}</h3>
+                </div>
               </div>
               <div className="sub" style={{ marginTop: 16, marginBottom: 8 }}>
                 {t("cases.parties.assignees")}
@@ -1447,12 +1635,12 @@ export default async function CaseDetailPage({
                 {t("cases.assistant.hint")}
               </div>
               {canUseAi && (
-                <div className="chips" style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
                   {AI_SMART_TOOLS.map((tool) => (
                     <form action={askAction} key={tool.key} style={{ display: "inline" }}>
                       <input type="hidden" name="caseId" value={id} />
                       <input type="hidden" name="question" value={tool.question} />
-                      <button type="submit" className="chip" style={{ cursor: "pointer" }}>
+                      <button type="submit" className="act b-judge">
                         {tool.label}
                       </button>
                     </form>
@@ -1493,24 +1681,20 @@ export default async function CaseDetailPage({
             {messages.length === 0 ? (
               <Empty>{t("cases.chat.empty")}</Empty>
             ) : (
-              messages.map((m) => (
-                <div className="approve-row" key={m.id}>
-                  <span
-                    className="ndot"
-                    style={{ background: m.senderType === "CLIENT" ? "var(--gold)" : "var(--bench)" }}
-                  />
-                  <span className="at">
-                    {m.body}
-                    <span className="chip">
-                      {" "}
+              <div className="wschat">
+                {messages.map((m) => (
+                  <div className={`wsbub ${m.senderType === "CLIENT" ? "client" : "staff"}`} key={m.id}>
+                    <div className="who">
                       {m.senderType === "CLIENT"
                         ? t("cases.chat.fromClient")
                         : (m.senderUserId && staffNameById.get(m.senderUserId)) || t("cases.chat.fromOffice")}
-                    </span>
-                  </span>
-                  <span className="chip">{relTime(m.createdAt)}</span>
-                </div>
-              ))
+                      {" · "}
+                      {relTime(m.createdAt)}
+                    </div>
+                    {m.body}
+                  </div>
+                ))}
+              </div>
             )}
             {canEditCase && (
               <form action={sendCaseMessageAction} style={{ display: "flex", gap: 6, marginTop: 10 }}>
@@ -1814,10 +1998,15 @@ export default async function CaseDetailPage({
           fee?.type === FeeType.HOURLY ? null : feeInput ? feeNet(feeInput, []) : null;
         const collectedMinor = invoices.reduce((sum, inv) => sum + inv.paid, 0);
         const remainingMinor = agreedMinor !== null ? Math.max(0, agreedMinor - collectedMinor) : null;
-        const pendingExpenses = expenses.filter((e) => e.billable && !e.billed).length;
+        const pendingExpenses = expenses.filter((e) => e.billable && !e.billed && e.clientId).length;
         tabBody = (
           <>
-            <Panel n={t("cases.tag.finance")} title={t("cases.finance.feeAgreement")}>
+            <Panel n={t("cases.tag.finance")} title={t("cases.finance.feeAgreement")} badge={t("cases.finance.driveBilling")} accent>
+              {financeError && (
+                <div className="alert" style={{ marginBottom: 12, background: "var(--danger-50, #fdecec)", color: "var(--adv-600, #b3261e)", padding: "8px 12px", borderRadius: 8 }}>
+                  {financeError}
+                </div>
+              )}
               {(agreedMinor !== null || collectedMinor > 0) && (
                 <div className="kpis" style={{ marginBottom: 12 }}>
                   <Field label={t("cases.finance.agreed")} value={agreedMinor !== null ? formatSar(agreedMinor) : t("cases.finance.undetermined")} />
@@ -1831,7 +2020,7 @@ export default async function CaseDetailPage({
                 <div className="approve-row" style={{ flexWrap: "wrap" }}>
                   <span className="ndot" style={{ background: "var(--bench)" }} />
                   <span className="at">{feeTypeLabel(fee.type)}</span>
-                  {canEditCase && (
+                  {canEditFinance && (
                     <form action={generateFeeInvoiceAction}>
                       <input type="hidden" name="caseId" value={id} />
                       <button type="submit" className="tinybtn">
@@ -1845,56 +2034,26 @@ export default async function CaseDetailPage({
                   </div>
                 </div>
               )}
-              {canEditCase && (
+              {canEditFinance && (
                 <details style={{ marginTop: 12 }}>
                   <summary style={{ cursor: "pointer", fontSize: 15.625, color: "var(--bench)", fontWeight: 600 }}>
                     {fee ? t("cases.finance.editFee") : t("cases.finance.addFee")}
                   </summary>
                   <form action={saveFeeAgreementAction} style={{ marginTop: 10 }}>
                     <input type="hidden" name="caseId" value={id} />
-                    <div className="two">
-                      <div className="field">
-                        <label>{t("cases.finance.feeType")}</label>
-                        <select name="type" defaultValue={fee?.type ?? FeeType.FLAT}>
-                          {Object.values(FeeType).map((ft) => (
-                            <option key={ft} value={ft}>
-                              {feeTypeLabel(ft)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label>{t("cases.finance.feeValue")}</label>
-                        <input
-                          type="number"
-                          name="feeValue"
-                          min="0"
-                          step="0.01"
-                          defaultValue={fee?.feeValueMinor ? halalasToRiyals(fee.feeValueMinor) : ""}
-                        />
-                      </div>
-                      <div className="field">
-                        <label>{t("cases.finance.percentage")}</label>
-                        <input
-                          type="number"
-                          name="percentage"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          defaultValue={fee?.percentageBps ? fee.percentageBps / 100 : ""}
-                        />
-                      </div>
-                      <div className="field">
-                        <label>{t("cases.finance.awarded")}</label>
-                        <input
-                          type="number"
-                          name="awarded"
-                          min="0"
-                          step="0.01"
-                          defaultValue={fee?.awardedMinor ? halalasToRiyals(fee.awardedMinor) : ""}
-                        />
-                      </div>
-                    </div>
+                    <FeeTypeFields
+                      feeTypeOptions={Object.values(FeeType).map((ft) => ({ value: ft, label: feeTypeLabel(ft) }))}
+                      defaultType={fee?.type ?? FeeType.FLAT}
+                      defaultFeeValue={fee?.feeValueMinor ? halalasToRiyals(fee.feeValueMinor) : ""}
+                      defaultPercentage={fee?.percentageBps ? fee.percentageBps / 100 : ""}
+                      defaultAwarded={fee?.awardedMinor ? halalasToRiyals(fee.awardedMinor) : ""}
+                      labels={{
+                        feeType: t("cases.finance.feeType"),
+                        feeValue: t("cases.finance.feeValue"),
+                        percentage: t("cases.finance.percentage"),
+                        awarded: t("cases.finance.awarded"),
+                      }}
+                    />
                     <div className="actions">
                       <button type="submit" className="act b-add">
                         {t("cases.finance.saveFee")}
@@ -1969,6 +2128,7 @@ export default async function CaseDetailPage({
       case "approvals": {
         const approvals = await listApprovals(session, id);
         const clientApprovals = await listClientApprovals(session, id);
+        const approvalDocuments = await listDocuments(session, id);
         const approvalUsers = await listAssignableUsers(session);
         const approvalUserNameById = new Map(approvalUsers.map((u) => [u.id, u.name]));
         const approvalActorLabel = (ev: { actorUserId: string | null; actor: string | null }) =>
@@ -1984,6 +2144,7 @@ export default async function CaseDetailPage({
                 <form action={createApprovalAction} className="two">
                   <input type="hidden" name="caseId" value={id} />
                   <input type="text" name="title" placeholder={t("cases.approvals.titlePlaceholder")} required />
+                  <textarea name="body" placeholder={t("cases.approvals.bodyPlaceholder")} rows={3} style={{ width: "100%" }} />
                   {pendingReportHearings.length > 0 && (
                     <select name="hearingId" defaultValue="" title={t("cases.approvals.linkHearing")}>
                       <option value="">{t("cases.approvals.noHearingLink")}</option>
@@ -2000,7 +2161,7 @@ export default async function CaseDetailPage({
                 </form>
               )}
             </div>
-            <Panel n={t("cases.tag.approvals")} title={t("cases.tab.approvals")}>
+            <Panel n={t("cases.tag.approvals")} title={t("cases.approvals.internalTitle")}>
               {approvals.length === 0 ? (
                 <Empty>{t("cases.approvals.empty")}</Empty>
               ) : (
@@ -2074,13 +2235,108 @@ export default async function CaseDetailPage({
                         ))}
                       </div>
                     )}
+
+                    {a.stage === ApprovalStage.APPROVED && (
+                      <div style={{ width: "100%", fontSize: 14.375 }}>
+                        {a.clientApprovalRequestId && a.clientApprovalRequest ? (
+                          a.clientApprovalRequest.status === ClientApprovalStatus.APPROVED ? (
+                            <span style={{ color: "var(--ok)", fontWeight: 600 }}>{t("cases.approvals.sentApproved")}</span>
+                          ) : a.clientApprovalRequest.status === ClientApprovalStatus.REJECTED ? (
+                            <span style={{ color: "var(--advocate)", fontWeight: 600 }}>
+                              {t("cases.approvals.sentRejected", { note: a.clientApprovalRequest.decisionNote ?? "" })}
+                            </span>
+                          ) : (
+                            <span style={{ color: "var(--gold)", fontWeight: 600 }}>{t("cases.approvals.sentPending")}</span>
+                          )
+                        ) : (
+                          canEditCase &&
+                          !!a.body?.trim() && (
+                            <form action={sendApprovalToClientAction}>
+                              <input type="hidden" name="id" value={a.id} />
+                              <input type="hidden" name="caseId" value={id} />
+                              <button type="submit" className="tinybtn">
+                                {t("cases.approvals.sendToClient")}
+                              </button>
+                            </form>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    {canEditCase && (
+                      <details style={{ width: "100%", marginTop: 10 }}>
+                        <summary style={{ cursor: "pointer", fontSize: 15.625, color: "var(--bench)", fontWeight: 600 }}>
+                          {t("cases.approvals.bodyLabel")} / {t("cases.approvals.attachments")}
+                        </summary>
+                        <div style={{ marginTop: 10 }}>
+                          {a.stage !== ApprovalStage.APPROVED ? (
+                            <form action={updateApprovalBodyAction} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                              <input type="hidden" name="id" value={a.id} />
+                              <input type="hidden" name="caseId" value={id} />
+                              <textarea name="body" rows={5} defaultValue={a.body ?? ""} placeholder={t("cases.approvals.bodyPlaceholder")} />
+                              <div className="actions">
+                                <button type="submit" className="act b-add">
+                                  {t("cases.approvals.saveBody")}
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <>
+                              <div className="sub" style={{ whiteSpace: "pre-wrap" }}>{a.body}</div>
+                              <div className="sub" style={{ marginTop: 6 }}>{t("cases.approvals.bodyLockedApproved")}</div>
+                            </>
+                          )}
+
+                          <div className="sub" style={{ fontWeight: 600, marginTop: 12, marginBottom: 6 }}>
+                            {t("cases.approvals.attachments")}
+                          </div>
+                          {approvalDocuments.filter((d) => d.approvalId === a.id).length === 0 ? (
+                            <Empty>{t("cases.approvals.empty")}</Empty>
+                          ) : (
+                            approvalDocuments
+                              .filter((d) => d.approvalId === a.id)
+                              .map((d) => (
+                                <div key={d.id} className="approve-row">
+                                  <span className="at">
+                                    {d.fileName}
+                                    <span className="chip"> {docSourceLabel(d.source as DocSource)}</span>
+                                    {d.docType && <span className="chip"> {d.docType}</span>}
+                                  </span>
+                                </div>
+                              ))
+                          )}
+                          <form
+                            action={uploadDocumentAction}
+                            encType="multipart/form-data"
+                            style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}
+                          >
+                            <input type="hidden" name="caseId" value={id} />
+                            <input type="hidden" name="approvalId" value={a.id} />
+                            <div className="field">
+                              <input type="file" name="file" required />
+                            </div>
+                            <div className="actions">
+                              <button type="submit" className="act b-add">
+                                {t("cases.approvals.attachSubmit")}
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      </details>
+                    )}
                   </div>
                 ))
               )}
             </Panel>
 
+            <div className="sub" style={{ fontWeight: 700, marginTop: 4, marginBottom: -4 }}>
+              {t("cases.approvals.clientSectionTitle")}
+            </div>
             <Panel n="" title={t("caseWorkspace.clientApprovals.title")}>
-              {canEditCase && (
+              <div className="sub" style={{ marginBottom: 10 }}>
+                {t("caseWorkspace.clientApprovals.hint")}
+              </div>
+              {canApproveReports && (
                 <form action={createClientApprovalRequestAction} className="two" style={{ marginBottom: 12 }}>
                   <input type="hidden" name="caseId" value={id} />
                   <input type="text" name="title" placeholder={t("caseWorkspace.clientApprovals.titleLabel")} required />
@@ -2372,7 +2628,7 @@ export default async function CaseDetailPage({
                                 </option>
                               ))}
                             </select>
-                            <input type="date" name="date" defaultValue={p.date ? fmt(p.date) : ""} />
+                            <input type="date" name="date" defaultValue={toDateInputValue(p.date)} />
                             <input type="text" name="note" defaultValue={p.note ?? ""} placeholder={t("cases.execution.procedureNote")} />
                             <button type="submit" className="tinybtn" style={{ gridColumn: "span 2" }}>
                               {t("common.save")}
@@ -2437,6 +2693,8 @@ export default async function CaseDetailPage({
       }
       case "closing": {
         const OUTCOMES = [CaseOutcome.WON, CaseOutcome.PARTIAL, CaseOutcome.SETTLED, CaseOutcome.LOST];
+        const outcomeColor = (o: CaseOutcome): string =>
+          o === CaseOutcome.WON ? "var(--ok)" : o === CaseOutcome.LOST ? "var(--advocate)" : "var(--gold)";
         const checklist = (c.closingChecklist as Record<string, boolean> | null) ?? {};
         const doneCount = CLOSING_CHECKLIST_ITEMS.filter((k) => checklist[k]).length;
         tabBody = (
@@ -2456,7 +2714,7 @@ export default async function CaseDetailPage({
                           className="tinybtn"
                           style={
                             c.outcome === o
-                              ? { background: "var(--bench)", color: "#fff", borderColor: "var(--bench)" }
+                              ? { background: outcomeColor(o), color: "#fff", borderColor: outcomeColor(o) }
                               : undefined
                           }
                         >
@@ -2473,7 +2731,12 @@ export default async function CaseDetailPage({
                     </form>
                   </>
                 ) : (
-                  <span className="chip">{c.outcome ? outcomeLabel(c.outcome) : t("common.none")}</span>
+                  <span
+                    className="chip"
+                    style={c.outcome ? { background: outcomeColor(c.outcome), color: "#fff", borderColor: outcomeColor(c.outcome) } : undefined}
+                  >
+                    {c.outcome ? outcomeLabel(c.outcome) : t("common.none")}
+                  </span>
                 )}
               </div>
             </Panel>
@@ -2551,9 +2814,9 @@ export default async function CaseDetailPage({
                     ) : canEditCase ? (
                       <form action={archiveCaseAction}>
                         <input type="hidden" name="caseId" value={id} />
-                        <button type="submit" className="act b-judge">
+                        <ArchiveCaseButton incomplete={doneCount < CLOSING_CHECKLIST_ITEMS.length} confirmMessage={t("cases.closing.archiveIncompleteConfirm")}>
                           {t("cases.closing.archive")}
-                        </button>
+                        </ArchiveCaseButton>
                       </form>
                     ) : null}
                   </div>
@@ -2690,11 +2953,28 @@ function Empty({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Panel({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
+function Panel({
+  n,
+  title,
+  badge,
+  accent,
+  children,
+}: {
+  n: string;
+  title: string;
+  badge?: string;
+  accent?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="panel">
+    <div className="panel" style={accent ? { border: "1px solid var(--gold)" } : undefined}>
       <h2 style={{ marginTop: 0 }}>
         <span className="n">{n}</span> {title}
+        {badge && (
+          <span className="chip" style={{ marginInlineStart: 8, background: "var(--gold)", color: "#fff" }}>
+            {badge}
+          </span>
+        )}
       </h2>
       {children}
     </div>

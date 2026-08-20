@@ -12,6 +12,7 @@ import { PermissionError } from "@/lib/permissions/guard";
 import { t } from "@/lib/i18n";
 import { arenaRoundAction, arenaResetAction } from "../../actions";
 import { requireUuidParam } from "@/lib/http/params";
+import { ConfirmSubmitButton } from "@/components/ai/confirm-submit-button";
 
 export default async function ArenaPage({ params }: { params: Promise<{ caseId: string }> }) {
   const session = await getSession();
@@ -52,9 +53,9 @@ export default async function ArenaPage({ params }: { params: Promise<{ caseId: 
             {turns.length > 0 && (
               <form action={arenaResetAction}>
                 <input type="hidden" name="caseId" value={caseId} />
-                <button type="submit" className="tinybtn del">
+                <ConfirmSubmitButton confirmMessage={t("ai.arenaResetConfirm")} className="tinybtn del">
                   {t("ai.arenaReset")}
-                </button>
+                </ConfirmSubmitButton>
               </form>
             )}
           </div>

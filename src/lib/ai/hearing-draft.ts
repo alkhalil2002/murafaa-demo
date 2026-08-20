@@ -14,10 +14,19 @@
  * clear "not connected yet" state instead of fabricating a draft.
  */
 
+export type HearingSuggestedAction = {
+  kind: "reminder" | "task" | "procedureRequest";
+  text: string;
+};
+
 export type HearingDraft = {
   minutes: string;
   result: string;
   clientReport: string;
+  /** ISO date string (YYYY-MM-DD) if the notes explicitly mention a next hearing date, else null. */
+  nextHearingDate: string | null;
+  /** A single follow-up action explicitly implied by the notes, else null. Never invented. */
+  suggestedAction: HearingSuggestedAction | null;
 };
 
 export type HearingDraftResult = { ok: true; draft: HearingDraft } | { ok: false; reason: "unavailable" | "error" };
@@ -28,6 +37,8 @@ const SYSTEM_PROMPT = `أنت مساعد صياغة لمكتب محاماة سع
 - minutes: محضر منظم بصيغة رسمية للملاحظات نفسها
 - result: ملخص نتيجة الجلسة في جملة أو جملتين
 - clientReport: تقرير مختصر وودود للعميل عمّا جرى، بدون مصطلحات قانونية معقدة
+- nextHearingDate: تاريخ الجلسة القادمة بصيغة YYYY-MM-DD إن وردت صراحةً في الملاحظات، وإلا null. لا تخمّن تاريخًا غير مذكور.
+- suggestedAction: إجراء متابعة واحد فقط إن وردت الحاجة إليه صراحةً في الملاحظات، ككائن {"kind": "reminder"|"task"|"procedureRequest", "text": "..."}, وإلا null. لا تخترع إجراءً غير مذكور.
 لا تكتب أي شيء خارج كائن الـ JSON.`;
 
 /**
@@ -53,6 +64,44 @@ const SYSTEM_PROMPT = `أنت مساعد صياغة لمكتب محاماة سع
  */
 const DRAFT_MODEL = process.env.AI_DRAFT_MODEL || "claude-haiku-4-5";
 
+/**
+ * Validate/normalize the model's raw JSON reply into a HearingDraft. Exported
+ * (pure, no I/O) so the anti-fabrication fallback behavior — garbage date or
+ * action kind must become null, never invented or thrown — is unit-testable
+ * without a live provider.
+ */
+export function parseDraftPayload(parsed: Record<string, unknown>): HearingDraft {
+  // Defensive: the model is instructed to return null for both when the notes
+  // don't explicitly mention a next date/action, but validate rather than trust
+  // it — a garbage/invented value must fall back to null, never crash the draft.
+  let nextHearingDate: string | null = null;
+  if (typeof parsed.nextHearingDate === "string" && parsed.nextHearingDate.trim()) {
+    const d = new Date(parsed.nextHearingDate);
+    if (!Number.isNaN(d.getTime())) nextHearingDate = parsed.nextHearingDate.trim();
+  }
+
+  let suggestedAction: HearingSuggestedAction | null = null;
+  const rawAction = parsed.suggestedAction as Record<string, unknown> | null | undefined;
+  if (
+    rawAction &&
+    typeof rawAction === "object" &&
+    typeof rawAction.kind === "string" &&
+    ["reminder", "task", "procedureRequest"].includes(rawAction.kind) &&
+    typeof rawAction.text === "string" &&
+    rawAction.text.trim()
+  ) {
+    suggestedAction = { kind: rawAction.kind as HearingSuggestedAction["kind"], text: rawAction.text.trim() };
+  }
+
+  return {
+    minutes: String(parsed.minutes ?? ""),
+    result: String(parsed.result ?? ""),
+    clientReport: String(parsed.clientReport ?? ""),
+    nextHearingDate,
+    suggestedAction,
+  };
+}
+
 async function callAnthropic(rawNotes: string): Promise<HearingDraft> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -73,11 +122,7 @@ async function callAnthropic(rawNotes: string): Promise<HearingDraft> {
   const data = await res.json();
   const text = data.content?.[0]?.text ?? "{}";
   const parsed = JSON.parse(text);
-  return {
-    minutes: String(parsed.minutes ?? ""),
-    result: String(parsed.result ?? ""),
-    clientReport: String(parsed.clientReport ?? ""),
-  };
+  return parseDraftPayload(parsed);
 }
 
 export async function draftHearingReport(rawNotes: string): Promise<HearingDraftResult> {

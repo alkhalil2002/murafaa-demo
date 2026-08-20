@@ -382,7 +382,7 @@ export async function listInvoices(session: AppSession, caseId?: string): Promis
   const rows = await prisma.invoice.findMany({
     where: { officeId: session.officeId, deletedAt: null, ...(caseId ? { caseId } : {}) },
     orderBy: { createdAt: "desc" },
-    include: { client: { select: { name: true } }, case: { select: { title: true } }, payments: { select: { amount: true } } },
+    include: { client: { select: { name: true } }, case: { select: { title: true } }, payments: { where: { isApproved: true }, select: { amount: true } } },
   });
   return rows.map(toDTO);
 }
@@ -393,7 +393,7 @@ export async function listInvoicesByClient(session: AppSession, clientId: string
   const rows = await prisma.invoice.findMany({
     where: { officeId: session.officeId, clientId, deletedAt: null },
     orderBy: { createdAt: "desc" },
-    include: { client: { select: { name: true } }, case: { select: { title: true } }, payments: { select: { amount: true } } },
+    include: { client: { select: { name: true } }, case: { select: { title: true } }, payments: { where: { isApproved: true }, select: { amount: true } } },
   });
   return rows.map(toDTO);
 }
@@ -411,5 +411,5 @@ export async function getInvoice(session: AppSession, id: string) {
     },
   });
   if (!inv) throw new PermissionError("scope");
-  return { ...inv, dto: toDTO(inv) };
+  return { ...inv, dto: toDTO({ ...inv, payments: inv.payments.filter((p) => p.isApproved) }) };
 }

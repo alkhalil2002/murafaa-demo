@@ -232,6 +232,7 @@ enum DocParty {
   OURS // نحن
   OPPONENT // الخصم
   COURT // المحكمة
+  EXPERT // الخبير
 }
 
 /// Template category (prototype template.c) — groups the picker.
@@ -1168,6 +1169,12 @@ model Document {
   procedureRequest   ProcedureRequest?        @relation(fields: [procedureRequestId], references: [id], onDelete: SetNull)
   procedureDocRole   ProcedureRequestDocRole? @map("procedure_doc_role")
 
+  /// Link to the internal review item this attachment belongs to (a draft file,
+  /// or the generated letterhead PDF once sent to the client). Mirrors
+  /// procedureRequestId exactly.
+  approvalId String?       @map("approval_id") @db.Uuid
+  approval   CaseApproval? @relation(fields: [approvalId], references: [id], onDelete: SetNull)
+
   // ── stored object ──
   storageKey String  @map("storage_key")
   mimeType   String  @map("mime_type")
@@ -2036,15 +2043,27 @@ model CaseApproval {
   title String
   stage ApprovalStage @default(DRAFT)
 
+  /// The memo/document text draft, refined across the review cycle. Sent to
+  /// the client (as a letterhead PDF) once the item reaches APPROVED.
+  body String? @map("body")
+
   /// If set, reaching APPROVED auto-decides that hearing's pending client-report
   /// approval request (prototype apprAdvance → hrDoSendReport). Plain soft link,
   /// mirrors Document.hearingId.
   hearingId String? @map("hearing_id") @db.Uuid
 
+  /// Set once this internal approval has been pushed to the client-facing track
+  /// (sendApprovalToClient) — prevents sending twice and lets the internal item
+  /// show the client's decision back. 1:1 from this side.
+  clientApprovalRequestId String?                 @unique @map("client_approval_request_id") @db.Uuid
+  clientApprovalRequest   ClientApprovalRequest?   @relation(fields: [clientApprovalRequestId], references: [id], onDelete: SetNull)
+
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   createdById String?   @map("created_by") @db.Uuid
   deletedAt   DateTime? @map("deleted_at")
+
+  documents Document[]
 
   @@index([officeId, caseId])
   @@map("case_approvals")
@@ -2093,6 +2112,11 @@ model ClientApprovalRequest {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   createdById String?   @map("created_by") @db.Uuid
   deletedAt   DateTime? @map("deleted_at")
+
+  /// Back-reference to the internal CaseApproval this request was raised from,
+  /// if any (sendApprovalToClient). Optional — a request can also be raised
+  /// directly, with no internal-review origin.
+  sourceApproval CaseApproval?
 
   @@index([officeId, caseId])
   @@index([officeId, status])

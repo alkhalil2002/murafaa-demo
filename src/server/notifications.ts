@@ -4,6 +4,8 @@ import { canAction } from "@/lib/permissions/guard";
 import { getDeadlines } from "@/server/deadlines";
 import { listTasks } from "@/server/tasks";
 import { listPendingApprovals } from "@/server/approvals";
+import { listPendingReportApprovals } from "@/server/hearings";
+import { listUnansweredClientMessages } from "@/server/messages";
 import { listInvoices } from "@/server/invoices";
 import { approvalStageLabel } from "@/lib/labels";
 import { t } from "@/lib/i18n";
@@ -40,6 +42,26 @@ export async function getNotifications(session: AppSession): Promise<Notificatio
         text: t("notif.approvalPending", { title: a.title, stage: approvalStageLabel(a.stage) }),
         href: `/cases/${a.case.id}`,
         at: a.createdAt,
+      });
+    }
+
+    const pendingReports = await listPendingReportApprovals(session);
+    for (const h of pendingReports) {
+      items.push({
+        id: `hearingReport:${h.id}`,
+        text: t("notif.hearingReportPending", { case: h.case.title, no: (h.sequenceNo ?? 0).toLocaleString("ar-SA") }),
+        href: `/cases/${h.case.id}?tab=hearings#hearing-${h.id}`,
+        at: h.updatedAt,
+      });
+    }
+
+    const unanswered = await listUnansweredClientMessages(session);
+    for (const m of unanswered) {
+      items.push({
+        id: `message:${m.id}`,
+        text: t("notif.clientMessage", { case: m.case.title }),
+        href: `/cases/${m.case.id}?tab=chat`,
+        at: m.createdAt,
       });
     }
   }

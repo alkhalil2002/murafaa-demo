@@ -220,6 +220,7 @@ const uploadSchema = z.object({
   sessionLabel: z.string().nullish(),
   procedureRequestId: z.string().uuid().nullish(),
   procedureDocRole: z.nativeEnum(ProcedureRequestDocRole).nullish(),
+  approvalId: z.string().uuid().nullish(),
   source: z.nativeEnum(DocSource).nullish(),
 });
 export type UploadInput = z.infer<typeof uploadSchema>;
@@ -243,6 +244,13 @@ export async function uploadDocument(session: AppSession, raw: UploadInput, byte
       select: { id: true },
     });
     if (!request) throw new Error("PROCEDURE_REQUEST_NOT_FOUND");
+  }
+  if (input.approvalId) {
+    const approval = await prisma.caseApproval.findFirst({
+      where: { id: input.approvalId, caseId: input.caseId, officeId: session.officeId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!approval) throw new Error("APPROVAL_NOT_FOUND");
   }
 
   const id = randomUUID();
@@ -271,6 +279,7 @@ export async function uploadDocument(session: AppSession, raw: UploadInput, byte
         sessionLabel: input.sessionLabel ?? null,
         procedureRequestId: input.procedureRequestId ?? null,
         procedureDocRole: input.procedureDocRole ?? null,
+        approvalId: input.approvalId ?? null,
         storageKey,
         mimeType: input.mimeType,
         sizeBytes: bytes.length,
@@ -387,6 +396,43 @@ export async function clearOpeningPackage(session: AppSession, caseId: string) {
   return count;
 }
 
+/** Render a free-text body onto the office's letterhead template. Shared by the
+ * saved-hearing path (generateHearingReportPdf, persists a Document), the
+ * wizard's unsaved-draft preview (previewHearingReportPdf, no persistence),
+ * and the internal-review "send to client" path (sendApprovalToClient in
+ * src/server/approvals.ts). */
+export async function renderLetterheadPdfFromBody(
+  session: AppSession,
+  { title, body, generatedAt = new Date() }: { title: string; body: string; generatedAt?: Date },
+) {
+  const office = await prisma.office.findUniqueOrThrow({
+    where: { id: session.officeId },
+    select: { name: true, branding: true },
+  });
+  const branding = resolveBranding(office.branding ?? { name: office.name });
+  const bodyHtml = `<p>${escapeHtml(body).replace(/\n/g, "<br/>")}</p>`;
+  const html = letterheadHtml({
+    branding,
+    title,
+    bodyHtml,
+    hijriDate: formatHijri(generatedAt),
+  });
+  return renderPdf(html);
+}
+
+/**
+ * Preview path for item 5 (wizard step 4 "⬇ معاينة PDF بالديباجة"): renders the
+ * SAME letterhead template from the wizard's in-progress, unsaved
+ * clientReport text — no hearingId, no Document row, no storage write. Pure
+ * preview. Same case row-scope + module gate as the saved-hearing path.
+ */
+export async function previewHearingReportPdf(session: AppSession, caseId: string, clientReport: string) {
+  await requireModule(session, PermModule.DOCUMENTS, "edit");
+  await loadCaseForDocs(session, caseId);
+  if (!clientReport.trim()) throw new Error("HEARING_HAS_NO_REPORT");
+  return renderLetterheadPdfFromBody(session, { title: t("cases.hearings.clientReport"), body: clientReport });
+}
+
 /** Render a hearing's client report as a letterhead PDF and store it as a case Document (prototype "⬇ معاينة PDF بالديباجة"). */
 export async function generateHearingReportPdf(session: AppSession, caseId: string, hearingId: string) {
   await requireModule(session, PermModule.DOCUMENTS, "edit");
@@ -397,20 +443,14 @@ export async function generateHearingReportPdf(session: AppSession, caseId: stri
   if (!hearing) throw new PermissionError("scope");
   if (!hearing.clientReport) throw new Error("HEARING_HAS_NO_REPORT");
 
-  const office = await prisma.office.findUniqueOrThrow({
-    where: { id: session.officeId },
-    select: { name: true, branding: true },
-  });
-  const branding = resolveBranding(office.branding ?? { name: office.name });
-  const generatedDate = new Date();
-  const bodyHtml = `<p>${escapeHtml(hearing.clientReport).replace(/\n/g, "<br/>")}</p>`;
-  const html = letterheadHtml({
-    branding,
+  // Shared so the Hijri date printed on the PDF and the Document row's
+  // generatedDate can never disagree across a day boundary.
+  const generatedAt = new Date();
+  const pdf = await renderLetterheadPdfFromBody(session, {
     title: t("cases.hearings.clientReport"),
-    bodyHtml,
-    hijriDate: formatHijri(generatedDate),
+    body: hearing.clientReport,
+    generatedAt,
   });
-  const pdf = await renderPdf(html);
 
   const id = randomUUID();
   const fileName = t("cases.hearings.sessionNo", { no: (hearing.sequenceNo ?? 0).toString() }) + " - " + t("cases.hearings.clientReport") + ".pdf";
@@ -433,7 +473,7 @@ export async function generateHearingReportPdf(session: AppSession, caseId: stri
         storageKey,
         mimeType: "application/pdf",
         sizeBytes: pdf.length,
-        generatedDate,
+        generatedDate: generatedAt,
       },
     });
   } catch (err) {

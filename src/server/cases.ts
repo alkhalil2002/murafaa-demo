@@ -130,7 +130,7 @@ export async function getCase(session: AppSession, id: string) {
       client: { select: { id: true, name: true, phone: true } },
       assignees: { include: { user: { select: { id: true, name: true } } } },
       hearings: { where: { deletedAt: null }, orderBy: { hearingDate: "asc" } },
-      events: { orderBy: { occurredAt: "desc" }, take: 50 },
+      events: { orderBy: { occurredAt: "desc" } },
       conflictFlags: true,
       reminders: { where: { deletedAt: null }, orderBy: { dueOn: "asc" } },
     },
@@ -405,7 +405,7 @@ export async function promoteStage(session: AppSession, caseId: string) {
   await logCaseEvent(prisma, {
     officeId: session.officeId,
     caseId,
-    type: CaseEventType.SYSTEM,
+    type: CaseEventType.STAGE,
     description: t("event.stagePromoted", { stage: t(`case.stage.${next}`) }),
     actorUserId: session.userId,
   });
@@ -423,7 +423,7 @@ export async function remandStage(session: AppSession, caseId: string) {
   await logCaseEvent(prisma, {
     officeId: session.officeId,
     caseId,
-    type: CaseEventType.SYSTEM,
+    type: CaseEventType.STAGE,
     description: t("event.stageRemanded", { stage: t(`case.stage.${prev}`) }),
     actorUserId: session.userId,
   });
@@ -441,7 +441,7 @@ export async function endProcedure(session: AppSession, caseId: string, result: 
   await logCaseEvent(prisma, {
     officeId: session.officeId,
     caseId,
-    type: CaseEventType.SYSTEM,
+    type: CaseEventType.STAGE,
     description: t("event.procEnded", { result: result || "—" }),
     actorUserId: session.userId,
   });
@@ -459,7 +459,7 @@ export async function reopenProcedure(session: AppSession, caseId: string) {
   await logCaseEvent(prisma, {
     officeId: session.officeId,
     caseId,
-    type: CaseEventType.SYSTEM,
+    type: CaseEventType.STAGE,
     description: t("event.procReopened"),
     actorUserId: session.userId,
   });

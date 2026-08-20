@@ -286,22 +286,41 @@ export default async function TodayV2Page() {
             order={5}
           >
             {summary.approvals.items.length ? (
-              summary.approvals.items.map((item) =>
-                item.kind === "hrRequest" ? (
-                  <Row
-                    key={item.id}
-                    href="/hr/requests"
-                    accent="var(--bench-600)"
-                    label={
-                      <>
-                        {item.kindLabel}
-                        <span className="sub"> — {item.employeeName}</span>
-                        {item.department ? <span className="sub"> · {item.department}</span> : null}
-                      </>
-                    }
-                    chip={item.statusLabel}
-                  />
-                ) : (
+              summary.approvals.items.map((item) => {
+                if (item.kind === "hrRequest") {
+                  return (
+                    <Row
+                      key={item.id}
+                      href="/hr/requests"
+                      accent="var(--bench-600)"
+                      label={
+                        <>
+                          {item.kindLabel}
+                          <span className="sub"> — {item.employeeName}</span>
+                          {item.department ? <span className="sub"> · {item.department}</span> : null}
+                        </>
+                      }
+                      chip={item.statusLabel}
+                    />
+                  );
+                }
+                if (item.kind === "hearingReport") {
+                  return (
+                    <Row
+                      key={item.id}
+                      href={`/cases/${item.caseId}?tab=hearings#hearing-${item.id}`}
+                      accent="var(--gold-600)"
+                      label={
+                        <>
+                          {t("cases.hearings.sessionNo", { no: item.sessionNo.toLocaleString("ar-SA") })}
+                          <span className="sub"> — {item.caseTitle}</span>
+                        </>
+                      }
+                      chip={t("today.approvals.reportPending")}
+                    />
+                  );
+                }
+                return (
                   <Row
                     key={item.id}
                     href={`/cases/${item.caseId}?tab=approvals`}
@@ -314,8 +333,8 @@ export default async function TodayV2Page() {
                     }
                     chip={item.stageLabel}
                   />
-                ),
-              )
+                );
+              })
             ) : (
               <Empty>{t("today.empty.approvals")}</Empty>
             )}

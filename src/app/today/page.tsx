@@ -231,17 +231,36 @@ export default async function TodayPage() {
       {summary.approvals.visible && (
         <Panel n={t("today.panel.approvals")} title={t("today.panel.approvalsSub")}>
           {summary.approvals.items.length ? (
-            summary.approvals.items.map((item) =>
-              item.kind === "hrRequest" ? (
-                <Link href="/hr/requests" className="approve-row" style={{ cursor: "pointer" }} key={item.id}>
-                  <span className="ndot" style={{ background: "var(--bench)" }} />
-                  <span className="at">
-                    {item.kindLabel} — {item.employeeName}
-                    {item.department ? <span className="chip"> {item.department}</span> : null}
-                  </span>
-                  <span className="chip">{item.statusLabel}</span>
-                </Link>
-              ) : (
+            summary.approvals.items.map((item) => {
+              if (item.kind === "hrRequest") {
+                return (
+                  <Link href="/hr/requests" className="approve-row" style={{ cursor: "pointer" }} key={item.id}>
+                    <span className="ndot" style={{ background: "var(--bench)" }} />
+                    <span className="at">
+                      {item.kindLabel} — {item.employeeName}
+                      {item.department ? <span className="chip"> {item.department}</span> : null}
+                    </span>
+                    <span className="chip">{item.statusLabel}</span>
+                  </Link>
+                );
+              }
+              if (item.kind === "hearingReport") {
+                return (
+                  <Link
+                    href={`/cases/${item.caseId}?tab=hearings#hearing-${item.id}`}
+                    className="approve-row"
+                    style={{ cursor: "pointer" }}
+                    key={item.id}
+                  >
+                    <span className="ndot" style={{ background: "var(--gold)" }} />
+                    <span className="at">
+                      {t("cases.hearings.sessionNo", { no: item.sessionNo.toLocaleString("ar-SA") })} — {item.caseTitle}
+                    </span>
+                    <span className="chip">{t("today.approvals.reportPending")}</span>
+                  </Link>
+                );
+              }
+              return (
                 <Link
                   href={`/cases/${item.caseId}?tab=approvals`}
                   className="approve-row"
@@ -254,8 +273,8 @@ export default async function TodayPage() {
                   </span>
                   <span className="chip">{item.stageLabel}</span>
                 </Link>
-              ),
-            )
+              );
+            })
           ) : (
             <Empty>{t("today.empty.approvals")}</Empty>
           )}

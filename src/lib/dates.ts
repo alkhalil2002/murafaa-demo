@@ -124,3 +124,25 @@ export function formatDateAr(value: Date | string | null | undefined): string {
   if (Number.isNaN(d.getTime())) return "—";
   return AR_DATE_FMT.format(d);
 }
+
+const ISO_DATE_FMT = new Intl.DateTimeFormat("en-CA", {
+  timeZone: RIYADH_TZ,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/**
+ * Literal YYYY-MM-DD for an `<input type="date">` `defaultValue`/`value` —
+ * NOT for display (use `formatDateAr` there). The browser rejects anything
+ * else for a date input's value, including `formatDateAr`'s Arabic-Indic,
+ * slash-separated output, so a field pre-filled with `fmt(existingDate)`
+ * silently renders empty instead of showing the current value.
+ */
+export function toDateInputValue(value: Date | string | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "";
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  // en-CA formats as YYYY-MM-DD, matching riyadhCalendarDate's parsing above.
+  return ISO_DATE_FMT.format(d);
+}

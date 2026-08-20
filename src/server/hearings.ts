@@ -18,11 +18,12 @@ import { logPerformance } from "@/lib/performance";
 import { t } from "@/lib/i18n";
 import { dateInDays, minusDays, plusDays, riyadhCalendarDate, formatDateAr } from "@/lib/dates";
 import type { AppSession } from "@/lib/auth/types";
-import { PermissionError, requireModule } from "@/lib/permissions/guard";
-import { isCaseVisible } from "@/lib/permissions/scope";
+import { PermissionError, canAction, requireModule } from "@/lib/permissions/guard";
+import { isCaseVisible, caseScopeWhere } from "@/lib/permissions/scope";
 import { createAutoTask } from "./tasks";
 import { generateHearingReportPdf } from "./documents";
 import { PROC_REQUEST_TYPES } from "./procedure-requests";
+import { sendCaseMessage } from "./messages";
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
@@ -50,7 +51,9 @@ const recordSchema = z.object({
   isPending: z.boolean().optional(),
   pendingItems: z.array(z.enum(HEARING_PENDING_ITEMS)).optional(),
   reminderRecurDays: z.number().int().positive().nullish(),
-  /** Optional follow-up action added in the wizard's step 3, closed out with the hearing itself. */
+  /** Optional follow-up action added in the wizard's step 3, closed out with the hearing itself.
+   * Kept for backward compatibility with a single-row submit; superseded by the
+   * `reminders`/`tasks`/`procedureRequests` arrays below when those are present. */
   actionReminderText: z.string().trim().min(1).nullish(),
   actionReminderDueOn: z.coerce.date().nullish(),
   actionTaskTitle: z.string().trim().min(1).nullish(),
@@ -60,6 +63,32 @@ const recordSchema = z.object({
   actionRequestParty: z.nativeEnum(DocParty).nullish(),
   actionRequestType: z.enum(PROC_REQUEST_TYPES).nullish(),
   actionRequestText: z.string().trim().min(1).nullish(),
+  /** Repeatable rows (prototype's "＋ إجراء"/"＋ طلب") — 0..N of each, added in the same wizard step 3. */
+  reminders: z
+    .array(z.object({ text: z.string().trim().min(1), dueOn: z.coerce.date().nullish() }))
+    .optional(),
+  tasks: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1),
+        assigneeId: z.string().uuid().nullish(),
+        dueAt: z.coerce.date().nullish(),
+      }),
+    )
+    .optional(),
+  procedureRequests: z
+    .array(
+      z.object({
+        party: z.nativeEnum(DocParty).nullish(),
+        type: z.enum(PROC_REQUEST_TYPES).nullish(),
+        text: z.string().trim().min(1),
+      }),
+    )
+    .optional(),
+  /** Wizard step 4 "اطلب اعتماد التقرير فور الحفظ" — skips the extra trip back
+   * to the saved hearing's card to click "طلب اعتماد" separately. No-op when
+   * clientReport is empty (nothing to approve). */
+  requestApprovalNow: z.boolean().optional(),
 });
 export type RecordHearingInput = z.infer<typeof recordSchema>;
 
@@ -73,6 +102,77 @@ const JUDGMENT_TEXT = /بالحكم|صدر الحكم|صدور الحكم|نطق
 function isJudgment(kind: HearingKind | undefined | null, result?: string | null, minutes?: string | null) {
   if (kind != null) return kind === HearingKind.JUDGMENT_PRONOUNCEMENT;
   return JUDGMENT_TEXT.test(`${result ?? ""} ${minutes ?? ""}`);
+}
+
+/** Shared by recordHearing and updateHearing so the wizard's repeatable
+ * reminder/task/procedure-request rows are created identically whether the
+ * hearing is being recorded for the first time or edited afterward. */
+async function createHearingFollowUps(
+  tx: Db,
+  session: AppSession,
+  params: {
+    caseId: string;
+    hearingId: string;
+    stageIndex: number | null | undefined;
+    fallbackDueOn: Date;
+    reminders: { text: string; dueOn?: Date | null }[];
+    tasks: { title: string; assigneeId?: string | null; dueAt?: Date | null }[];
+    procedureRequests: { party?: DocParty | null; type?: (typeof PROC_REQUEST_TYPES)[number] | null; text: string }[];
+  },
+) {
+  const { caseId, hearingId, stageIndex, fallbackDueOn, reminders, tasks, procedureRequests } = params;
+
+  for (const row of reminders) {
+    await tx.caseReminder.create({
+      data: {
+        officeId: session.officeId,
+        createdById: session.userId,
+        caseId,
+        hearingId,
+        text: row.text,
+        dueOn: row.dueOn ?? fallbackDueOn,
+      },
+    });
+  }
+
+  for (const row of tasks) {
+    await tx.task.create({
+      data: {
+        officeId: session.officeId,
+        createdById: session.userId,
+        caseId,
+        hearingId,
+        title: row.title,
+        assigneeId: row.assigneeId ?? null,
+        dueAt: row.dueAt ?? null,
+        category: TaskCategory.PROCEDURAL_FOLLOWUP,
+        origin: TaskSource.HEARING_ACTION,
+      },
+    });
+  }
+
+  for (const row of procedureRequests) {
+    const created = await tx.procedureRequest.create({
+      data: {
+        officeId: session.officeId,
+        createdById: session.userId,
+        caseId,
+        hearingId,
+        stageIndex: stageIndex ?? 0,
+        party: row.party ?? DocParty.OURS,
+        type: row.type ?? null,
+        text: row.text,
+      },
+    });
+    await logCaseEvent(tx, {
+      officeId: session.officeId,
+      caseId,
+      type: CaseEventType.REQUEST,
+      description: t("event.procedureRequestAdded", { text: row.type ?? row.text }),
+      actorUserId: session.userId,
+      procedureRequestId: created.id,
+    });
+  }
 }
 
 async function loadVisibleCase(session: AppSession, caseId: string) {
@@ -107,6 +207,7 @@ export async function recordHearing(session: AppSession, caseId: string, raw: Re
     await tx.hearing.deleteMany({
       where: { officeId: session.officeId, caseId, status: HearingStatus.UPCOMING },
     });
+    const requestApprovalNow = Boolean(input.requestApprovalNow && input.clientReport);
     const hearing = await tx.hearing.create({
       data: {
         officeId: session.officeId,
@@ -120,64 +221,42 @@ export async function recordHearing(session: AppSession, caseId: string, raw: Re
         minutes: input.minutes ?? null,
         result: input.result ?? null,
         clientReport: input.clientReport ?? null,
+        reportApprovalRequested: requestApprovalNow,
         isPending: input.isPending ?? false,
         pendingItems: input.isPending ? (input.pendingItems ?? []) : Prisma.JsonNull,
         reminderRecurDays: input.isPending ? (input.reminderRecurDays ?? null) : null,
       },
     });
 
-    // Optional follow-up reminder/task logged in the same wizard pass that
-    // closes out the hearing (docs BR-CASE-11) instead of a separate trip
-    // back into the hearing's edit form afterward.
-    if (input.actionReminderText) {
-      await tx.caseReminder.create({
-        data: {
-          officeId: session.officeId,
-          createdById: session.userId,
-          caseId,
-          hearingId: hearing.id,
-          text: input.actionReminderText,
-          dueOn: input.actionReminderDueOn ?? input.hearingDate,
-        },
-      });
-    }
-    if (input.actionTaskTitle) {
-      await tx.task.create({
-        data: {
-          officeId: session.officeId,
-          createdById: session.userId,
-          caseId,
-          hearingId: hearing.id,
-          title: input.actionTaskTitle,
-          assigneeId: input.actionTaskAssigneeId ?? null,
-          dueAt: input.actionTaskDueAt ?? null,
-          category: TaskCategory.PROCEDURAL_FOLLOWUP,
-          origin: TaskSource.HEARING_ACTION,
-        },
-      });
-    }
-    if (input.actionRequestText) {
-      const created = await tx.procedureRequest.create({
-        data: {
-          officeId: session.officeId,
-          createdById: session.userId,
-          caseId,
-          hearingId: hearing.id,
-          stageIndex: input.stageIndex ?? 0,
-          party: input.actionRequestParty ?? DocParty.OURS,
-          type: input.actionRequestType ?? null,
-          text: input.actionRequestText,
-        },
-      });
-      await logCaseEvent(tx, {
-        officeId: session.officeId,
-        caseId,
-        type: CaseEventType.REQUEST,
-        description: t("event.procedureRequestAdded", { text: input.actionRequestType ?? input.actionRequestText }),
-        actorUserId: session.userId,
-        procedureRequestId: created.id,
-      });
-    }
+    // Optional follow-up reminders/tasks/procedure-requests logged in the same
+    // wizard pass that closes out the hearing (docs BR-CASE-11) instead of a
+    // separate trip back into the hearing's edit form afterward. The legacy
+    // singular `action*` fields are folded in first so a plain single-row
+    // submit keeps working unchanged.
+    await createHearingFollowUps(tx, session, {
+      caseId,
+      hearingId: hearing.id,
+      stageIndex: input.stageIndex,
+      fallbackDueOn: input.hearingDate,
+      reminders: [
+        ...(input.actionReminderText
+          ? [{ text: input.actionReminderText, dueOn: input.actionReminderDueOn ?? null }]
+          : []),
+        ...(input.reminders ?? []),
+      ],
+      tasks: [
+        ...(input.actionTaskTitle
+          ? [{ title: input.actionTaskTitle, assigneeId: input.actionTaskAssigneeId ?? null, dueAt: input.actionTaskDueAt ?? null }]
+          : []),
+        ...(input.tasks ?? []),
+      ],
+      procedureRequests: [
+        ...(input.actionRequestText
+          ? [{ party: input.actionRequestParty ?? null, type: input.actionRequestType ?? null, text: input.actionRequestText }]
+          : []),
+        ...(input.procedureRequests ?? []),
+      ],
+    });
 
     await logCaseEvent(tx, {
       officeId: session.officeId,
@@ -189,6 +268,16 @@ export async function recordHearing(session: AppSession, caseId: string, raw: Re
       }),
       actorUserId: session.userId,
     });
+
+    if (requestApprovalNow) {
+      await logCaseEvent(tx, {
+        officeId: session.officeId,
+        caseId,
+        type: CaseEventType.SYSTEM,
+        description: t("event.hearingReportApprovalRequested", { no: hearing.sequenceNo ?? 0 }),
+        actorUserId: session.userId,
+      });
+    }
 
     // (a) Judgment → objection deadline + urgent task (docs/06 §1, BR-TASK-1).
     if (isJudgment(input.kind, input.result, input.minutes)) {
@@ -341,6 +430,34 @@ const updateSchema = z.object({
   isPending: z.boolean().optional(),
   pendingItems: z.array(z.enum(HEARING_PENDING_ITEMS)).optional(),
   reminderRecurDays: z.number().int().positive().nullish(),
+  /** Same repeatable rows as recordSchema (cases.hearings.resume — the
+   * "↻ تعديل عبر المعالج" wizard reuses step 3's UI on an already-recorded
+   * hearing too, not just at initial recording). */
+  reminders: z
+    .array(z.object({ text: z.string().trim().min(1), dueOn: z.coerce.date().nullish() }))
+    .optional(),
+  tasks: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1),
+        assigneeId: z.string().uuid().nullish(),
+        dueAt: z.coerce.date().nullish(),
+      }),
+    )
+    .optional(),
+  procedureRequests: z
+    .array(
+      z.object({
+        party: z.nativeEnum(DocParty).nullish(),
+        type: z.enum(PROC_REQUEST_TYPES).nullish(),
+        text: z.string().trim().min(1),
+      }),
+    )
+    .optional(),
+  /** Same "اطلب اعتماد التقرير فور الحفظ" convenience as recordSchema — a
+   * no-op if there's no report text, or one is already requested/sent, so
+   * re-saving the resume wizard can never accidentally re-trigger it. */
+  requestApprovalNow: z.boolean().optional(),
 });
 export type UpdateHearingInput = z.infer<typeof updateSchema>;
 
@@ -353,24 +470,62 @@ export async function updateHearing(
 ) {
   await requireModule(session, PermModule.CASES, "edit");
   const input = updateSchema.parse(raw);
-  await loadOwnHearing(session, caseId, hearingId);
+  const existing = await loadOwnHearing(session, caseId, hearingId);
 
-  const updated = await prisma.hearing.update({
-    where: { id: hearingId },
-    data: {
-      hearingDate: input.hearingDate,
-      kind: input.kind,
-      stageIndex: input.stageIndex,
-      minutes: input.minutes,
-      result: input.result,
-      clientReport: input.clientReport,
-      isPending: input.isPending,
-      pendingItems: input.isPending
-        ? ((input.pendingItems ?? []) as unknown as Prisma.InputJsonValue)
-        : Prisma.JsonNull,
-      reminderRecurDays: input.isPending ? input.reminderRecurDays : null,
-    },
+  const willRequestApproval =
+    Boolean(input.requestApprovalNow) &&
+    Boolean(input.clientReport ?? existing.clientReport) &&
+    !existing.reportApprovalRequested &&
+    !existing.reportSentToClient;
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const updated = await tx.hearing.update({
+      where: { id: hearingId },
+      data: {
+        hearingDate: input.hearingDate,
+        kind: input.kind,
+        stageIndex: input.stageIndex,
+        minutes: input.minutes,
+        result: input.result,
+        clientReport: input.clientReport,
+        isPending: input.isPending,
+        pendingItems: input.isPending
+          ? ((input.pendingItems ?? []) as unknown as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
+        reminderRecurDays: input.isPending ? input.reminderRecurDays : null,
+        ...(willRequestApproval ? { reportApprovalRequested: true } : {}),
+      },
+    });
+
+    if (willRequestApproval) {
+      await logCaseEvent(tx, {
+        officeId: session.officeId,
+        caseId,
+        type: CaseEventType.SYSTEM,
+        description: t("event.hearingReportApprovalRequested", { no: updated.sequenceNo ?? 0 }),
+        actorUserId: session.userId,
+      });
+    }
+
+    if ((input.reminders?.length || input.tasks?.length || input.procedureRequests?.length)) {
+      // Read off `updated` (the row exactly as just written), not
+      // `input.x ?? existing.x` — that treats an explicit clear-to-null the
+      // same as "field omitted" and would silently keep the stale stage/date
+      // even though the hearing itself was just cleared.
+      await createHearingFollowUps(tx, session, {
+        caseId,
+        hearingId,
+        stageIndex: updated.stageIndex,
+        fallbackDueOn: updated.hearingDate,
+        reminders: input.reminders ?? [],
+        tasks: input.tasks ?? [],
+        procedureRequests: input.procedureRequests ?? [],
+      });
+    }
+
+    return updated;
   });
+
   await logCaseEvent(prisma, {
     officeId: session.officeId,
     caseId,
@@ -471,6 +626,27 @@ async function loadOwnHearingTask(session: AppSession, caseId: string, hearingId
   });
   if (!tsk) throw new PermissionError("scope");
   return tsk;
+}
+
+/** Pending hearing report-approval requests the caller can actually decide
+ * on — feeds the "اعتمادات تنتظرك" panel on Today and the notifications feed,
+ * so a partner learns a report is waiting without having to stumble onto the
+ * right case/hearing by chance. Returns nothing for a session that can't
+ * approve (same FULL-tier gate as `decideReportApproval` itself) rather than
+ * showing an approval request the viewer couldn't act on anyway. */
+export async function listPendingReportApprovals(session: AppSession) {
+  if (!(await canAction(session, PermModule.CASES, "delete"))) return [];
+  const caseWhere = await caseScopeWhere(session);
+  return prisma.hearing.findMany({
+    where: {
+      officeId: session.officeId,
+      deletedAt: null,
+      reportApprovalRequested: true,
+      case: caseWhere,
+    },
+    orderBy: { updatedAt: "desc" },
+    include: { case: { select: { id: true, title: true } } },
+  });
 }
 
 /**
@@ -679,6 +855,30 @@ export async function getHearingActions(session: AppSession, caseId: string, hea
     }),
   ]);
   return { reminders, tasks };
+}
+
+/**
+ * "📲 ذكّر العميل بالجلسة" (prototype remindClientHearing) — the prototype
+ * composed a canned Arabic reminder and pushed it into a fake in-memory
+ * WhatsApp inbox; a real WhatsApp Business API send is out of scope here
+ * (deferred separately). Instead this reuses the real staff→client channel
+ * the app already has: a CaseMessage the client sees in their portal chat
+ * (src/server/messages.ts#sendCaseMessage), which already enforces the
+ * القضايا/edit gate + case row-scope.
+ */
+export async function remindClientAboutUpcomingHearing(session: AppSession, caseId: string) {
+  // Checked here, up front — sendCaseMessage enforces the same gate again
+  // before it writes, but without this a module-denied (row-visible) session
+  // could still trigger the case/hearing reads below before ever being
+  // rejected.
+  await requireModule(session, PermModule.CASES, "edit");
+  const c = await loadVisibleCase(session, caseId);
+  const upcoming = await prisma.hearing.findFirst({
+    where: { officeId: session.officeId, caseId, status: HearingStatus.UPCOMING, deletedAt: null },
+  });
+  if (!upcoming) throw new Error("NO_UPCOMING_HEARING");
+  const body = t("message.hearingReminder", { case: c.title, date: formatDateAr(upcoming.hearingDate) });
+  return sendCaseMessage(session, caseId, { body });
 }
 
 /** Convenience for jobs/seed: today + n days (Riyadh). Re-exported from dates. */

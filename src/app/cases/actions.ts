@@ -49,7 +49,15 @@ export async function generateFeeInvoiceAction(formData: FormData): Promise<void
   const session = await getSession();
   if (!session) redirect("/login");
   const caseId = String(formData.get("caseId") ?? "");
-  await generateInvoiceFromFee(session, caseId);
+  try {
+    await generateInvoiceFromFee(session, caseId);
+  } catch (err) {
+    const code = err instanceof Error ? err.message : "";
+    if (code === "FEE_AGREEMENT_MISSING" || code === "FEE_NET_NONPOSITIVE") {
+      redirect(`/cases/${caseId}?tab=finance&err=${code}`);
+    }
+    throw err;
+  }
   revalidatePath(`/cases/${caseId}`);
 }
 

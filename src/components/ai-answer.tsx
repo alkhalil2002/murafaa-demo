@@ -29,6 +29,9 @@ const ROLE_LABEL: Record<ArenaRole, string> = {
   JUDGE: "arenaRole.JUDGE",
 };
 
+const ROLE_ICON: Record<ArenaRole, string> = { OURS: "🛡", OPPONENT: "⚔", JUDGE: "⚖" };
+const ROLE_COLOR: Record<ArenaRole, string> = { OURS: "var(--bench)", OPPONENT: "var(--advocate)", JUDGE: "var(--gold)" };
+
 /**
  * Renders one gated AI answer: the question, the post-gate output, verified
  * source citations, the blocked-count note, and the mandatory disclaimer
@@ -38,10 +41,16 @@ export function AiAnswer({ data }: { data: AiAnswerData }) {
   const kept = data.citations.filter((c) => c.action === CitationAction.KEPT);
   const blocked = data.citations.filter((c) => c.action === CitationAction.BLOCKED).length;
 
+  const roleColor = data.arenaRole ? ROLE_COLOR[data.arenaRole] : undefined;
+
   return (
-    <div className="panel">
+    <div className="panel" style={roleColor ? { borderInlineStart: `3px solid ${roleColor}` } : undefined}>
       <div className="chips" style={{ marginBottom: 8 }}>
-        {data.arenaRole && <span className="chip">{t(ROLE_LABEL[data.arenaRole] as never)}</span>}
+        {data.arenaRole && (
+          <span className="chip" style={{ color: roleColor, borderColor: roleColor }}>
+            {ROLE_ICON[data.arenaRole]} {t(ROLE_LABEL[data.arenaRole] as never)}
+          </span>
+        )}
         <span
           className="chip"
           style={{ color: VERDICT_COLOR[data.verdict], borderColor: VERDICT_COLOR[data.verdict] }}
@@ -69,7 +78,7 @@ export function AiAnswer({ data }: { data: AiAnswerData }) {
           <div className="chips">
             {kept.map((c, i) => (
               <span className="ref" key={i}>
-                {c.matchedSource?.title ?? c.rawText}
+                ⚖︎ {c.matchedSource?.title ?? c.rawText}
                 {c.parsedArticleNumber ? ` — ${t("ai.article")} ${c.parsedArticleNumber}` : ""}
               </span>
             ))}

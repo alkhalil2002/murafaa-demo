@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { ClientApprovalStatus, DocKind, DocSource, MessageSenderType } from "@prisma/client";
+import { CaseEventType, ClientApprovalStatus, DocKind, DocSource, MessageSenderType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { logSystemAudit } from "@/lib/audit";
+import { logCaseEvent } from "@/lib/case-events";
+import { t } from "@/lib/i18n";
 import { documentKey, getStorage } from "@/lib/storage";
 import { invoiceStatus, paidOf, remainingOf } from "@/lib/finance/core";
 import type { PortalSession } from "@/lib/auth/portal-session";
@@ -95,6 +97,12 @@ export async function sendPortalMessage(session: PortalSession, caseId: string, 
     "portal.message.send",
     `client=${session.clientId} case=${caseId} message=${created.id}`,
   );
+  await logCaseEvent(prisma, {
+    officeId: session.officeId,
+    caseId,
+    type: CaseEventType.MESSAGE,
+    description: t("event.clientMessageSent"),
+  });
   return created;
 }
 
@@ -198,7 +206,7 @@ export async function listPortalInvoices(session: PortalSession) {
   const rows = await prisma.invoice.findMany({
     where: { officeId: session.officeId, clientId: session.clientId, deletedAt: null },
     orderBy: { issueDate: "desc" },
-    include: { case: { select: { title: true } }, payments: { select: { amount: true } } },
+    include: { case: { select: { title: true } }, payments: { where: { isApproved: true }, select: { amount: true } } },
   });
   return rows.map((inv) => {
     const paid = paidOf(inv.payments);

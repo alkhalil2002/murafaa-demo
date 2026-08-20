@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { getSession } from "@/lib/auth/session";
 import {
   toggleClosingChecklistItem,
@@ -22,12 +23,15 @@ export async function toggleChecklistAction(formData: FormData): Promise<void> {
   revalidatePath(`/cases/${caseId}`);
 }
 
+const csatScoreSchema = z.coerce.number().int().min(1).max(5);
+
 export async function setCsatAction(formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session) redirect("/login");
   const caseId = String(formData.get("caseId") ?? "");
-  const score = Number(formData.get("score") ?? 0);
-  await setClientSatisfaction(session, caseId, score);
+  const parsed = csatScoreSchema.safeParse(formData.get("score"));
+  if (!parsed.success) return;
+  await setClientSatisfaction(session, caseId, parsed.data);
   revalidatePath(`/cases/${caseId}`);
 }
 
