@@ -1,0 +1,141 @@
+/**
+ * Murafaa Design Tokens — CSS variables.
+ *
+ * Imported at the top of globals.css, so every legacy class in that file and
+ * every new component read the same values. This file is the single source of
+ * truth; `src/design/*.ts` is the typed mirror of it for TS/Tailwind.
+ *
+ * The v1 names (--bench, --gold, --parch …) are unchanged and keep their exact
+ * hexes — the 2,000-line legacy stylesheet depends on them. Everything below
+ * the "added" divider is new surface area, not a redefinition.
+ */
+
+:root {
+  /* ============ Brand ============ */
+  --bench-rgb: 14 58 48;
+  --bench: rgb(var(--bench-rgb));
+  --bench-2-rgb: 10 42 34;
+  --bench-2: rgb(var(--bench-2-rgb));
+  --gold-rgb: 194 151 75;
+  --gold: rgb(var(--gold-rgb));
+  --gold-soft-rgb: 231 210 164;
+  --gold-soft: rgb(var(--gold-soft-rgb));
+  --advocate-rgb: 122 46 51;
+  --advocate: rgb(var(--advocate-rgb));
+  --advocate-2-rgb: 92 32 37;
+  --advocate-2: rgb(var(--advocate-2-rgb));
+
+  /* ============ Surface & ink ============ */
+  --parch-rgb: 250 246 236;
+  --parch: rgb(var(--parch-rgb));
+  --parch-line-rgb: 234 223 200;
+  --parch-line: rgb(var(--parch-line-rgb));
+  --ink-rgb: 28 26 21;
+  --ink: rgb(var(--ink-rgb));
+  --ink-soft-rgb: 90 84 70;
+  --ink-soft: rgb(var(--ink-soft-rgb));
+  --line-rgb: 217 207 184;
+  --line: rgb(var(--line-rgb));
+
+  /* ============ Semantic ============ */
+  --ok-rgb: 46 125 91;
+  --ok: rgb(var(--ok-rgb));
+  --warn-rgb: 178 92 30;
+  --warn: rgb(var(--warn-rgb));
+  --wa-rgb: 37 211 102;
+  --wa: rgb(var(--wa-rgb));
+
+  /* ============ Categorical chart ramp ============
+     ΔE 11.1 simulated / 22.8 normal vision. Fixed order, never cycled.
+     Brand colours are deliberately excluded — see src/design/colors.ts. */
+  --chart-1: #008a72;
+  --chart-2: #b8541a;
+  --chart-3: #3d6fd0;
+  --chart-4: #b03a5e;
+  --chart-5: #8f9111;
+  --chart-6: #8a4fc0;
+
+  /* ============ Urgency bands (state only, never categorical) ============ */
+  --chart-critical-rgb: 179 36 47;
+  --chart-critical: rgb(var(--chart-critical-rgb));
+  --chart-serious-rgb: 209 116 27;
+  --chart-serious: rgb(var(--chart-serious-rgb));
+  --chart-warning-rgb: 201 162 39;
+  --chart-warning: rgb(var(--chart-warning-rgb));
+  --chart-good-rgb: 47 125 85;
+  --chart-good: rgb(var(--chart-good-rgb));
+
+  /* ══════════════ added by the token layer ══════════════ */
+
+  /* Warm neutral ramp, parchment → ink. The values that were already in use
+     are anchors: 100 = --parch, 300 = --parch-line, 400 = --line,
+     700 = --ink-soft, 900 = --ink. */
+  --parch-50-rgb: 253 251 245;
+  --parch-50: rgb(var(--parch-50-rgb));
+  --parch-100-rgb: 250 246 236;
+  --parch-100: rgb(var(--parch-100-rgb));
+  --parch-200-rgb: 242 235 217;
+  --parch-200: rgb(var(--parch-200-rgb));
+  --parch-300-rgb: 234 223 200;
+  --parch-300: rgb(var(--parch-300-rgb));
+  --parch-400-rgb: 217 207 184;
+  --parch-400: rgb(var(--parch-400-rgb));
+  --parch-500-rgb: 184 173 147;
+  --parch-500: rgb(var(--parch-500-rgb));
+  --parch-600-rgb: 140 131 112;
+  --parch-600: rgb(var(--parch-600-rgb));
+  --parch-700-rgb: 90 84 70;
+  --parch-700: rgb(var(--parch-700-rgb));
+  --parch-800-rgb: 53 49 42;
+  --parch-800: rgb(var(--parch-800-rgb));
+  --parch-900-rgb: 28 26 21;
+  --parch-900: rgb(var(--parch-900-rgb));
+  --parch-950-rgb: 15 14 11;
+  --parch-950: rgb(var(--parch-950-rgb));
+
+  /* Semantic aliases so components never reach for a brand colour directly */
+  --danger-rgb: var(--advocate-rgb);
+  --danger: rgb(var(--danger-rgb));
+  --info-rgb: 61 111 208;
+  --info: rgb(var(--info-rgb));
+
+  /* Case lifecycle — mirrors the CaseStatus enum */
+  --case-active-rgb: 46 125 91;
+  --case-active: rgb(var(--case-active-rgb));
+  --case-suspended-rgb: 178 92 30;
+  --case-suspended: rgb(var(--case-suspended-rgb));
+  --case-closed-rgb: 140 131 112;
+  --case-closed: rgb(var(--case-closed-rgb));
+
+  /* Case outcome — mirrors the CaseOutcome enum, feeds the win-rate KPI */
+  --outcome-won-rgb: 47 125 85;
+  --outcome-won: rgb(var(--outcome-won-rgb));
+  --outcome-partial-rgb: 201 162 39;
+  --outcome-partial: rgb(var(--outcome-partial-rgb));
+  --outcome-settled-rgb: 61 111 208;
+  --outcome-settled: rgb(var(--outcome-settled-rgb));
+  --outcome-lost-rgb: 179 36 47;
+  --outcome-lost: rgb(var(--outcome-lost-rgb));
+
+  /* ============ Elevation — warm, tinted toward ink ============ */
+  --shadow-sm: 0 1px 2px rgba(28, 26, 21, 0.05);
+  --shadow-md: 0 4px 12px rgba(28, 26, 21, 0.07);
+  --shadow-lg: 0 12px 32px rgba(28, 26, 21, 0.09);
+  --shadow-xl: 0 24px 48px rgba(28, 26, 21, 0.13);
+  --shadow-gold: 0 8px 24px rgba(194, 151, 75, 0.22);
+  --shadow-bench: 0 8px 24px rgba(14, 58, 48, 0.18);
+
+  /* ============ Motion ============ */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Respect the OS reduced-motion setting across every tokenised transition. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 1ms linear;
+    --transition-base: 1ms linear;
+    --transition-slow: 1ms linear;
+  }
+}

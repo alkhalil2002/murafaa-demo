@@ -1,28 +1,10 @@
+/* Design tokens — single source of truth for the palette. See src/design/.
+   Must stay first: CSS requires @import to precede all other rules. */
+@import "../design/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/*
- * Theme tokens carried over from the prototype (docs/05).
- * --bench  = platform green · --gold = accent · --advocate = opponent maroon
- * --parch  = parchment background.
- */
-:root {
-  --bench: #0e3a30;
-  --bench-2: #0a2a22;
-  --gold: #c2974b;
-  --gold-soft: #e7d2a4;
-  --advocate: #7a2e33;
-  --advocate-2: #5c2025;
-  --parch: #faf6ec;
-  --parch-line: #eadfc8;
-  --ink: #1c1a15;
-  --ink-soft: #5a5446;
-  --line: #d9cfb8;
-  --ok: #2e7d5b;
-  --warn: #b25c1e;
-  --wa: #25d366;
-}
 
 @layer base {
   html {
@@ -1278,20 +1260,9 @@
    as chrome; charts get their own validated ramp.
 
    Status colours are reserved for state (overdue/critical/soon/upcoming) and
-   are never reused as a categorical slot. */
-:root {
-  --chart-1: #008a72;
-  --chart-2: #b8541a;
-  --chart-3: #3d6fd0;
-  --chart-4: #b03a5e;
-  --chart-5: #8f9111;
-  --chart-6: #8a4fc0;
+   are never reused as a categorical slot.
 
-  --chart-critical: #b3242f;
-  --chart-serious: #d1741b;
-  --chart-warning: #c9a227;
-  --chart-good: #2f7d55;
-}
+   The --chart-* values themselves now live in src/design/tokens.css. */
 
 .charts-grid {
   display: grid;

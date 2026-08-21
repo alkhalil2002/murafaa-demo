@@ -22,6 +22,8 @@ Development is on **Windows**, using **Command Prompt (CMD)**.
 | Path | Purpose |
 |------|---------|
 | `src/` | Application code |
+| `src/design/` | Design tokens. `tokens.css` is the palette's single source of truth; the `.ts` files mirror it for Tailwind/TS |
+| `src/components/ui/` | Shared UI library — build new surfaces from here, not from new `globals.css` classes |
 | `prisma/` | Schema + migrations. Never hand-edit `migrations/` |
 | `docs/` | **Source of truth.** Also an Obsidian vault — ignore `docs/.obsidian/` |
 | `tests/` | Vitest. Every rule in `docs/06` needs coverage here |
@@ -98,6 +100,14 @@ commands here are worse than none — Claude will run them and waste turns.]
 - Every table has: `id` (UUID), `created_at`, `updated_at`, `created_by`, `deleted_at` (soft delete).
 - API responses: uniform `{ data, error }`.
 - Keep modules cleanly separated (cases, clients, documents, finance, hr, ai, integrations, auth).
+- **Design tokens:** never hardcode a hex in a component. Use a Tailwind utility
+  (`bg-bench`, `text-ink-soft`) or `var(--token)`. Tailwind colours resolve
+  through the `--x-rgb` channel vars so opacity modifiers (`bg-ok/15`) work —
+  pointing a colour at a bare `var(--ok)` silently drops the alpha and emits
+  no rule at all.
+- **UI components:** prefer `@/components/ui` over adding classes to
+  `globals.css`. The legacy stylesheet still owns the existing screens and is
+  not being rewritten, but it is not where new work goes.
 
 ## NON-NEGOTIABLE GUARDRAILS
 
