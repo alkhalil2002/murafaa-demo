@@ -944,9 +944,6 @@ export default async function CaseDetailPage({
                         {h.isPending && <span className="chip" style={{ color: "var(--gold)", borderColor: "var(--gold)" }}>{t("cases.hearings.pendingBadge")}</span>}
                         {canEditCase && (
                           <span style={{ marginInlineStart: "auto", display: "flex", gap: 6 }}>
-                            <ExpandTargetLink targetId={`hearing-edit-${h.id}`} className="tinybtn" title={t("cases.hearings.edit")}>
-                              ✎
-                            </ExpandTargetLink>
                             <ExpandTargetLink targetId={`hearing-attach-${h.id}`} className="tinybtn" title={t("cases.hearings.attachDoc")}>
                               📎
                             </ExpandTargetLink>
@@ -1248,162 +1245,17 @@ export default async function CaseDetailPage({
                         <form action={updateHearingAction} encType="multipart/form-data" style={{ marginTop: 10 }}>
                           <input type="hidden" name="caseId" value={id} />
                           <input type="hidden" name="hearingId" value={h.id} />
-                          <HearingWizard
-                            submitLabel={t("cases.hearings.saveEdit")}
-                            step1={
-                              <>
-                                <div className="field">
-                                  <label>{t("cases.hearings.date")}</label>
-                                  <input type="date" name="hearingDate" defaultValue={toDateInputValue(h.hearingDate)} required />
-                                </div>
-                                <div className="field">
-                                  <label>{t("cases.hearings.minutes")}</label>
-                                  <textarea name="minutes" rows={4} defaultValue={h.minutes ?? ""} />
-                                </div>
-                              </>
-                            }
-                            step2={
-                              <div className="two">
-                                <div className="field">
-                                  <label>{t("cases.hearings.kind")}</label>
-                                  <select name="kind" defaultValue={h.kind ?? ""}>
-                                    <option value="">—</option>
-                                    {HEARING_KINDS.map((k) => (
-                                      <option key={k} value={k}>
-                                        {hearingKindLabel(k)}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div className="field">
-                                  <label>{t("cases.hearings.stage")}</label>
-                                  <select name="stageIndex" defaultValue={h.stageIndex ?? ""}>
-                                    <option value="">—</option>
-                                    {PROC_STAGES.map((s, i) => (
-                                      <option key={s} value={i}>
-                                        {stageLabel(s)}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div className="field" style={{ gridColumn: "span 2" }}>
-                                  <label>{t("cases.hearings.result")}</label>
-                                  <input type="text" name="result" defaultValue={h.result ?? ""} />
-                                </div>
-                              </div>
-                            }
-                            step3={
-                              <>
-                                <div className="field" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}>
-                                  <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
-                                    {t("cases.hearings.actionsTitle")}
-                                  </div>
-                                  <ReminderRows />
-                                  <div style={{ height: 10 }} />
-                                  <TaskRows assignableUsers={assignableUsers} />
-                                </div>
-                                <div className="field" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}>
-                                  <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
-                                    {t("cases.hearings.requestHint")}
-                                  </div>
-                                  <ProcedureRequestRows
-                                    parties={DOC_PARTIES.filter((p) => p !== "EXPERT").map((p) => ({
-                                      value: p,
-                                      label: docPartyLabel(p),
-                                    }))}
-                                    requestTypes={PROC_REQUEST_TYPES}
-                                  />
-                                </div>
-                              </>
-                            }
-                            step4={
-                              <>
-                                <div className="field">
-                                  <label>{t("cases.hearings.clientReport")}</label>
-                                  <textarea name="clientReport" rows={3} defaultValue={h.clientReport ?? ""} />
-                                  <QuickPhraseButtons targetName="clientReport" />
-                                  <PreviewHearingReportButton />
-                                </div>
-                                {!h.reportApprovalRequested && !h.reportSentToClient && (
-                                  <label className="sub" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-                                    <input type="checkbox" name="requestApprovalNow" />
-                                    {t("cases.hearings.requestApprovalOnSave")}
-                                  </label>
-                                )}
-                                {(() => {
-                                  const existingPendingItems = Array.isArray(h.pendingItems) ? (h.pendingItems as string[]) : [];
-                                  return (
-                                    <div
-                                      className="field"
-                                      style={{
-                                        border: `1px solid ${h.isPending ? "var(--gold)" : "var(--line)"}`,
-                                        borderRadius: 12,
-                                        padding: 12,
-                                        background: h.isPending ? "rgba(194,151,75,.05)" : "#fff",
-                                      }}
-                                    >
-                                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
-                                        <input type="checkbox" name="isPending" defaultChecked={h.isPending} />
-                                        {t("cases.hearings.pendingHint")}
-                                      </label>
-                                      <div style={{ marginTop: 10 }}>
-                                        <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
-                                          {t("cases.hearings.pendingItems.title")}
-                                        </div>
-                                        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, marginInlineEnd: 14 }}>
-                                          <input
-                                            type="checkbox"
-                                            name="pendingItem_minutes"
-                                            defaultChecked={existingPendingItems.includes("minutes")}
-                                          />
-                                          {t("cases.hearings.pendingItems.minutes")}
-                                        </label>
-                                        <label style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                                          <input
-                                            type="checkbox"
-                                            name="pendingItem_nextHearing"
-                                            defaultChecked={existingPendingItems.includes("nextHearing")}
-                                          />
-                                          {t("cases.hearings.pendingItems.nextHearing")}
-                                        </label>
-                                        <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                          <span className="sub">{t("cases.hearings.recurLabel")}</span>
-                                          <input
-                                            type="number"
-                                            name="reminderRecurDays"
-                                            min={1}
-                                            defaultValue={h.reminderRecurDays ?? 7}
-                                            style={{ width: 70 }}
-                                          />
-                                          <span className="sub">{t("cases.hearings.recurUnit")}</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                              </>
-                            }
-                          />
-                        </form>
-                      </details>
-                    )}
 
-                    {canEditCase && (
-                      <details id={`hearing-edit-${h.id}`} style={{ marginTop: 12 }}>
-                        <summary style={{ cursor: "pointer", fontSize: 15.625, color: "var(--bench)", fontWeight: 600 }}>
-                          {t("cases.hearings.edit")}
-                        </summary>
-                        <div className="sub" style={{ marginTop: 6 }}>
-                          {t("cases.hearings.editHint")}
-                        </div>
-                        <form action={updateHearingAction} encType="multipart/form-data" style={{ marginTop: 10 }}>
-                          <input type="hidden" name="caseId" value={id} />
-                          <input type="hidden" name="hearingId" value={h.id} />
-                          <div className="two">
-                            <div className="field">
-                              <label>{t("cases.hearings.date")}</label>
-                              <input type="date" name="hearingDate" defaultValue={toDateInputValue(h.hearingDate)} />
-                            </div>
+                          <div className="field">
+                            <label>{t("cases.hearings.date")}</label>
+                            <input type="date" name="hearingDate" defaultValue={toDateInputValue(h.hearingDate)} required />
+                          </div>
+                          <div className="field">
+                            <label>{t("cases.hearings.minutes")}</label>
+                            <textarea name="minutes" rows={4} defaultValue={h.minutes ?? ""} />
+                          </div>
+
+                          <div className="two" style={{ marginTop: 10 }}>
                             <div className="field">
                               <label>{t("cases.hearings.kind")}</label>
                               <select name="kind" defaultValue={h.kind ?? ""}>
@@ -1415,19 +1267,56 @@ export default async function CaseDetailPage({
                                 ))}
                               </select>
                             </div>
+                            <div className="field">
+                              <label>{t("cases.hearings.stage")}</label>
+                              <select name="stageIndex" defaultValue={h.stageIndex ?? ""}>
+                                <option value="">—</option>
+                                {PROC_STAGES.map((s, i) => (
+                                  <option key={s} value={i}>
+                                    {stageLabel(s)}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="field" style={{ gridColumn: "span 2" }}>
+                              <label>{t("cases.hearings.result")}</label>
+                              <input type="text" name="result" defaultValue={h.result ?? ""} />
+                            </div>
                           </div>
-                          <div className="field">
-                            <label>{t("cases.hearings.result")}</label>
-                            <input type="text" name="result" defaultValue={h.result ?? ""} />
+
+                          <div className="field" style={{ marginTop: 10, border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}>
+                            <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                              {t("cases.hearings.actionsTitle")}
+                            </div>
+                            <ReminderRows />
+                            <div style={{ height: 10 }} />
+                            <TaskRows assignableUsers={assignableUsers} />
                           </div>
-                          <div className="field">
-                            <label>{t("cases.hearings.minutes")}</label>
-                            <textarea name="minutes" rows={3} defaultValue={h.minutes ?? ""} />
+                          <div className="field" style={{ marginTop: 10, border: "1px solid var(--line)", borderRadius: 12, padding: 12, background: "#fff" }}>
+                            <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                              {t("cases.hearings.requestHint")}
+                            </div>
+                            <ProcedureRequestRows
+                              parties={DOC_PARTIES.filter((p) => p !== "EXPERT").map((p) => ({
+                                value: p,
+                                label: docPartyLabel(p),
+                              }))}
+                              requestTypes={PROC_REQUEST_TYPES}
+                            />
                           </div>
-                          <div className="field">
+
+                          <div className="field" style={{ marginTop: 10 }}>
                             <label>{t("cases.hearings.clientReport")}</label>
-                            <textarea name="clientReport" rows={2} defaultValue={h.clientReport ?? ""} />
+                            <textarea name="clientReport" rows={3} defaultValue={h.clientReport ?? ""} />
+                            <QuickPhraseButtons targetName="clientReport" />
+                            <PreviewHearingReportButton />
                           </div>
+                          {!h.reportApprovalRequested && !h.reportSentToClient && (
+                            <label className="sub" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                              <input type="checkbox" name="requestApprovalNow" />
+                              {t("cases.hearings.requestApprovalOnSave")}
+                            </label>
+                          )}
                           {(() => {
                             const existingPendingItems = Array.isArray(h.pendingItems) ? (h.pendingItems as string[]) : [];
                             return (
@@ -1471,7 +1360,7 @@ export default async function CaseDetailPage({
                                       name="reminderRecurDays"
                                       min={1}
                                       defaultValue={h.reminderRecurDays ?? 7}
-                                      style={{ width: 70, textAlign: "center" }}
+                                      style={{ width: 70 }}
                                     />
                                     <span className="sub">{t("cases.hearings.recurUnit")}</span>
                                   </div>
@@ -1479,7 +1368,8 @@ export default async function CaseDetailPage({
                               </div>
                             );
                           })()}
-                          <div className="actions">
+
+                          <div className="actions" style={{ marginTop: 10 }}>
                             <button type="submit" className="act b-add">
                               {t("cases.hearings.saveEdit")}
                             </button>
