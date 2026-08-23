@@ -239,7 +239,7 @@ export const ar = {
   // ── Settings (الإعدادات) ──
   "settings.title": "الإعدادات",
   "settings.recycle.title": "سلة المحذوفات",
-  "settings.recycle.hint": "العناصر المحذوفة (قضايا، عملاء محتملون، مستندات، موظفون) تُحفظ هنا مؤقتاً ويمكن استعادتها.",
+  "settings.recycle.hint": "العناصر المحذوفة (قضايا، عملاء محتملون، مستندات، موظفون، جلسات) تُحفظ هنا مؤقتاً ويمكن استعادتها.",
   "settings.recycle.empty": "السلة فارغة.",
   "settings.recycle.purge": "إفراغ السلة",
   "settings.recycle.restore": "استعادة",
@@ -247,6 +247,7 @@ export const ar = {
   "settings.recycle.kind.lead": "عميل محتمل",
   "settings.recycle.kind.document": "مستند",
   "settings.recycle.kind.employee": "موظف",
+  "settings.recycle.kind.hearing": "جلسة",
   "settings.account.title": "الحساب",
   "settings.account.phone": "رقم الجوال",
   "settings.account.hosting": "استضافة البيانات",
