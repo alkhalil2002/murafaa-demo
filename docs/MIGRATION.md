@@ -8,14 +8,14 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 41 | 10 |
+| `src/lib` files | 51 | 45 | 6 |
 | Business rules inside services/components | 37 | 31 | 6 |
-| Services | 54 | 37 | 17 |
-| Service capabilities | 225 | 162 | 63 |
-| Screens | 63 | 39 | 24 |
-| Components | 20 | 14 | 6 |
+| Services | 54 | 38 | 16 |
+| Service capabilities | 225 | 169 | 56 |
+| Screens | 63 | 42 | 21 |
+| Components | 20 | 16 | 4 |
 | Route handlers | 9 | 4 (+1 replaced) | 4 |
-| Models | 56 | 41 (+ `outbox`, `sessions` new) | 15 |
+| Models | 56 | 45 (+ `outbox`, `sessions` new) | 11 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -24,12 +24,12 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 
 | File | Status | Where / milestone | Notes |
 |---|---|---|---|
-| `ai/embed.ts` | 🔁 Rebuild | M5 AI gate | 64-dim hash stub → Vertex embeddings + pgvector |
+| `ai/embed.ts` | ⛔ Not ported | — | 64-dim hash stub (not real vectors); retrieval is Postgres full-text search until an embedding provider is chosen (owner question) |
 | `ai/gate.ts` | ✅ Ported | apps/api/src/modules/ai/gate.ts | 17 tests |
-| `ai/hearing-draft.ts` | 🔁 Rebuild | M5 AI gate | called api.anthropic.com outside the Kingdom and skipped the gate (guardrails 1, 3) |
-| `ai/kb-seed.ts` | ⏳ Pending | M5 AI gate | knowledge-base seed |
-| `ai/llm.ts` | 🔁 Rebuild | M5 AI gate | StubLlm → Claude on Vertex (me-central2) |
-| `ai/vector.ts` | 🔁 Rebuild | M5 AI gate | in-app cosine over all chunks → pgvector index |
+| `ai/hearing-draft.ts` | ✅ Ported | apps/api/src/modules/ai/ai.service.ts hearingDraft | same prompt and 3 fields; now through the provider, PII redaction and the gate (legacy called api.anthropic.com and skipped both) |
+| `ai/kb-seed.ts` | ✅ Ported | apps/api/scripts/seed-demo.ts DEMO_KB | dev only, per office, stored is_demo and labelled as not official text |
+| `ai/llm.ts` | ✅ Ported | apps/api/src/modules/ai/llm.ts | provider interface; StubLlm dropped (fake answers): not connected until AI_PROVIDER is set; Vertex (me-central2) is the first implementation |
+| `ai/vector.ts` | ✅ Ported | apps/api/src/modules/ai/ai.service.ts retrieve | in-app cosine over all chunks → indexed Postgres full-text search (top 5, active sources of the office); pgvector once embeddings exist |
 | `api/response.ts` | ✅ Ported | packages/contracts/src/envelope.ts + API envelope interceptor/filter |  |
 | `audit/index.ts` | ✅ Ported | apps/api/src/common/audit/audit.ts | auth events + permission denials written; other modules add theirs |
 | `auth/config.ts` | ✅ Ported | apps/api/src/modules/auth (Auth.js replaced by API sessions) | e2e: apps/api/test/api.e2e.test.ts |
@@ -83,7 +83,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | Service | Status | Milestone | Notes |
 |---|---|---|---|
 | `activity` | ✅ Ported | apps/api/src/modules/overview |  |
-| `ai` | ⏳ Pending | M5 AI gate | assistant + arena — every answer through the citation gate; system prompts ported to apps/api/src/modules/ai/prompts.ts |
+| `ai` | ✅ Ported | apps/api/src/modules/ai (assistant, case analysis, arena, hearing draft, knowledge base; every output through the gate) |  |
 | `alerts` | ✅ Ported | apps/api/src/modules/overview (row-scoped; overdue invoices join with M4) |  |
 | `appointments` | ✅ Ported | apps/api/src/modules/appointments (+ booking/cancel UI legacy lacked) |  |
 | `approvals` | ✅ Ported | apps/api/src/modules/cases/approvals.service.ts (partner step needs CASES at FULL; pending list row-scoped) |  |
@@ -146,14 +146,14 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/` | ✅ Ported | apps/web/src/app/page.tsx (redirects to /today) |  |
 | `/account/security` | ✅ Ported | apps/web/src/app/(app)/account/security |  |
 | `/activity` | ✅ Ported | apps/web/src/app/(app)/activity |  |
-| `/ai` | ⏳ Pending | M5 AI gate |  |
-| `/ai/arena/[caseId]` | ⏳ Pending | M5 AI gate |  |
-| `/ai/kb` | ⏳ Pending | M5 AI gate |  |
+| `/ai` | ✅ Ported | apps/web/src/app/(app)/ai (+ not-connected banner) |  |
+| `/ai/arena/[caseId]` | ✅ Ported | apps/web/src/app/(app)/ai/arena/[caseId] |  |
+| `/ai/kb` | ✅ Ported | apps/web/src/app/(app)/ai/kb (+ add source and activate/deactivate at the full AI level) |  |
 | `/alerts` | ✅ Ported | apps/web/src/app/(app)/alerts |  |
 | `/appointments` | ✅ Ported | apps/web/src/app/(app)/appointments |  |
 | `/billing` | ✅ Ported | apps/web/src/app/(app)/billing |  |
 | `/cases` | ✅ Ported | apps/web/src/app/(app)/cases (list + filters) |  |
-| `/cases/[id]` | ✅ Ported | apps/web/src/app/(app)/cases/[id] — overview (+ procedural requests), hearings, parties (+ contact log), chat, contracts, approvals (+ client approvals), execution, events, closing; assistant, documents, finance tabs with M3–M5 |  |
+| `/cases/[id]` | ✅ Ported | apps/web/src/app/(app)/cases/[id] — every tab: overview (+ procedural requests), hearings, parties (+ contact log), assistant, chat, documents, contracts, finance, approvals (+ client approvals), execution, events, closing |  |
 | `/cases/new` | ✅ Ported | apps/web/src/app/(app)/cases/new |  |
 | `/clients` | ✅ Ported | apps/web/src/app/(app)/clients (+ CRM KPIs) |  |
 | `/dashboard` | ✅ Ported | apps/web/src/app/(app)/dashboard |  |
@@ -260,10 +260,10 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `JournalEntry` | ✅ Ported | packages/database journal_entries (insert-only, + doc_counters) |  |
 | `JournalLine` | ✅ Ported | packages/database journal_lines (insert-only, + office_id, CHECK one side) |  |
 | `AccountingPeriod` | ✅ Ported | packages/database accounting_periods |  |
-| `KnowledgeSource` | ⏳ Pending | M5 AI gate |  |
-| `KnowledgeChunk` | ⏳ Pending | M5 AI gate |  |
-| `AiInteraction` | ⏳ Pending | M5 AI gate |  |
-| `AiCitation` | ⏳ Pending | M5 AI gate |  |
+| `KnowledgeSource` | ✅ Ported | packages/database knowledge_sources (+ office_id, is_active, is_demo; legacy was global) |  |
+| `KnowledgeChunk` | ✅ Ported | packages/database knowledge_chunks (+ office_id, generated tsvector + GIN index instead of a JSON embedding) |  |
+| `AiInteraction` | ✅ Ported | packages/database ai_interactions (insert-only; stores the redacted question) |  |
+| `AiCitation` | ✅ Ported | packages/database ai_citations (insert-only) |  |
 | `Employee` | ⏳ Pending | M6 HR |  |
 | `Advance` | ⏳ Pending | M6 HR |  |
 | `Leave` | ⏳ Pending | M6 HR |  |
@@ -306,11 +306,11 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 
 | Component | Status | Milestone | Notes |
 |---|---|---|---|
-| `ai-answer.tsx` | ⏳ Pending | M5 AI gate |  |
+| `ai-answer.tsx` | ✅ Ported | apps/web/src/components/ai/ai-answer.tsx |  |
 | `app-shell.tsx` | ✅ Ported | apps/web/src/components/shell/app-shell.tsx + nav.ts (bell count from /notifications/count) |  |
 | `auth/login-form.tsx` | ✅ Ported | apps/web/src/components/auth/login-form.tsx |  |
 | `auto-submit-select.tsx` | ✅ Ported | apps/web/src/components/auto-submit-select.tsx |  |
-| `cases/ai-draft-hearing-button.tsx` | ⏳ Pending | M5 AI gate |  |
+| `cases/ai-draft-hearing-button.tsx` | ✅ Ported | apps/web/src/components/ai/ai-controls.tsx HearingDraftButton (i18n) |  |
 | `cases/case-list.tsx` | ✅ Ported | apps/web/src/components/cases/case-list.tsx |  |
 | `cases/hearing-wizard.tsx` | ✅ Ported | apps/web/src/components/cases/hearings.tsx RecordHearingWizard |  |
 | `cases/najiz-picker.tsx` | ✅ Ported | apps/web/src/components/cases/case-form.tsx |  |
@@ -363,13 +363,13 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **ai** (M5 AI gate)
 
-- [ ] `askAssistant`
-- [ ] `runArenaTurn`
-- [ ] `getArenaState`
-- [ ] `runArenaRound`
-- [ ] `resetArena`
-- [ ] `listInteractions`
-- [ ] `listKnowledgeSources`
+- [x] `askAssistant`
+- [x] `runArenaTurn`
+- [x] `getArenaState`
+- [x] `runArenaRound`
+- [x] `resetArena`
+- [x] `listInteractions`
+- [x] `listKnowledgeSources`
 
 **alerts** (M2 Core ops)
 
@@ -828,7 +828,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | File | Status | Milestone | Notes |
 |---|---|---|---|
 | `account/actions.ts` | ✅ Ported | apps/api /security endpoints |  |
-| `ai/actions.ts` | ⏳ Pending | M5 AI gate |  |
+| `ai/actions.ts` | ✅ Ported | apps/api /ai/* endpoints |  |
 | `cases/actions.ts` | ✅ Ported | apps/api /cases endpoints |  |
 | `cases/approvals-actions.ts` | ✅ Ported | apps/api /cases/:id/approvals endpoints |  |
 | `cases/client-approvals-actions.ts` | ✅ Ported | apps/api /cases/:id/client-approvals endpoints |  |
@@ -838,7 +838,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `cases/edit-actions.ts` | ✅ Ported | apps/api PATCH /cases/:id |  |
 | `cases/execution-actions.ts` | ✅ Ported | apps/api /cases/:id/execution endpoints |  |
 | `cases/hearing-actions.ts` | ✅ Ported | apps/api /cases/:id/hearings endpoints |  |
-| `cases/hearing-ai-actions.ts` | ⏳ Pending | M5 AI gate |  |
+| `cases/hearing-ai-actions.ts` | ✅ Ported | apps/api POST /cases/:id/hearings/draft |  |
 | `cases/message-actions.ts` | ✅ Ported | apps/api /cases/:id/messages endpoints |  |
 | `cases/proc-actions.ts` | ✅ Ported | apps/api /cases/:id/stage/promote|remand, /procedure/end|reopen |  |
 | `cases/procedure-request-actions.ts` | ✅ Ported | apps/api /cases/:id/procedure-requests endpoints |  |
@@ -903,7 +903,7 @@ Every action legacy wrote to the audit log. The rebuilt modules must keep loggin
 | Najiz taxonomy | ✅ Ported | packages/rules reference/najiz.ts |
 | 8 document templates | ✅ Ported | packages/documents templates.ts |
 | Permission matrix | ✅ Ported | packages/auth seedPolicy |
-| Knowledge base sample sources | ⏳ Pending | M5 (lib/ai/kb-seed.ts) |
+| Knowledge base sample sources | ✅ Ported | apps/api/scripts/seed-demo.ts (dev only, marked demo) |
 | Demo office + 6 role users (0500000001–6) | ✅ Ported | packages/database/src/seed.ts (`pnpm db:seed`) |
 | Demo cases (2) | ✅ Ported | apps/api/scripts/seed-demo.ts (`pnpm db:seed:demo`, through the real API: 4 cases with HIGH/MEDIUM conflicts, hearings, tasks, appointments) |
 
@@ -925,7 +925,9 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | # | Question | Legacy behaviour | Status |
 |---|---|---|---|
 | 1 | Multi-tenancy | `office_id` everywhere | Decided (2026-07-05); now enforced by RLS |
-| 2 | Claude on Vertex in me-central2 | stub LLM; dev fallback called api.anthropic.com | **Open** — blocks M5 |
+| 2 | Claude on Vertex in me-central2 | stub LLM; dev fallback called api.anthropic.com | **Open** — M5 built provider-agnostic (AI shows not connected until a provider is set); choose the provider and confirm the model is served in-Kingdom, or approve another region in writing (PDPL) |
+| new | Embeddings for retrieval | 64-dim hash stub (not real vectors) | **Open** — full-text search now; pgvector needs an embedding provider (same residency rule) |
+| new | Knowledge base per office or shared | one global KB | **Open** — built per office under RLS (each office curates its own); a shared official corpus would need a reviewed global table |
 | 3 | users vs employees | employees link to an optional user (grantEmployeeAccount) | Implemented; confirm |
 | 4 | Sentry vs PDPL | no Sentry | **Open** — new stack uses Cloud Logging only |
 | 5 | OTP provider | console + Unifonic | **Open** — Unifonic vs WhatsApp Business (Buraq/Meta from Alkhalil) |
@@ -960,7 +962,11 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 
 | Issue | Where | Fix |
 |---|---|---|
-| AI drafting called api.anthropic.com directly and skipped the citation gate | lib/ai/hearing-draft.ts | Vertex me-central2 + gate (M5) |
+| AI drafting called api.anthropic.com directly and skipped the citation gate | lib/ai/hearing-draft.ts | ✅ fixed: through the provider (regional) + PII redaction + the gate on every field |
+| Stub LLM produced canned legal-sounding answers | lib/ai/llm.ts StubLlm | ✅ fixed: no fake output; AI shows not connected until a provider is configured |
+| Prompts carried client and opponent names and raw phone/ID numbers | server/ai.ts case context | ✅ fixed: party names left out, identifiers redacted (packages/rules redactPii) before the prompt and in storage |
+| Answer sources listed citations from sentences the gate removed | components/ai-answer.tsx (all KEPT rows) | ✅ fixed: only citations whose sentence survived, once each |
+| Knowledge base was global with no office_id | KnowledgeSource | ✅ fixed: per office under RLS |
 | TOTP secret stored in plaintext | User.totpSecret | ✅ fixed: AES-256-GCM (users.totp_secret_enc) |
 | Permission policy cached per process (stale on other Cloud Run instances) | lib/permissions/policy.ts | ✅ fixed: read per request |
 | Demoting the last partner threw an unhandled LAST_PARTNER error (page crash); two concurrent demotions could both pass the count | server/permissions-admin.ts | ✅ fixed: 409 with errors.LAST_PARTNER, partner rows locked during the check |

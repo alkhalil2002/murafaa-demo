@@ -32,6 +32,15 @@ const envSchema = z
     /** The internal PDF service (apps/pdf). Unset: generating PDFs answers UNAVAILABLE, nothing is faked. */
     PDF_SERVICE_URL: z.url().optional(),
     PDF_SERVICE_TOKEN: z.string().min(32).optional(),
+    /**
+     * The legal-AI model provider. "none": every AI feature answers UNAVAILABLE
+     * (nothing is generated or faked). "vertex": Claude on Vertex AI in
+     * VERTEX_REGION; data residency requires an in-Kingdom region (PDPL).
+     */
+    AI_PROVIDER: z.enum(["none", "vertex"]).default("none"),
+    VERTEX_PROJECT_ID: z.string().optional(),
+    VERTEX_REGION: z.string().default("me-central2"),
+    AI_MODEL: z.string().optional(),
   })
   .refine((e) => e.NODE_ENV !== "production" || e.RBAC_ENFORCEMENT === "strict", {
     message: "RBAC_ENFORCEMENT must be 'strict' in production",
@@ -45,6 +54,13 @@ const envSchema = z
     message: "PDF_SERVICE_URL and PDF_SERVICE_TOKEN go together",
     path: ["PDF_SERVICE_TOKEN"],
   })
+  .refine(
+    (e) => e.AI_PROVIDER !== "vertex" || (Boolean(e.VERTEX_PROJECT_ID) && Boolean(e.AI_MODEL)),
+    {
+      message: "AI_PROVIDER=vertex needs VERTEX_PROJECT_ID and AI_MODEL",
+      path: ["AI_PROVIDER"],
+    },
+  )
   .refine((e) => e.STORAGE_DRIVER !== "gcs" || Boolean(e.GCS_BUCKET), {
     message: "GCS_BUCKET is required when STORAGE_DRIVER=gcs",
     path: ["GCS_BUCKET"],

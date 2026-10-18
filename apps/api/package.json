@@ -15,6 +15,7 @@
     "seed:demo": "node --env-file-if-exists=.env dist/scripts/seed-demo.js"
   },
   "dependencies": {
+    "@anthropic-ai/vertex-sdk": "0.20.2",
     "@fastify/helmet": "13.2.0",
     "@fastify/static": "10.1.6",
     "@google-cloud/storage": "8.4.0",

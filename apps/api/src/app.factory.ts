@@ -11,6 +11,7 @@ import { buildOpenApi } from "./common/zod/openapi.js";
 import { readCookie, SESSION_COOKIE } from "./modules/auth/cookies.js";
 import { SessionService } from "./modules/auth/session.service.js";
 import type { Env } from "./config/env.js";
+import type { LlmProvider } from "./modules/ai/llm.js";
 
 export const API_PREFIX = "api";
 export const API_VERSION = "1";
@@ -19,9 +20,12 @@ export const API_VERSION = "1";
  * Builds the configured app without listening, so main.ts, the OpenAPI script
  * and e2e tests all run the exact same pipeline. Call `app.init()` (or listen).
  */
-export async function createApp(env: Env): Promise<NestFastifyApplication> {
+export async function createApp(
+  env: Env,
+  overrides: { llm?: LlmProvider } = {},
+): Promise<NestFastifyApplication> {
   const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule.forRoot(env),
+    AppModule.forRoot(env, overrides),
     new FastifyAdapter({ trustProxy: true }),
     { bufferLogs: true },
   );

@@ -16,6 +16,8 @@ import {
   financeListExpenses,
   financeListInvoices,
   financeListTime,
+  aiHistory,
+  aiStatus,
 } from "@murafaa/sdk";
 import { DOC_PARTIES, daysLeft, opponentRole, PROC_STAGES } from "@murafaa/rules";
 import { DOC_SOURCES } from "@murafaa/documents";
@@ -30,6 +32,8 @@ import {
   WaiveConflictForm,
 } from "@/components/cases/case-actions";
 import { CaseForm } from "@/components/cases/case-form";
+import { AiAnswer, AiNotConnected } from "@/components/ai/ai-answer";
+import { AskForm, SmartTools } from "@/components/ai/ai-controls";
 import { DeniedPanel } from "@/components/denied-panel";
 import {
   ApprovalControls,
@@ -92,6 +96,7 @@ type Tab = (typeof TABS)[number];
 /** Tabs rebuilt so far; the rest belong to later M2 slices and M3–M5 (docs/MIGRATION.md). */
 const BUILT: ReadonlySet<Tab> = new Set([
   "overview",
+  "assistant",
   "hearings",
   "parties",
   "chat",
@@ -1212,6 +1217,38 @@ export default async function CaseDetailPage({
         </>
       );
     }
+  } else if (tab === "assistant") {
+    const aiLevel = me.modules.AI;
+    const canUseAi = (aiLevel === "EDIT" || aiLevel === "FULL") && !me.user.previewRole;
+    const [history, status] = await Promise.all([
+      aiHistory({ client: api, query: { caseId: id } }),
+      aiStatus({ client: api }),
+    ]);
+    const answers = history.data?.data.filter((i) => i.surface === "CASE_ANALYSIS");
+    const connected = status.data?.data.connected ?? false;
+    body = !answers ? (
+      <DeniedPanel />
+    ) : (
+      <>
+        <Panel n={t("cases.tag.parties")} title={t("cases.tab.assistant")}>
+          <div className="sub" style={{ marginBottom: 10 }}>
+            {t("cases.assistant.hint")}
+          </div>
+          {canUseAi && connected && <SmartTools caseId={id} />}
+        </Panel>
+        {status.data && !connected && <AiNotConnected />}
+        {answers.length === 0 ? (
+          <div className="panel">
+            <div className="sub" style={{ marginBottom: 0 }}>
+              {t("ai.emptyChat")}
+            </div>
+          </div>
+        ) : (
+          answers.map((i) => <AiAnswer key={i.id} data={i} />)
+        )}
+        {canUseAi && connected && <AskForm caseId={id} />}
+      </>
+    );
   } else if (tab === "events") {
     const counts = new Map<string, number>();
     for (const e of c.events) counts.set(e.type, (counts.get(e.type) ?? 0) + 1);
@@ -1315,6 +1352,15 @@ export default async function CaseDetailPage({
         <span className="pill">
           {t("cases.number")}: {c.number}
         </span>
+        {me.modules.AI !== "NONE" && (
+          <Link
+            href={`/ai/arena/${c.id}`}
+            className="mini"
+            style={{ marginInlineStart: "auto", color: "var(--warn)", borderColor: "var(--gold)" }}
+          >
+            ⚖ {t("cases.tab.ai")}
+          </Link>
+        )}
       </div>
       <div
         className="panel"

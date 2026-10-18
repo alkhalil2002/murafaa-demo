@@ -7,7 +7,9 @@ import { PermissionsGuard } from "./common/permissions/permissions.guard.js";
 import { PolicyService } from "./common/permissions/policy.service.js";
 import { TenantInterceptor } from "./common/tenancy/tenant.interceptor.js";
 import { ENV, type Env } from "./config/env.js";
+import { LLM, type LlmProvider, llmFor } from "./modules/ai/llm.js";
 import { DatabaseModule } from "./database/database.module.js";
+import { AiModule } from "./modules/ai/ai.module.js";
 import { AppointmentsModule } from "./modules/appointments/appointments.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { BillingModule } from "./modules/billing/billing.module.js";
@@ -36,7 +38,8 @@ const REDACT = [
 
 @Module({})
 export class AppModule {
-  static forRoot(env: Env): DynamicModule {
+  /** `overrides.llm` lets the e2e tests answer for the model; production always uses llmFor(env). */
+  static forRoot(env: Env, overrides: { llm?: LlmProvider } = {}): DynamicModule {
     return {
       module: AppModule,
       global: true,
@@ -50,6 +53,7 @@ export class AppModule {
         }),
         DiscoveryModule,
         DatabaseModule,
+        AiModule,
         AppointmentsModule,
         AuthModule,
         BillingModule,
@@ -67,13 +71,14 @@ export class AppModule {
       ],
       providers: [
         { provide: ENV, useValue: env },
+        { provide: LLM, useValue: overrides.llm ?? llmFor(env) },
         PolicyService,
         { provide: APP_GUARD, useClass: PermissionsGuard },
         { provide: APP_INTERCEPTOR, useClass: EnvelopeInterceptor },
         { provide: APP_INTERCEPTOR, useClass: TenantInterceptor },
         { provide: APP_FILTER, useClass: AllExceptionsFilter },
       ],
-      exports: [ENV, PolicyService],
+      exports: [ENV, LLM, PolicyService],
     };
   }
 }

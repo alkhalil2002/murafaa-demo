@@ -31,6 +31,7 @@ import {
 import { t, type MessageKey } from "@murafaa/i18n";
 import { browserApi } from "@/lib/browser-api";
 import { fmtDate } from "@/lib/dates-ui";
+import { HearingDraftButton } from "@/components/ai/ai-controls";
 import { useApiAction } from "@/lib/use-api-action";
 
 const c = browserApi;
@@ -289,6 +290,7 @@ export function RecordHearingWizard({
       <div className="field">
         <label>{t("cases.hearings.rawNotes")}</label>
         <textarea name="minutes" rows={4} />
+        <HearingDraftButton caseId={caseId} />
       </div>
     </Fragment>,
     <div key="s2" className="two">

@@ -40,6 +40,7 @@ const OFFICE_K = "55555555-0000-4000-8000-000000000005";
 const OFFICE_L = "44444444-0000-4000-8000-000000000004";
 const OFFICE_M = "33333333-0000-4000-8000-000000000003";
 const OFFICE_N = "22222222-0000-4000-8000-000000000002";
+const OFFICE_O = "11111111-0000-4000-8000-000000000001";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -98,6 +99,11 @@ const LAWYER_M = "0500001103";
 const PARTNER_N = "0500001201";
 const ACCOUNTANT_N = "0500001202";
 
+const PARTNER_O = "0500001301";
+const LAWYER_O1 = "0500001302";
+const LAWYER_O2 = "0500001303";
+const ASSISTANT_O = "0500001304";
+
 let app: NestFastifyApplication;
 
 /**
@@ -108,6 +114,19 @@ let app: NestFastifyApplication;
 const PDF_TOKEN = "e2e-pdf-token-0123456789-0123456789-abcd";
 const pdfStub = { html: [] as string[], fail: false, server: null as Server | null };
 const STUB_PDF = Buffer.from("%PDF-1.4\n%stub\n%%EOF\n");
+
+/** Test-only model: answers with whatever the test sets and records each prompt. */
+const fakeLlm = {
+  name: "test",
+  connected: true,
+  region: "test",
+  prompts: [] as Array<{ system: string; prompt: string }>,
+  reply: (_req: { system: string; prompt: string }) => "",
+  generate(req: { system: string; prompt: string }) {
+    this.prompts.push(req);
+    return Promise.resolve({ text: this.reply(req), model: "test-model" });
+  },
+};
 
 const e164 = (local: string) => `+966${local.slice(1)}`;
 
@@ -155,7 +174,7 @@ beforeAll(async () => {
   const pdfPort = (pdfStub.server.address() as { port: number }).port;
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate ai_citations, ai_interactions, knowledge_chunks, knowledge_sources, expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -201,6 +220,17 @@ beforeAll(async () => {
         [PARTNER_G, "PARTNER"],
         [LAWYER_G1, "LAWYER"],
         [LAWYER_G2, "LAWYER"],
+      ],
+    ],
+    [
+      OFFICE_O,
+      "Office O",
+      [],
+      [
+        [PARTNER_O, "PARTNER"],
+        [LAWYER_O1, "LAWYER"],
+        [LAWYER_O2, "LAWYER"],
+        [ASSISTANT_O, "ASSISTANT"],
       ],
     ],
     [
@@ -325,6 +355,7 @@ beforeAll(async () => {
     OFFICE_L,
     OFFICE_M,
     OFFICE_N,
+    OFFICE_O,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -344,7 +375,7 @@ beforeAll(async () => {
     PDF_SERVICE_TOKEN: PDF_TOKEN,
     STORAGE_LOCAL_DIR: mkdtempSync(join(tmpdir(), "murafaa-e2e-storage-")),
   });
-  app = await createApp(env);
+  app = await createApp(env, { llm: fakeLlm });
   mountDocs(app, env);
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
@@ -2949,5 +2980,186 @@ describe("finance: expenses, reimbursement, approvals (two people), bank reconci
     ).toBe("lines.0.code");
     expect((await get("/api/v1/finance/reports/statements")).equity).toBe(10_000_00);
     expect(await get("/api/v1/finance/reports/profitability")).toEqual([]);
+  });
+});
+
+describe("legal AI: closed knowledge base, citation gate, PII redaction, arena, hearing draft", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let lawyer1 = "";
+  let lawyer2 = "";
+  let assistant = "";
+  let caseId = "";
+  let sourceId = "";
+  const as = (cookie: string, method: "GET" | "POST" | "PUT", url: string, payload?: object) =>
+    app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_O));
+    lawyer1 = cookieOf(await login(LAWYER_O1));
+    lawyer2 = cookieOf(await login(LAWYER_O2));
+    assistant = cookieOf(await login(ASSISTANT_O));
+    const client = (
+      await as(partner, "POST", "/api/v1/clients", { name: "شركة سرية الاسم" })
+    ).json().data.id;
+    caseId = (
+      await as(lawyer1, "POST", "/api/v1/cases", {
+        number: "1447/99",
+        title: "فصل تعسفي",
+        clientId: client,
+        opposingParty: "مؤسسة الخصم",
+      })
+    ).json().data.id;
+  });
+
+  it("manages the knowledge base at the full level only", async () => {
+    const body = {
+      type: "STATUTE",
+      title: "نظام العمل",
+      citationKey: "نظام العمل",
+      chunks: [
+        { articleNumber: "74", content: "ينتهي عقد العمل بانتهاء مدته أو باتفاق الطرفين." },
+        {
+          articleNumber: "٧٧",
+          content: "إذا أُنهي العقد لسبب غير مشروع استحق الطرف المتضرر تعويضاً.",
+        },
+      ],
+    };
+    expect((await as(lawyer1, "POST", "/api/v1/ai/kb/sources", body)).statusCode).toBe(403);
+    const res = await as(partner, "POST", "/api/v1/ai/kb/sources", body);
+    expect(res.statusCode).toBe(201);
+    sourceId = res.json().data.id;
+    expect((await as(partner, "POST", "/api/v1/ai/kb/sources", body)).json().error.messageKey).toBe(
+      "errors.KB_SOURCE_EXISTS",
+    );
+    const kb = (await as(lawyer1, "GET", "/api/v1/ai/kb")).json().data;
+    expect(kb).toMatchObject([
+      { citationKey: "نظام العمل", chunks: 2, isActive: true, isDemo: false },
+    ]);
+    expect((await as(lawyer1, "GET", "/api/v1/ai/status")).json().data).toEqual({
+      connected: true,
+      provider: "test",
+      region: "test",
+    });
+  });
+
+  it("retrieves the relevant articles, redacts identifiers, and blocks every unmatched citation", async () => {
+    fakeLlm.prompts.length = 0;
+    fakeLlm.reply = () =>
+      "وفقاً للمادة (77) من نظام العمل يستحق العامل التعويض. وبحسب المادة (999) من نظام العمل يضاعف المبلغ. والمادة (5) من نظام المحاماة الموحد تؤكد ذلك. وننصح بالتفاوض أولاً.";
+    const res = await as(lawyer1, "POST", "/api/v1/ai/ask", {
+      question:
+        "هل يستحق التعويض إذا أنهي العقد لسبب غير مشروع؟ جوال العامل 0551234567 وهويته 1012345678",
+    });
+    expect(res.statusCode).toBe(201);
+    const a = res.json().data;
+    expect(a.verdict).toBe("BLOCKED");
+    // The gate returns normalized prose (no diacritics, "للمادة" → "المادة").
+    expect(a.finalOutput).toBe(
+      "وفقا المادة (77) من نظام العمل يستحق العامل التعويض. وننصح بالتفاوض أولا.",
+    );
+    // (999), plus (5) and the unknown statute it names.
+    expect(a.blockedCount).toBe(3);
+    expect(a.citations).toEqual([
+      {
+        rawText: expect.stringContaining("77"),
+        sourceTitle: "نظام العمل",
+        citationKey: "نظام العمل",
+        articleNumber: "77",
+        isDemo: false,
+      },
+    ]);
+    expect(a.grounded).toBe(true);
+    const sent = fakeLlm.prompts[0]!.prompt;
+    expect(sent).toContain("المادة (77): إذا أُنهي العقد لسبب غير مشروع");
+    expect(sent).not.toContain("0551234567");
+    expect(sent).not.toContain("1012345678");
+    expect(sent).toContain("[PHONE]");
+    expect(a.question).not.toContain("0551234567");
+  });
+
+  it("answers ungrounded questions without inventing sources, and keeps access rules", async () => {
+    fakeLlm.reply = () => "هذا تحليل منطقي دون سند نظامي.";
+    const a = (
+      await as(lawyer1, "POST", "/api/v1/ai/ask", { question: "ما رأيك في الطقس؟" })
+    ).json().data;
+    expect(a).toMatchObject({ grounded: false, verdict: "PASSED", citations: [] });
+    expect((await as(assistant, "POST", "/api/v1/ai/ask", { question: "س" })).statusCode).toBe(403);
+    const mine = (await as(lawyer1, "GET", "/api/v1/ai/history")).json().data as unknown[];
+    expect(mine).toHaveLength(2);
+    expect((await as(partner, "GET", "/api/v1/ai/history")).json().data).toEqual([]);
+  });
+
+  it("analyses a case inside its row scope without party names in the prompt", async () => {
+    fakeLlm.prompts.length = 0;
+    fakeLlm.reply = () => "التحليل: موقف الموكل قوي.";
+    expect(
+      (await as(lawyer2, "POST", "/api/v1/ai/ask", { question: "حلّل", caseId })).statusCode,
+    ).toBe(404);
+    const a = (
+      await as(lawyer1, "POST", "/api/v1/ai/ask", { question: "حلّل القضية", caseId })
+    ).json().data;
+    expect(a.surface).toBe("CASE_ANALYSIS");
+    const sent = fakeLlm.prompts[0]!.prompt;
+    expect(sent).toContain("القضية: فصل تعسفي");
+    expect(sent).not.toContain("شركة سرية الاسم");
+    expect(sent).not.toContain("مؤسسة الخصم");
+    const history = (await as(lawyer1, "GET", `/api/v1/ai/history?caseId=${caseId}`)).json()
+      .data as Array<{ id: string }>;
+    expect(history.map((h) => h.id)).toEqual([a.id]);
+  });
+
+  it("runs arena rounds of three gated turns and resets to a new session", async () => {
+    fakeLlm.reply = (req) =>
+      req.system.includes("قاضٍ")
+        ? "المآل المرجح لصالح الموكل. والمادة (12) من نظام مخترع تقضي بذلك."
+        : "حجتنا قوية.";
+    let view = (await as(lawyer1, "POST", `/api/v1/ai/arena/${caseId}/round`)).json().data;
+    expect(view.turns.map((t: { arenaRole: string }) => t.arenaRole)).toEqual([
+      "OURS",
+      "OPPONENT",
+      "JUDGE",
+    ]);
+    expect(view.turns[2]).toMatchObject({
+      verdict: "BLOCKED",
+      finalOutput: "المآل المرجح لصالح الموكل.",
+    });
+    expect(view.round).toBe(2);
+    await as(lawyer1, "POST", `/api/v1/ai/arena/${caseId}/reset`);
+    view = (await as(lawyer1, "GET", `/api/v1/ai/arena/${caseId}`)).json().data;
+    expect(view).toMatchObject({ round: 1, turns: [] });
+    expect((await as(lawyer2, "GET", `/api/v1/ai/arena/${caseId}`)).statusCode).toBe(404);
+  });
+
+  it("drafts hearing fields through the gate; a broken model reply is refused", async () => {
+    fakeLlm.reply = () =>
+      JSON.stringify({
+        minutes: "حضر الطرفان وطلب المدعى عليه مهلة للرد.",
+        result: "تأجيل للاطلاع",
+        clientReport: "أُجّلت الجلسة. وتنص المادة (300) من نظام العمل على حقك. سنوافيك بالموعد.",
+      });
+    const d = (
+      await as(lawyer1, "POST", `/api/v1/cases/${caseId}/hearings/draft`, {
+        notes: "حضر الطرفان وطلب الخصم مهلة",
+      })
+    ).json().data;
+    expect(d).toMatchObject({
+      minutes: "حضر الطرفان وطلب المدعى عليه مهلة للرد.",
+      result: "تأجيل للاطلاع",
+      verdict: "BLOCKED",
+      blockedCount: 1,
+    });
+    expect(d.clientReport).toBe("أجلت الجلسة. سنوافيك بالموعد.");
+    fakeLlm.reply = () => "ليس JSON";
+    const bad = await as(lawyer1, "POST", `/api/v1/cases/${caseId}/hearings/draft`, { notes: "x" });
+    expect(bad.statusCode).toBe(503);
+    expect(bad.json().error.messageKey).toBe("errors.AI_BAD_OUTPUT");
+  });
+
+  it("stops citing a source once it is deactivated", async () => {
+    await as(partner, "PUT", `/api/v1/ai/kb/sources/${sourceId}/active`, { active: false });
+    fakeLlm.reply = () => "وفقاً للمادة (77) من نظام العمل يستحق التعويض.";
+    const a = (await as(lawyer1, "POST", "/api/v1/ai/ask", { question: "تعويض" })).json().data;
+    expect(a).toMatchObject({ verdict: "BLOCKED", finalOutput: "", citations: [] });
   });
 });

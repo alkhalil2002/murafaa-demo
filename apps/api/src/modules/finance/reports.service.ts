@@ -227,16 +227,14 @@ export class ReportsService {
           amount: x.amount,
           date: day(x.date),
         })),
-        ...posted
-          .slice(0, 10)
-          .map((e) => ({
-            kind: "expense" as const,
-            id: e.id,
-            label: e.vendor,
-            category: e.category,
-            amount: e.netAmount + e.inputVat,
-            date: day(e.expenseDate),
-          })),
+        ...posted.slice(0, 10).map((e) => ({
+          kind: "expense" as const,
+          id: e.id,
+          label: e.vendor,
+          category: e.category,
+          amount: e.netAmount + e.inputVat,
+          date: day(e.expenseDate),
+        })),
       ]
         .sort((a, b) => b.date.localeCompare(a.date))
         .slice(0, 10);

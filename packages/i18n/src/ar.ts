@@ -32,6 +32,9 @@ export const ar = {
   "errors.APPROVAL_NEEDS_PARTNER": "اعتماد الشريك يحتاج صلاحية كاملة على القضايا",
   "errors.EXECUTION_ALREADY_OPEN": "يوجد ملف تنفيذ مفتوح لهذه القضية",
   "errors.EXECUTION_NOT_OPEN": "لا يوجد ملف تنفيذ لهذه القضية",
+  "errors.AI_UNAVAILABLE": "خدمة الذكاء الاصطناعي غير متصلة حالياً",
+  "errors.KB_SOURCE_EXISTS": "يوجد مصدر بنفس اسم الاستشهاد",
+  "errors.AI_BAD_OUTPUT": "تعذّر فهم ردّ الذكاء الاصطناعي، حاول مجدداً",
   "errors.PDF_UNAVAILABLE": "خدمة إنشاء ملفات PDF غير متصلة حالياً",
   "errors.UNAVAILABLE": "الخدمة غير متاحة حالياً، حاول لاحقاً",
   "errors.TEMPLATE_NOT_FOUND": "القالب غير موجود",
@@ -1043,6 +1046,43 @@ export const ar = {
   "kbType.REGULATION": "لائحة",
   "kbType.PRECEDENT": "سابقة/مبدأ",
   "kb.chunks": "{n} مقطع",
+  "kb.empty": "لا توجد مصادر في القاعدة المعرفية بعد — بدونها لا يستشهد المساعد بأي نص.",
+  "kb.add": "إضافة مصدر",
+  "kb.type": "النوع",
+  "kb.title": "العنوان",
+  "kb.citationKey": "مفتاح الاستشهاد (الاسم كما يُذكر في النص)",
+  "kb.officialRef": "المرجع الرسمي",
+  "kb.chunksField": "المواد",
+  "kb.chunksHint": "سطر لكل مادة: رقم المادة ثم | ثم نصها. سطر بلا | يُضاف مقطعًا بلا رقم.",
+  "kb.chunksEmpty": "أضف مادة واحدة على الأقل.",
+  "kb.save": "حفظ المصدر",
+  "kb.inactive": "موقوف",
+  "kb.deactivate": "إيقاف الاستشهاد به",
+  "kb.activate": "تفعيل",
+  "kb.demo": "تجريبي — ليس نصًا رسميًا",
+  "ai.notConnected":
+    "⚠ المساعد الذكي غير متصل: لم يُضبط مزوّد نموذج لغوي على هذا الخادم بعد، ولا تُعرض أي إجابات مُصطنعة.",
+  "ai.allBlocked": "حُجبت الإجابة كاملة لأن استشهاداتها لا تطابق أي مصدر في القاعدة المعرفية.",
+  "ai.thinking": "جارٍ التحليل…",
+  "cases.assistant.tool.summary": "📋 تلخيص القضية",
+  "cases.assistant.tool.summary.q":
+    "لخّص هذه القضية بإيجاز: الوقائع، الأطراف، المرحلة الحالية، وأهم النقاط.",
+  "cases.assistant.tool.opponent": "🛡 تحليل مذكرة الخصم",
+  "cases.assistant.tool.opponent.q": "حلّل دفوع الخصم في هذه القضية واقترح ردًا عليها.",
+  "cases.assistant.tool.draft": "📝 مسودة مذكرة",
+  "cases.assistant.tool.draft.q":
+    "أعدّ مسودة أولية لمذكرة جوابية في هذه القضية بناءً على وقائعها الحالية.",
+  "cases.assistant.tool.odds": "📊 تقدير احتمالية النجاح",
+  "cases.assistant.tool.odds.q":
+    "قدّر احتمالية نجاح موقفنا في هذه القضية بناءً على وقائعها ومرحلتها الحالية.",
+  "cases.assistant.tool.stage": "🧭 نصائح حسب المرحلة",
+  "cases.assistant.tool.stage.q":
+    "ما النصائح والخطوات الإجرائية الموصى بها في المرحلة الحالية لهذه القضية؟",
+  "cases.assistant.tool.dates": "🗓 مراجعة التواريخ والمهل",
+  "cases.assistant.tool.dates.q":
+    "راجع التواريخ والمهل الإجرائية لهذه القضية ونبّه لأي مهلة وشيكة أو فائتة.",
+  "cases.assistant.tool.precedents": "⚖ سوابق مشابهة",
+  "cases.assistant.tool.precedents.q": "هل توجد سوابق قضائية أو أنظمة ذات صلة بموضوع هذه القضية؟",
 
   // ── Finance ──
   "finance.title": "المالية",

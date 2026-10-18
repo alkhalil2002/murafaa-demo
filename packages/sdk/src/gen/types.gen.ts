@@ -19,6 +19,88 @@ export type ApiError = {
     requestId?: string;
 };
 
+export type AiStatus = {
+    connected: boolean;
+    provider: string;
+    region: string | null;
+};
+
+export type AiAnswer = {
+    id: string;
+    surface: 'ASSISTANT' | 'CASE_ANALYSIS' | 'ARENA' | 'HEARING_DRAFT';
+    arenaRole: 'OURS' | 'OPPONENT' | 'JUDGE' | null;
+    question: string;
+    finalOutput: string;
+    verdict: 'PASSED' | 'FLAGGED' | 'BLOCKED';
+    grounded: boolean;
+    blockedCount: number;
+    citations: Array<{
+        rawText: string;
+        sourceTitle: string;
+        citationKey: string;
+        articleNumber: string | null;
+        isDemo: boolean;
+    }>;
+    createdAt: string;
+};
+
+export type AskBody = {
+    question: string;
+    caseId?: string | null;
+};
+
+export type AiAnswerList = Array<AiAnswer>;
+
+export type ArenaView = {
+    threadId: string;
+    round: number;
+    turns: AiAnswerList;
+};
+
+export type HearingDraft = {
+    minutes: string;
+    result: string;
+    clientReport: string;
+    verdict: 'PASSED' | 'FLAGGED' | 'BLOCKED';
+    blockedCount: number;
+};
+
+export type HearingDraftBody = {
+    notes: string;
+};
+
+export type KbSourceList = Array<KbSource>;
+
+export type KbSource = {
+    id: string;
+    type: 'STATUTE' | 'REGULATION' | 'PRECEDENT';
+    title: string;
+    citationKey: string;
+    officialRef: string | null;
+    isActive: boolean;
+    isDemo: boolean;
+    chunks: number;
+};
+
+export type CreatedCase = {
+    id: string;
+};
+
+export type KbSourceBody = {
+    type: 'STATUTE' | 'REGULATION' | 'PRECEDENT';
+    title: string;
+    citationKey: string;
+    officialRef?: string | null;
+    chunks: Array<{
+        articleNumber?: string | null;
+        content: string;
+    }>;
+};
+
+export type KbActiveBody = {
+    active: boolean;
+};
+
 export type AppointmentList = Array<Appointment>;
 
 export type Appointment = {
@@ -30,10 +112,6 @@ export type Appointment = {
     scheduledTime: string | null;
     type: 'FIRST_CONSULTATION' | 'CONTRACT_REVIEW' | 'FOLLOW_UP';
     status: 'SCHEDULED' | 'CANCELLED' | 'DONE';
-};
-
-export type CreatedCase = {
-    id: string;
 };
 
 export type CreateAppointmentBody = {
@@ -1396,6 +1474,298 @@ export type CreateTaskBody = {
 export type MoveTaskBody = {
     status: 'NEW' | 'IN_PROGRESS' | 'DONE';
 };
+
+export type AiStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai/status';
+};
+
+export type AiStatusErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AiStatusError = AiStatusErrors[keyof AiStatusErrors];
+
+export type AiStatusResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: AiStatus;
+        error: null;
+    };
+};
+
+export type AiStatusResponse = AiStatusResponses[keyof AiStatusResponses];
+
+export type AiAskData = {
+    body: AskBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai/ask';
+};
+
+export type AiAskErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AiAskError = AiAskErrors[keyof AiAskErrors];
+
+export type AiAskResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: AiAnswer;
+        error: null;
+    };
+};
+
+export type AiAskResponse = AiAskResponses[keyof AiAskResponses];
+
+export type AiHistoryData = {
+    body?: never;
+    path?: never;
+    query?: {
+        caseId?: string;
+    };
+    url: '/api/v1/ai/history';
+};
+
+export type AiHistoryErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AiHistoryError = AiHistoryErrors[keyof AiHistoryErrors];
+
+export type AiHistoryResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: AiAnswerList;
+        error: null;
+    };
+};
+
+export type AiHistoryResponse = AiHistoryResponses[keyof AiHistoryResponses];
+
+export type AiArenaData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/ai/arena/{id}';
+};
+
+export type AiArenaErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AiArenaError = AiArenaErrors[keyof AiArenaErrors];
+
+export type AiArenaResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: ArenaView;
+        error: null;
+    };
+};
+
+export type AiArenaResponse = AiArenaResponses[keyof AiArenaResponses];
+
+export type AiArenaRoundData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/ai/arena/{id}/round';
+};
+
+export type AiArenaRoundErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AiArenaRoundError = AiArenaRoundErrors[keyof AiArenaRoundErrors];
+
+export type AiArenaRoundResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: ArenaView;
+        error: null;
+    };
+};
+
+export type AiArenaRoundResponse = AiArenaRoundResponses[keyof AiArenaRoundResponses];
+
+export type AiArenaResetData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/ai/arena/{id}/reset';
+};
+
+export type AiArenaResetErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AiArenaResetError = AiArenaResetErrors[keyof AiArenaResetErrors];
+
+export type AiArenaResetResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type AiArenaResetResponse = AiArenaResetResponses[keyof AiArenaResetResponses];
+
+export type AiHearingDraftData = {
+    body: HearingDraftBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/draft';
+};
+
+export type AiHearingDraftErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AiHearingDraftError = AiHearingDraftErrors[keyof AiHearingDraftErrors];
+
+export type AiHearingDraftResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: HearingDraft;
+        error: null;
+    };
+};
+
+export type AiHearingDraftResponse = AiHearingDraftResponses[keyof AiHearingDraftResponses];
+
+export type AiKbData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai/kb';
+};
+
+export type AiKbErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AiKbError = AiKbErrors[keyof AiKbErrors];
+
+export type AiKbResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: KbSourceList;
+        error: null;
+    };
+};
+
+export type AiKbResponse = AiKbResponses[keyof AiKbResponses];
+
+export type AiKbAddData = {
+    body: KbSourceBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai/kb/sources';
+};
+
+export type AiKbAddErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AiKbAddError = AiKbAddErrors[keyof AiKbAddErrors];
+
+export type AiKbAddResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type AiKbAddResponse = AiKbAddResponses[keyof AiKbAddResponses];
+
+export type AiKbActiveData = {
+    body: KbActiveBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/ai/kb/sources/{id}/active';
+};
+
+export type AiKbActiveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AiKbActiveError = AiKbActiveErrors[keyof AiKbActiveErrors];
+
+export type AiKbActiveResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type AiKbActiveResponse = AiKbActiveResponses[keyof AiKbActiveResponses];
 
 export type AppointmentsListData = {
     body?: never;

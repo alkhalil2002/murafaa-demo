@@ -1,5 +1,9 @@
 import { createApp } from "../src/app.factory.js";
+import type { Role } from "@murafaa/auth";
+import { kbSourceBody } from "@murafaa/contracts";
 import { loadEnv } from "../src/config/env.js";
+import { tenantContext } from "../src/common/tenancy/tenant-context.js";
+import { AiService } from "../src/modules/ai/ai.service.js";
 
 /**
  * Demo case data for local development (legacy prisma/seed.ts cases block).
@@ -8,6 +12,10 @@ import { loadEnv } from "../src/config/env.js";
  * come out exactly as they would for a user. Run `pnpm db:seed` first (office
  * and users). Skips when the office already has cases. Development only: it
  * signs in with the console OTP code.
+ *
+ * Also loads a small demo knowledge base (legacy lib/ai/kb-seed.ts) when the
+ * office has none. It is paraphrased, NOT official text, so every source is
+ * stored with is_demo and the UI labels it; a real office curates its own.
  */
 const env = loadEnv({ ...process.env, LOG_LEVEL: "warn" });
 if (env.NODE_ENV === "production" || env.OTP_PROVIDER !== "console") {
@@ -17,6 +25,74 @@ if (env.NODE_ENV === "production" || env.OTP_PROVIDER !== "console") {
 const PARTNER = "0500000001";
 const LAWYER_NAME = "منال المحامية";
 const origin = env.CORS_ORIGINS[0] ?? "http://localhost:3000";
+
+/** Illustrative sources (paraphrased, not official text) for trying the citation gate. */
+const DEMO_KB = [
+  {
+    type: "STATUTE",
+    citationKey: "نظام المعاملات المدنية",
+    title: "نظام المعاملات المدنية",
+    officialRef: "مرسوم ملكي م/١٩١",
+    chunks: [
+      {
+        articleNumber: "41",
+        content:
+          "العقد شريعة المتعاقدين، فلا يجوز نقضه ولا تعديله إلا باتفاق الطرفين أو للأسباب التي يقرّرها النظام.",
+      },
+      {
+        articleNumber: "95",
+        content:
+          "إذا نفّذ أحد المتعاقدين التزامه استحقّ مقابله المتفق عليه ما لم يثبت الطرف الآخر إخلالاً يبرّر الامتناع.",
+      },
+      {
+        articleNumber: "136",
+        content: "يلتزم من تسبّب بضرر للغير بتعويضه، ويُقدَّر التعويض بقدر الضرر الفعلي المباشر.",
+      },
+    ],
+  },
+  {
+    type: "STATUTE",
+    citationKey: "نظام العمل",
+    title: "نظام العمل",
+    officialRef: "مرسوم ملكي م/٥١",
+    chunks: [
+      {
+        articleNumber: "74",
+        content:
+          "ينتهي عقد العمل بانتهاء مدته أو باتفاق الطرفين أو لبلوغ سن التقاعد، وفق الضوابط المقرّرة.",
+      },
+      {
+        articleNumber: "77",
+        content:
+          "إذا أُنهي العقد لسبب غير مشروع استحقّ الطرف المتضرّر تعويضاً وفق ما يقرّره النظام.",
+      },
+    ],
+  },
+  {
+    type: "STATUTE",
+    citationKey: "نظام المرافعات الشرعية",
+    title: "نظام المرافعات الشرعية",
+    officialRef: "مرسوم ملكي م/١",
+    chunks: [
+      {
+        articleNumber: "1",
+        content:
+          "البيّنة على من ادّعى واليمين على من أنكر؛ وعلى المدّعي إثبات دعواه بالطرق النظامية.",
+      },
+    ],
+  },
+  {
+    type: "PRECEDENT",
+    citationKey: "مبدأ قضائي — إثبات التنفيذ العقدي",
+    title: "مبدأ قضائي: من أتمّ التزامه التعاقدي استحقّ مقابله",
+    chunks: [
+      {
+        content:
+          "استقرّ القضاء على أن الثابت كتابةً لا يُنقض إلا بكتابة مثله، وأن إتمام الالتزام يرتّب استحقاق المقابل ما لم يثبت الإخلال.",
+      },
+    ],
+  },
+] as const;
 
 const DAY = 86_400_000;
 /** A calendar date n days from today, as a date input sends it. */
@@ -228,6 +304,28 @@ try {
     console.log(
       "seeded demo data: 2 clients, 4 leads, 4 cases (with conflicts), hearings, tasks, 2 appointments",
     );
+  }
+  if ((await call<unknown[]>("GET", "/ai/kb")).length > 0) {
+    console.log("demo knowledge base skipped: the office already has sources");
+  } else {
+    // Through the service, not the route: only the seed may mark a source as demo.
+    const me = await call<{ user: { id: string; officeId: string; role: Role } }>(
+      "GET",
+      "/auth/me",
+    );
+    const p = { userId: me.user.id, officeId: me.user.officeId, role: me.user.role };
+    const ai = app.get(AiService);
+    for (const source of DEMO_KB) {
+      await tenantContext.run(p, () =>
+        ai.kbAdd(
+          p,
+          kbSourceBody.parse(source),
+          { ip: "127.0.0.1", requestId: "seed-demo" },
+          { demo: true },
+        ),
+      );
+    }
+    console.log(`seeded demo knowledge base: ${DEMO_KB.length} sources (marked demo)`);
   }
   await call("POST", "/auth/logout");
 } finally {
