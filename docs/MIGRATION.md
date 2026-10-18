@@ -8,14 +8,14 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 33 | 18 |
+| `src/lib` files | 51 | 34 | 17 |
 | Business rules inside services/components | 37 | 30 | 7 |
 | Services | 54 | 26 | 28 |
 | Service capabilities | 225 | 109 | 116 |
-| Screens | 63 | 23 | 40 |
+| Screens | 63 | 24 | 39 |
 | Components | 20 | 13 | 7 |
 | Route handlers | 9 | 3 (+1 replaced) | 5 |
-| Models | 56 | 25 (+ `outbox`, `sessions` new) | 31 |
+| Models | 56 | 26 (+ `outbox`, `sessions` new) | 30 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -59,7 +59,7 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `hr/core.ts` | ✅ Ported | packages/rules/src/hr.ts | 24 tests; band labels moved to i18n nitaqat.* |
 | `i18n/ar.ts` | ✅ Ported | packages/i18n/src/ar.ts | + health/errors/currency keys |
 | `i18n/index.ts` | ✅ Ported | packages/i18n/src/index.ts | + en fallback, dirOf, formatSar |
-| `labels.ts` | ⏳ Pending | M2 Core ops | enum → i18n label maps; coverage test in packages/i18n |
+| `labels.ts` | ✅ Ported | packages/i18n (label keys per enum) | packages/i18n/test/coverage.test.ts checks every enum value has a label |
 | `money.ts` | ✅ Ported | packages/rules/src/money.ts | 3 tests; formatSar moved to i18n |
 | `najiz.ts` | ✅ Ported | packages/rules/src/reference/najiz.ts | tests added |
 | `pdf/letterhead.ts` | ⏳ Pending | M3 Documents | escapeHtml + branding (resolveBranding, DEFAULT_BRANDING) ported to packages/documents; letterhead HTML with the PDF service |
@@ -143,7 +143,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 
 | Route | Status | Milestone | Notes |
 |---|---|---|---|
-| `/` | ⏳ Pending | M2 Core ops |  |
+| `/` | ✅ Ported | apps/web/src/app/page.tsx (redirects to /today) |  |
 | `/account/security` | ✅ Ported | apps/web/src/app/(app)/account/security |  |
 | `/activity` | ✅ Ported | apps/web/src/app/(app)/activity |  |
 | `/ai` | ⏳ Pending | M5 AI gate |  |
@@ -244,7 +244,7 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `Task` | ✅ Ported | packages/database tasks (unique office_id + auto_signature) |  |
 | `Appointment` | ✅ Ported | packages/database appointments |  |
 | `ConflictFlag` | ✅ Ported | packages/database conflict_flags (+ RESOLVED status) |  |
-| `NajizClassification` | ⏳ Pending | M2 Core ops |  |
+| `NajizClassification` | ✅ Ported | packages/rules reference/najiz.ts (static reference data, not a table) |  |
 | `DocumentTemplate` | ⏳ Pending | M3 Documents |  |
 | `Document` | ⏳ Pending | M3 Documents |  |
 | `CaseFeeAgreement` | ⏳ Pending | M4 Finance |  |
@@ -310,7 +310,7 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `app-shell.tsx` | ✅ Ported | apps/web/src/components/shell/app-shell.tsx + nav.ts (bell count from /notifications/count) |  |
 | `auth/login-form.tsx` | ✅ Ported | apps/web/src/components/auth/login-form.tsx |  |
 | `auto-submit-select.tsx` | ✅ Ported | apps/web/src/components/auto-submit-select.tsx |  |
-| `cases/ai-draft-hearing-button.tsx` | ⏳ Pending | M2 Core ops |  |
+| `cases/ai-draft-hearing-button.tsx` | ⏳ Pending | M5 AI gate |  |
 | `cases/case-list.tsx` | ✅ Ported | apps/web/src/components/cases/case-list.tsx |  |
 | `cases/hearing-wizard.tsx` | ✅ Ported | apps/web/src/components/cases/hearings.tsx RecordHearingWizard |  |
 | `cases/najiz-picker.tsx` | ✅ Ported | apps/web/src/components/cases/case-form.tsx |  |
@@ -832,15 +832,15 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `cases/actions.ts` | ✅ Ported | apps/api /cases endpoints |  |
 | `cases/approvals-actions.ts` | ✅ Ported | apps/api /cases/:id/approvals endpoints |  |
 | `cases/client-approvals-actions.ts` | ✅ Ported | apps/api /cases/:id/client-approvals endpoints |  |
-| `cases/closing-actions.ts` | ⏳ Pending | M2 Core ops |  |
+| `cases/closing-actions.ts` | ✅ Ported | apps/api /cases/:id outcome, closing checklist, satisfaction, referral, archive |  |
 | `cases/communication-actions.ts` | ✅ Ported | apps/api /cases/:id/communications endpoints |  |
 | `cases/contract-actions.ts` | ✅ Ported | apps/api /cases/:id/contracts endpoints |  |
-| `cases/edit-actions.ts` | ⏳ Pending | M2 Core ops |  |
+| `cases/edit-actions.ts` | ✅ Ported | apps/api PATCH /cases/:id |  |
 | `cases/execution-actions.ts` | ✅ Ported | apps/api /cases/:id/execution endpoints |  |
 | `cases/hearing-actions.ts` | ✅ Ported | apps/api /cases/:id/hearings endpoints |  |
-| `cases/hearing-ai-actions.ts` | ⏳ Pending | M2 Core ops |  |
+| `cases/hearing-ai-actions.ts` | ⏳ Pending | M5 AI gate |  |
 | `cases/message-actions.ts` | ✅ Ported | apps/api /cases/:id/messages endpoints |  |
-| `cases/proc-actions.ts` | ⏳ Pending | M2 Core ops |  |
+| `cases/proc-actions.ts` | ✅ Ported | apps/api /cases/:id/stage/promote|remand, /procedure/end|reopen |  |
 | `cases/procedure-request-actions.ts` | ✅ Ported | apps/api /cases/:id/procedure-requests endpoints |  |
 | `clients/actions.ts` | ✅ Ported | apps/api /clients endpoints |  |
 | `documents/actions.ts` | ⏳ Pending | M3 Documents |  |
@@ -905,7 +905,7 @@ Every action legacy wrote to the audit log. The rebuilt modules must keep loggin
 | Permission matrix | ✅ Ported | packages/auth seedPolicy |
 | Knowledge base sample sources | ⏳ Pending | M5 (lib/ai/kb-seed.ts) |
 | Demo office + 6 role users (0500000001–6) | ✅ Ported | packages/database/src/seed.ts (`pnpm db:seed`) |
-| Demo cases (2) | ⏳ Pending | M2 |
+| Demo cases (2) | ✅ Ported | apps/api/scripts/seed-demo.ts (`pnpm db:seed:demo`, through the real API: 4 cases with HIGH/MEDIUM conflicts, hearings, tasks, appointments) |
 
 ## Owner decisions recorded in legacy
 

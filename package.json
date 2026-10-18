@@ -19,6 +19,7 @@
     "db:migrate": "pnpm --filter @murafaa/database migrate",
     "sdk:generate": "pnpm --filter @murafaa/api openapi && pnpm --filter @murafaa/sdk generate",
     "db:seed": "pnpm --filter @murafaa/database seed",
+    "db:seed:demo": "pnpm --filter @murafaa/api build && pnpm --filter @murafaa/api seed:demo",
     "db:reset": "pnpm --filter @murafaa/database reset"
   },
   "devDependencies": {

@@ -71,6 +71,7 @@ nvm use && pnpm install
 pnpm db:up               # local Postgres 17 + pgvector on :5440 (Docker)
 MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnpm db:migrate
 DATABASE_URL=postgres://murafaa_api:murafaa_api@localhost:5440/murafaa_dev pnpm db:seed   # demo office, users 0500000001–6 (runs as the app role)
+pnpm db:seed:demo        # optional demo cases through the real API (skips if the office has cases)
 pnpm dev                 # api :4000, web :3000
 pnpm build
 pnpm lint                # lint (incl. i18n rule)

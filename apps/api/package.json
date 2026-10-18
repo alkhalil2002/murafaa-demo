@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "openapi": "node dist/scripts/openapi.js"
+    "openapi": "node dist/scripts/openapi.js",
+    "seed:demo": "node --env-file-if-exists=.env dist/scripts/seed-demo.js"
   },
   "dependencies": {
     "@fastify/helmet": "13.2.0",

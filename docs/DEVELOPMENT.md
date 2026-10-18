@@ -27,6 +27,10 @@ cp apps/web/.env.example apps/web/.env.local
 
 # بيانات تجريبية: مكتب + 6 مستخدمين بالأدوار
 DATABASE_URL=postgres://murafaa_api:murafaa_api@localhost:5440/murafaa_dev pnpm db:seed
+
+# (اختياري) قضايا تجريبية: عميلان، 4 عملاء محتملين، 4 قضايا بتعارضات، جلسات، مهام ومواعيد.
+# يمرّ عبر الـ API الحقيقي (كشف التعارض والأحداث والمهام التلقائية)، ولا يعمل إن كان في المكتب قضايا.
+pnpm db:seed:demo
 ```
 
 ## تسجيل الدخول (بيئة التطوير)
