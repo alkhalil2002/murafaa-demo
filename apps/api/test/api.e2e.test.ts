@@ -43,6 +43,7 @@ const OFFICE_N = "22222222-0000-4000-8000-000000000002";
 const OFFICE_O = "11111111-0000-4000-8000-000000000001";
 const OFFICE_P = "12121212-0000-4000-8000-000000000012";
 const OFFICE_Q = "13131313-0000-4000-8000-000000000013";
+const OFFICE_R = "14141414-0000-4000-8000-000000000014";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -101,6 +102,7 @@ const LAWYER_M = "0500001103";
 const PARTNER_N = "0500001201";
 const ACCOUNTANT_N = "0500001202";
 
+const PARTNER_R = "0500001601";
 const PARTNER_Q = "0500001501";
 const ACCOUNTANT_Q = "0500001502";
 const LAWYER_Q1 = "0500001503";
@@ -184,7 +186,7 @@ beforeAll(async () => {
   const pdfPort = (pdfStub.server.address() as { port: number }).port;
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate performance_events, office_performance_weights, candidates, payroll_lines, payroll_runs, employee_requests, attendance, leaves, advances, employees, ai_citations, ai_interactions, knowledge_chunks, knowledge_sources, expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate portal_sessions, portal_otp_challenges, performance_events, office_performance_weights, candidates, payroll_lines, payroll_runs, employee_requests, attendance, leaves, advances, employees, ai_citations, ai_interactions, knowledge_chunks, knowledge_sources, expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -232,6 +234,7 @@ beforeAll(async () => {
         [LAWYER_G2, "LAWYER"],
       ],
     ],
+    [OFFICE_R, "Office R", [], [[PARTNER_R, "PARTNER"]]],
     [
       OFFICE_Q,
       "Office Q",
@@ -390,6 +393,7 @@ beforeAll(async () => {
     OFFICE_O,
     OFFICE_P,
     OFFICE_Q,
+    OFFICE_R,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -3678,5 +3682,225 @@ describe("integrations: ZATCA tax invoice, platform status, WhatsApp log", () =>
     // A lawyer sees only the cases assigned to them.
     expect(await data(lawyer2, "GET", "/whatsapp/messages")).toEqual([]);
     expect(await data(lawyer1, "GET", "/whatsapp/messages")).toHaveLength(1);
+  });
+});
+
+describe("client and employee portals: own data only, revocable sessions", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  const CLIENT_PHONE = "0500001611";
+  const EMPLOYEE_PHONE = "0500001612";
+  const PDF = Buffer.from("%PDF-1.7\n1 0 obj << >> endobj\n%%EOF\n");
+  let partner = "";
+  let clientId = "";
+  let ownCase = "";
+  let otherCase = "";
+  let sharedDoc = "";
+  let hiddenDoc = "";
+  let approvalId = "";
+  let employeeId = "";
+  const as = (
+    cookie: string,
+    method: "GET" | "POST" | "PUT" | "PATCH",
+    url: string,
+    payload?: object,
+  ) =>
+    app.inject({
+      method,
+      url: `/api/v1${url}`,
+      headers: { cookie, ...WEB },
+      ...(payload ? { payload } : {}),
+    });
+  const data = async (
+    cookie: string,
+    method: "GET" | "POST" | "PUT" | "PATCH",
+    url: string,
+    payload?: object,
+  ) => {
+    const res = await as(cookie, method, url, payload);
+    if (res.statusCode >= 400) throw new Error(`${method} ${url} → ${res.statusCode} ${res.body}`);
+    return res.json().data;
+  };
+  const uploadAs = (cookie: string, url: string, query: Record<string, string>) =>
+    app.inject({
+      method: "POST",
+      url: `/api/v1${url}?${new URLSearchParams(query)}`,
+      headers: { cookie, ...WEB, "content-type": "application/octet-stream" },
+      payload: PDF,
+    });
+  const portalLogin = async (prefix: "portal" | "emp-portal", phone: string) => {
+    const otp = await as("", "POST", `/${prefix}/auth/otp`, { phone });
+    const code = otp.json().data.devCode as string | undefined;
+    if (!code) return { otp, cookie: "" };
+    const res = await as("", "POST", `/${prefix}/auth/verify`, { phone, code });
+    return { otp, res, cookie: cookieOf(res) };
+  };
+  let client = "";
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_R));
+    clientId = (
+      await data(partner, "POST", "/clients", { name: "عميل البوابة", phone: CLIENT_PHONE })
+    ).id;
+    const other = (await data(partner, "POST", "/clients", { name: "عميل آخر" })).id;
+    ownCase = (
+      await data(partner, "POST", "/cases", { number: "1/1", title: "قضية العميل", clientId })
+    ).id;
+    otherCase = (
+      await data(partner, "POST", "/cases", { number: "2/2", title: "قضية غيره", clientId: other })
+    ).id;
+    sharedDoc = (
+      await uploadAs(partner, `/cases/${ownCase}/documents`, {
+        fileName: "مذكرة.pdf",
+        mimeType: "application/pdf",
+      })
+    ).json().data.id;
+    hiddenDoc = (
+      await uploadAs(partner, `/cases/${ownCase}/documents`, {
+        fileName: "داخلي.pdf",
+        mimeType: "application/pdf",
+      })
+    ).json().data.id;
+    await data(partner, "POST", `/documents/${sharedDoc}/share`);
+    await data(partner, "POST", `/cases/${ownCase}/client-approvals`, {
+      title: "عرض أتعاب",
+      kind: "FEE",
+      amount: 500_000,
+    });
+    approvalId = (await data(partner, "GET", `/cases/${ownCase}/client-approvals`))[0].id;
+    await data(partner, "POST", "/finance/invoices", {
+      clientId,
+      items: [{ description: "أتعاب", unitPrice: 100_000 }],
+    });
+    await data(partner, "POST", "/finance/invoices", {
+      clientId: other,
+      items: [{ description: "أتعاب", unitPrice: 50_000 }],
+    });
+    employeeId = (
+      await data(partner, "POST", "/hr/employees", {
+        name: "موظف البوابة",
+        phone: EMPLOYEE_PHONE,
+        hireDate: "2024-01-01",
+        basicSalary: 500_000,
+        leaveBalanceDays: 10,
+      })
+    ).id;
+  });
+
+  it("signs a client in without revealing unknown numbers, and keeps portal and staff sessions apart", async () => {
+    const unknown = await as("", "POST", "/portal/auth/otp", { phone: "0500001699" });
+    expect(unknown.json().data).toEqual({ sent: true });
+    // A staff member is not a client: their number opens nothing here.
+    expect((await as("", "POST", "/portal/auth/otp", { phone: PARTNER_R })).json().data).toEqual({
+      sent: true,
+    });
+    const { res, cookie } = await portalLogin("portal", CLIENT_PHONE);
+    expect(res!.json().data).toEqual({
+      kind: "CLIENT",
+      name: "عميل البوابة",
+      officeName: "Office R",
+    });
+    expect(cookie.startsWith("murafaa_portal=")).toBe(true);
+    client = cookie;
+    expect((await as(client, "GET", "/cases")).statusCode).toBe(401);
+    expect((await as(partner, "GET", "/portal/cases")).statusCode).toBe(401);
+    expect((await as(client, "GET", "/emp-portal/me")).statusCode).toBe(401);
+  });
+
+  it("shows the client only their own cases, shared documents and invoices", async () => {
+    expect((await data(client, "GET", "/portal/cases")).map((c: { id: string }) => c.id)).toEqual([
+      ownCase,
+    ]);
+    expect((await as(client, "GET", `/portal/cases/${otherCase}`)).statusCode).toBe(404);
+    const detail = await data(client, "GET", `/portal/cases/${ownCase}`);
+    expect(detail.documents.map((d: { id: string }) => d.id)).toEqual([sharedDoc]);
+    expect(detail).not.toHaveProperty("fees");
+    expect((await as(client, "GET", `/portal/documents/${sharedDoc}/download`)).statusCode).toBe(
+      200,
+    );
+    expect((await as(client, "GET", `/portal/documents/${hiddenDoc}/download`)).statusCode).toBe(
+      404,
+    );
+    const invoices = await data(client, "GET", "/portal/invoices");
+    expect(invoices).toHaveLength(1);
+    expect(invoices[0]).toMatchObject({ total: 115_000, status: "DUE" });
+  });
+
+  it("lets the client write to the chat, send a file and decide an approval once", async () => {
+    await data(client, "POST", `/portal/cases/${ownCase}/messages`, { body: "متى الجلسة؟" });
+    expect(
+      (await as(client, "POST", `/portal/cases/${otherCase}/messages`, { body: "x" })).statusCode,
+    ).toBe(404);
+    const chat = await data(partner, "GET", `/cases/${ownCase}/messages`);
+    expect(chat.at(-1)).toMatchObject({ senderType: "CLIENT", body: "متى الجلسة؟" });
+
+    const up = await uploadAs(client, `/portal/cases/${ownCase}/documents`, {
+      fileName: "هوية.pdf",
+      mimeType: "application/pdf",
+    });
+    expect(up.statusCode).toBe(201);
+    const staffDocs = await data(partner, "GET", `/cases/${ownCase}/documents`);
+    expect(staffDocs.find((d: { id: string }) => d.id === up.json().data.id)).toMatchObject({
+      source: "CLIENT",
+    });
+    const fake = await app.inject({
+      method: "POST",
+      url: `/api/v1/portal/cases/${ownCase}/documents?${new URLSearchParams({ fileName: "x.pdf", mimeType: "application/pdf" })}`,
+      headers: { cookie: client, ...WEB, "content-type": "application/octet-stream" },
+      payload: Buffer.from("not a pdf"),
+    });
+    expect(fake.statusCode).toBe(400);
+
+    await data(client, "POST", `/portal/cases/${ownCase}/approvals/${approvalId}/decide`, {
+      approve: true,
+      note: "موافق",
+    });
+    const again = await as(
+      client,
+      "POST",
+      `/portal/cases/${ownCase}/approvals/${approvalId}/decide`,
+      { approve: false },
+    );
+    expect(again.json().error.messageKey).toBe("errors.APPROVAL_ALREADY_DECIDED");
+    expect((await data(partner, "GET", `/cases/${ownCase}/client-approvals`))[0]).toMatchObject({
+      status: "APPROVED",
+      decisionNote: "موافق",
+    });
+  });
+
+  it("ends the client's access at once when the office deactivates them, and on sign-out", async () => {
+    await data(partner, "PATCH", `/clients/${clientId}`, { status: "INACTIVE" });
+    expect((await as(client, "GET", "/portal/me")).statusCode).toBe(401);
+    await data(partner, "PATCH", `/clients/${clientId}`, { status: "ACTIVE" });
+    expect((await as(client, "GET", "/portal/me")).statusCode).toBe(200);
+    await data(client, "POST", "/portal/auth/logout");
+    expect((await as(client, "GET", "/portal/me")).statusCode).toBe(401);
+  });
+
+  it("lets an employee see their profile and file requests that HR then sees", async () => {
+    const { cookie } = await portalLogin("emp-portal", EMPLOYEE_PHONE);
+    expect(cookie.startsWith("murafaa_emp_portal=")).toBe(true);
+    const profile = await data(cookie, "GET", "/emp-portal/profile");
+    expect(profile).toEqual({
+      id: employeeId,
+      name: "موظف البوابة",
+      jobTitle: null,
+      department: null,
+      leaveBalanceDays: 10,
+      performanceScore: null,
+    });
+    const missing = await as(cookie, "POST", "/emp-portal/requests", { kind: "LEAVE" });
+    expect(missing.statusCode).toBe(400);
+    expect(missing.json().error.details[0].message).toBe("hr.err.LEAVE_REQUEST_MISSING_DAYS");
+    await data(cookie, "POST", "/emp-portal/requests", { kind: "LEAVE", days: 3, detail: "إجازة" });
+    expect(await data(cookie, "GET", "/emp-portal/requests")).toMatchObject([
+      { kind: "LEAVE", days: 3, status: "SUBMITTED" },
+    ]);
+    expect((await data(partner, "GET", "/hr/requests"))[0]).toMatchObject({
+      employeeName: "موظف البوابة",
+      kind: "LEAVE",
+    });
+    expect((await as(cookie, "GET", "/portal/cases")).statusCode).toBe(401);
+    await data(partner, "POST", `/hr/employees/${employeeId}/terminate`);
+    expect((await as(cookie, "GET", "/emp-portal/profile")).statusCode).toBe(401);
   });
 });

@@ -13,6 +13,10 @@ import { AiService } from "../src/modules/ai/ai.service.js";
  * and users). Skips when the office already has cases. Development only: it
  * signs in with the console OTP code.
  *
+ * Portal sign-in for development: the client شركة الإمداد التجارية on
+ * 0500000010 (/portal/login) and the employee منى المحاسِبة on 0500000011
+ * (/emp-portal/login).
+ *
  * Also loads a small demo knowledge base (legacy lib/ai/kb-seed.ts) when the
  * office has none. It is paraphrased, NOT official text, so every source is
  * stored with is_demo and the UI labels it; a real office curates its own.
@@ -148,6 +152,8 @@ try {
 
     const imdad = await call<{ id: string }>("POST", "/clients", {
       name: "شركة الإمداد التجارية",
+      // Signs in to the client portal (/portal/login) in development.
+      phone: "0500000010",
       city: "الرياض",
       type: "COMPANY",
     });
@@ -420,6 +426,8 @@ try {
         })
       ).id;
     }
+    // Signs in to the employee portal (/emp-portal/login) in development.
+    await call("PUT", `/hr/employees/${ids["منى المحاسِبة"]}`, { phone: "0500000011" });
     // 6,000 SAR over 3 months to the accountant (installment 2,000).
     await call("POST", "/hr/advances", {
       employeeId: ids["منى المحاسِبة"],

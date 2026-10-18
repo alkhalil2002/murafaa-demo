@@ -15,9 +15,14 @@ export function readCookie(header: string | undefined, name: string): string | n
  * The session cookie: httpOnly (no JS access), SameSite=Lax (not sent on
  * cross-site POSTs), Secure outside local development.
  */
-export function sessionCookie(token: string, maxAgeSeconds: number, secure: boolean): string {
+export function sessionCookie(
+  token: string,
+  maxAgeSeconds: number,
+  secure: boolean,
+  name: string = SESSION_COOKIE,
+): string {
   return [
-    `${SESSION_COOKIE}=${encodeURIComponent(token)}`,
+    `${name}=${encodeURIComponent(token)}`,
     "Path=/",
     "HttpOnly",
     "SameSite=Lax",
@@ -26,6 +31,6 @@ export function sessionCookie(token: string, maxAgeSeconds: number, secure: bool
   ].join("; ");
 }
 
-export function clearedSessionCookie(secure: boolean): string {
-  return sessionCookie("", 0, secure);
+export function clearedSessionCookie(secure: boolean, name: string = SESSION_COOKIE): string {
+  return sessionCookie("", 0, secure, name);
 }

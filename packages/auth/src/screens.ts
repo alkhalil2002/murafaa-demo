@@ -86,12 +86,24 @@ export const SESSION_POLICY = {
   activityEvents: ["mousemove", "keydown", "click", "scroll", "touchstart"],
 } as const;
 
+/**
+ * Client and employee portal sessions (legacy: 7 days). Portal users come
+ * back rarely, so there is no short idle timeout; the session ends after
+ * 7 days, on sign-out, or as soon as the client or employee is deactivated.
+ */
+export const PORTAL_SESSION_POLICY = {
+  idleTimeoutMs: 7 * 24 * 60 * 60 * 1000,
+  absoluteTtlMs: 7 * 24 * 60 * 60 * 1000,
+  touchIntervalMs: 60 * 1000,
+} as const;
+
 /** Whether a session is still usable at `now` (not revoked, not idle too long, not past its lifetime). */
 export function isSessionLive(
   s: { expiresAt: Date; lastSeenAt: Date; revokedAt: Date | null },
   now: Date,
+  policy: { idleTimeoutMs: number } = SESSION_POLICY,
 ): boolean {
   if (s.revokedAt) return false;
   if (s.expiresAt.getTime() <= now.getTime()) return false;
-  return now.getTime() - s.lastSeenAt.getTime() < SESSION_POLICY.idleTimeoutMs;
+  return now.getTime() - s.lastSeenAt.getTime() < policy.idleTimeoutMs;
 }

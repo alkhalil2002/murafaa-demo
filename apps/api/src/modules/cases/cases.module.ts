@@ -7,6 +7,7 @@ import { CasesController } from "./cases.controller.js";
 import { CasesService } from "./cases.service.js";
 import { CaseworkController } from "./casework.controller.js";
 import { CaseworkService } from "./casework.service.js";
+import { ClientCasesService } from "./client-cases.service.js";
 import { ConflictsService } from "./conflicts.service.js";
 import { DeadlinesService } from "./deadlines.service.js";
 import { ExecutionService } from "./execution.service.js";
@@ -23,6 +24,7 @@ import { ProcedureRequestsService } from "./procedure-requests.service.js";
     ApprovalsService,
     CaseAccess,
     CaseworkService,
+    ClientCasesService,
     DeadlinesService,
     ExecutionService,
     HearingsService,
@@ -32,6 +34,7 @@ import { ProcedureRequestsService } from "./procedure-requests.service.js";
     ApprovalsService,
     CasesService,
     CaseworkService,
+    ClientCasesService,
     ConflictsService,
     CaseAccess,
     DeadlinesService,

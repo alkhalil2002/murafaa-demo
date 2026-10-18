@@ -1,5 +1,4 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { Principal } from "./principal.js";
 
-/** The principal for the request currently being handled, available to any service it calls. */
-export const tenantContext = new AsyncLocalStorage<Principal>();
+/** The office the current request runs in (a staff or portal principal), for TenantDb. */
+export const tenantContext = new AsyncLocalStorage<{ officeId: string }>();

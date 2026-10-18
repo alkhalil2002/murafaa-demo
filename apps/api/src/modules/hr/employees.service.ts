@@ -283,6 +283,25 @@ export class EmployeesService {
     });
   }
 
+  /** بوابة الموظف: the employee's own profile (no salary or identity fields). */
+  selfProfile(employeeId: string) {
+    return this.tenantDb.run(async (tx) => {
+      const [e] = await tx
+        .select()
+        .from(employees)
+        .where(and(eq(employees.id, employeeId), isNull(employees.deletedAt)));
+      if (!e) throw new ApiException(ErrorCode.NOT_FOUND);
+      return {
+        id: e.id,
+        name: e.name,
+        jobTitle: e.jobTitle,
+        department: e.department,
+        leaveBalanceDays: e.leaveBalanceDays,
+        performanceScore: e.performanceScore,
+      };
+    });
+  }
+
   /** الهيكل التنظيمي: active employees grouped by department (no reporting line in docs/03). */
   orgChart() {
     return this.tenantDb.run(async (tx) => {

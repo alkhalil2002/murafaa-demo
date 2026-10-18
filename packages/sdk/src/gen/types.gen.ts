@@ -1682,6 +1682,100 @@ export type ActivityFeed = {
     };
 };
 
+export type PortalMe = {
+    kind: 'CLIENT' | 'EMPLOYEE';
+    name: string;
+    officeName: string;
+};
+
+export type PortalVerifyBody = {
+    phone: string;
+    code: string;
+};
+
+export type PortalCaseList = Array<{
+    id: string;
+    number: string;
+    title: string;
+    stage: 'RECONCILIATION' | 'FIRST_INSTANCE' | 'APPEAL' | 'CASSATION' | 'EXECUTION';
+    status: 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
+    nextHearing: string | null;
+}>;
+
+export type PortalCase = {
+    id: string;
+    number: string;
+    title: string;
+    stage: 'RECONCILIATION' | 'FIRST_INSTANCE' | 'APPEAL' | 'CASSATION' | 'EXECUTION';
+    status: 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
+    nextHearing: string | null;
+    objectionDueAt: string | null;
+    documents: Array<{
+        id: string;
+        fileName: string;
+        createdAt: string;
+    }>;
+    messages: Array<{
+        id: string;
+        senderType: 'STAFF' | 'CLIENT';
+        body: string;
+        createdAt: string;
+    }>;
+    approvals: Array<{
+        id: string;
+        title: string;
+        kind: 'MEMO' | 'FEE' | 'SETTLEMENT';
+        amount: number | null;
+        note: string | null;
+        status: 'PENDING' | 'APPROVED' | 'REJECTED';
+        decisionNote: string | null;
+    }>;
+};
+
+export type PortalMessageBody = {
+    body: string;
+};
+
+export type PortalDecideBody = {
+    approve: boolean;
+    note?: string | null;
+};
+
+export type PortalInvoiceList = Array<{
+    id: string;
+    number: string;
+    caseTitle: string | null;
+    issueDate: string;
+    total: number;
+    paid: number;
+    remaining: number;
+    status: 'DUE' | 'PAID' | 'PARTIALLY_PAID' | 'OVERDUE' | 'BAD_DEBT' | 'CANCELLED';
+}>;
+
+export type EmpPortalProfile = {
+    id: string;
+    name: string;
+    jobTitle: string | null;
+    department: string | null;
+    leaveBalanceDays: number;
+    performanceScore: number | null;
+};
+
+export type EmpPortalRequests = Array<{
+    id: string;
+    kind: 'LEAVE' | 'ADVANCE' | 'CERTIFICATE' | 'OTHER';
+    detail: string | null;
+    days: number | null;
+    status: 'SUBMITTED' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
+    createdAt: string;
+}>;
+
+export type EmpPortalRequestBody = {
+    kind: 'LEAVE' | 'ADVANCE' | 'CERTIFICATE' | 'OTHER';
+    detail?: string | null;
+    days?: number | null;
+};
+
 export type PulseSelf = {
     points: number;
     tasksDone: number;
@@ -7063,6 +7157,524 @@ export type OverviewActivityResponses = {
 };
 
 export type OverviewActivityResponse = OverviewActivityResponses[keyof OverviewActivityResponses];
+
+export type ClientPortalRequestOtpData = {
+    body: RequestOtpBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portal/auth/otp';
+};
+
+export type ClientPortalRequestOtpErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalRequestOtpError = ClientPortalRequestOtpErrors[keyof ClientPortalRequestOtpErrors];
+
+export type ClientPortalRequestOtpResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: RequestOtpResponse;
+        error: null;
+    };
+};
+
+export type ClientPortalRequestOtpResponse = ClientPortalRequestOtpResponses[keyof ClientPortalRequestOtpResponses];
+
+export type ClientPortalVerifyData = {
+    body: PortalVerifyBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portal/auth/verify';
+};
+
+export type ClientPortalVerifyErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalVerifyError = ClientPortalVerifyErrors[keyof ClientPortalVerifyErrors];
+
+export type ClientPortalVerifyResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PortalMe;
+        error: null;
+    };
+};
+
+export type ClientPortalVerifyResponse = ClientPortalVerifyResponses[keyof ClientPortalVerifyResponses];
+
+export type ClientPortalLogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portal/auth/logout';
+};
+
+export type ClientPortalLogoutErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalLogoutError = ClientPortalLogoutErrors[keyof ClientPortalLogoutErrors];
+
+export type ClientPortalLogoutResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type ClientPortalLogoutResponse = ClientPortalLogoutResponses[keyof ClientPortalLogoutResponses];
+
+export type ClientPortalMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portal/me';
+};
+
+export type ClientPortalMeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalMeError = ClientPortalMeErrors[keyof ClientPortalMeErrors];
+
+export type ClientPortalMeResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PortalMe;
+        error: null;
+    };
+};
+
+export type ClientPortalMeResponse = ClientPortalMeResponses[keyof ClientPortalMeResponses];
+
+export type ClientPortalListCasesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portal/cases';
+};
+
+export type ClientPortalListCasesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalListCasesError = ClientPortalListCasesErrors[keyof ClientPortalListCasesErrors];
+
+export type ClientPortalListCasesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PortalCaseList;
+        error: null;
+    };
+};
+
+export type ClientPortalListCasesResponse = ClientPortalListCasesResponses[keyof ClientPortalListCasesResponses];
+
+export type ClientPortalCaseDetailData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/portal/cases/{id}';
+};
+
+export type ClientPortalCaseDetailErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalCaseDetailError = ClientPortalCaseDetailErrors[keyof ClientPortalCaseDetailErrors];
+
+export type ClientPortalCaseDetailResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PortalCase;
+        error: null;
+    };
+};
+
+export type ClientPortalCaseDetailResponse = ClientPortalCaseDetailResponses[keyof ClientPortalCaseDetailResponses];
+
+export type ClientPortalSendMessageData = {
+    body: PortalMessageBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/portal/cases/{id}/messages';
+};
+
+export type ClientPortalSendMessageErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalSendMessageError = ClientPortalSendMessageErrors[keyof ClientPortalSendMessageErrors];
+
+export type ClientPortalSendMessageResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type ClientPortalSendMessageResponse = ClientPortalSendMessageResponses[keyof ClientPortalSendMessageResponses];
+
+export type ClientPortalDecideData = {
+    body: PortalDecideBody;
+    path: {
+        id: string;
+        approvalId: string;
+    };
+    query?: never;
+    url: '/api/v1/portal/cases/{id}/approvals/{approvalId}/decide';
+};
+
+export type ClientPortalDecideErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalDecideError = ClientPortalDecideErrors[keyof ClientPortalDecideErrors];
+
+export type ClientPortalDecideResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type ClientPortalDecideResponse = ClientPortalDecideResponses[keyof ClientPortalDecideResponses];
+
+export type ClientPortalUploadData = {
+    body: Blob | File;
+    path: {
+        id: string;
+    };
+    query: {
+        fileName: string;
+        mimeType: 'application/pdf' | 'image/jpeg' | 'image/png' | 'image/webp' | 'text/plain' | 'application/msword' | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    };
+    url: '/api/v1/portal/cases/{id}/documents';
+};
+
+export type ClientPortalUploadErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalUploadError = ClientPortalUploadErrors[keyof ClientPortalUploadErrors];
+
+export type ClientPortalUploadResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type ClientPortalUploadResponse = ClientPortalUploadResponses[keyof ClientPortalUploadResponses];
+
+export type ClientPortalDownloadData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/portal/documents/{id}/download';
+};
+
+export type ClientPortalDownloadErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalDownloadError = ClientPortalDownloadErrors[keyof ClientPortalDownloadErrors];
+
+export type ClientPortalDownloadResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type ClientPortalDownloadResponse = ClientPortalDownloadResponses[keyof ClientPortalDownloadResponses];
+
+export type ClientPortalListInvoicesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portal/invoices';
+};
+
+export type ClientPortalListInvoicesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalListInvoicesError = ClientPortalListInvoicesErrors[keyof ClientPortalListInvoicesErrors];
+
+export type ClientPortalListInvoicesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PortalInvoiceList;
+        error: null;
+    };
+};
+
+export type ClientPortalListInvoicesResponse = ClientPortalListInvoicesResponses[keyof ClientPortalListInvoicesResponses];
+
+export type EmployeePortalRequestOtpData = {
+    body: RequestOtpBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/emp-portal/auth/otp';
+};
+
+export type EmployeePortalRequestOtpErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type EmployeePortalRequestOtpError = EmployeePortalRequestOtpErrors[keyof EmployeePortalRequestOtpErrors];
+
+export type EmployeePortalRequestOtpResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: RequestOtpResponse;
+        error: null;
+    };
+};
+
+export type EmployeePortalRequestOtpResponse = EmployeePortalRequestOtpResponses[keyof EmployeePortalRequestOtpResponses];
+
+export type EmployeePortalVerifyData = {
+    body: PortalVerifyBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/emp-portal/auth/verify';
+};
+
+export type EmployeePortalVerifyErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type EmployeePortalVerifyError = EmployeePortalVerifyErrors[keyof EmployeePortalVerifyErrors];
+
+export type EmployeePortalVerifyResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PortalMe;
+        error: null;
+    };
+};
+
+export type EmployeePortalVerifyResponse = EmployeePortalVerifyResponses[keyof EmployeePortalVerifyResponses];
+
+export type EmployeePortalLogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/emp-portal/auth/logout';
+};
+
+export type EmployeePortalLogoutErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type EmployeePortalLogoutError = EmployeePortalLogoutErrors[keyof EmployeePortalLogoutErrors];
+
+export type EmployeePortalLogoutResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type EmployeePortalLogoutResponse = EmployeePortalLogoutResponses[keyof EmployeePortalLogoutResponses];
+
+export type EmployeePortalMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/emp-portal/me';
+};
+
+export type EmployeePortalMeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type EmployeePortalMeError = EmployeePortalMeErrors[keyof EmployeePortalMeErrors];
+
+export type EmployeePortalMeResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PortalMe;
+        error: null;
+    };
+};
+
+export type EmployeePortalMeResponse = EmployeePortalMeResponses[keyof EmployeePortalMeResponses];
+
+export type EmployeePortalProfileData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/emp-portal/profile';
+};
+
+export type EmployeePortalProfileErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type EmployeePortalProfileError = EmployeePortalProfileErrors[keyof EmployeePortalProfileErrors];
+
+export type EmployeePortalProfileResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: EmpPortalProfile;
+        error: null;
+    };
+};
+
+export type EmployeePortalProfileResponse = EmployeePortalProfileResponses[keyof EmployeePortalProfileResponses];
+
+export type EmployeePortalRequestsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/emp-portal/requests';
+};
+
+export type EmployeePortalRequestsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type EmployeePortalRequestsError = EmployeePortalRequestsErrors[keyof EmployeePortalRequestsErrors];
+
+export type EmployeePortalRequestsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: EmpPortalRequests;
+        error: null;
+    };
+};
+
+export type EmployeePortalRequestsResponse = EmployeePortalRequestsResponses[keyof EmployeePortalRequestsResponses];
+
+export type EmployeePortalSubmitData = {
+    body: EmpPortalRequestBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/emp-portal/requests';
+};
+
+export type EmployeePortalSubmitErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type EmployeePortalSubmitError = EmployeePortalSubmitErrors[keyof EmployeePortalSubmitErrors];
+
+export type EmployeePortalSubmitResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type EmployeePortalSubmitResponse = EmployeePortalSubmitResponses[keyof EmployeePortalSubmitResponses];
 
 export type PulseSelfData = {
     body?: never;

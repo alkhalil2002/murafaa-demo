@@ -32,6 +32,7 @@ export const ar = {
   "errors.APPROVAL_NEEDS_PARTNER": "اعتماد الشريك يحتاج صلاحية كاملة على القضايا",
   "errors.EXECUTION_ALREADY_OPEN": "يوجد ملف تنفيذ مفتوح لهذه القضية",
   "errors.EXECUTION_NOT_OPEN": "لا يوجد ملف تنفيذ لهذه القضية",
+  "errors.APPROVAL_ALREADY_DECIDED": "تم البتّ في طلب الاعتماد هذا مسبقاً",
   "errors.TAX_PROFILE_MISSING": "أضف الرقم الضريبي للمكتب من الإعدادات قبل إصدار الفاتورة الضريبية",
   "errors.VAT_NUMBER_INVALID": "الرقم الضريبي ١٥ رقماً يبدأ وينتهي بالرقم ٣",
   "errors.CR_NUMBER_INVALID": "رقم السجل التجاري ١٠ أرقام",
@@ -983,6 +984,7 @@ export const ar = {
   "event.leadConverted": "أُنشئت القضية من تحويل عميل محتمل «{name}»",
   "event.judgmentRecorded": "سُجّل النطق بالحكم بتاريخ {date}",
   "event.docGenerated": "تم توليد مستند من قالب: {name}",
+  "event.clientUploaded": "رفع العميل مستنداً عبر البوابة: {name}",
   "event.docUploaded": "رُفع مستند: {name}",
   "case.autoTitleFromLead": "قضية {name}",
 

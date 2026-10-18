@@ -36,6 +36,9 @@ import { OfficesService } from "../offices/offices.service.js";
 import { logCaseEvent } from "../cases/case-events.js";
 import { caseVisibility } from "../cases/case-scope.js";
 import { PerformanceService } from "../performance/performance.service.js";
+import { type PortalMeta, portalAudit } from "../../common/audit/portal-audit.js";
+import { clientCase } from "../cases/client-cases.service.js";
+import type { PortalPrincipal } from "../../common/tenancy/principal.js";
 
 type DocRow = typeof documents.$inferSelect;
 const invalid = (messageKey: string, path?: string) =>
@@ -246,6 +249,117 @@ export class DocumentsService {
       mimeType: d.mimeType,
       bytes: await this.storage.get(d.storageKey),
     };
+  }
+
+  // ── Client portal (بوابة العميل): only shared documents of the client's own cases ──
+
+  clientDocuments(clientId: string, caseId: string) {
+    return this.tenantDb.run(async (tx) => {
+      await clientCase(tx, clientId, caseId);
+      const rows = await tx
+        .select({ id: documents.id, fileName: documents.fileName, createdAt: documents.createdAt })
+        .from(documents)
+        .where(
+          and(
+            eq(documents.caseId, caseId),
+            eq(documents.clientVisible, true),
+            isNull(documents.deletedAt),
+          ),
+        )
+        .orderBy(desc(documents.createdAt));
+      return rows.map((d) => ({ ...d, createdAt: d.createdAt.toISOString() }));
+    });
+  }
+
+  /** A shared document of one of the client's cases; anything else is 404. Audited. */
+  async clientDownload(who: PortalPrincipal, id: string, meta: PortalMeta) {
+    const d = await this.tenantDb.run(async (tx) => {
+      const [doc] = await tx
+        .select()
+        .from(documents)
+        .where(
+          and(eq(documents.id, id), eq(documents.clientVisible, true), isNull(documents.deletedAt)),
+        );
+      if (!doc?.caseId) throw new ApiException(ErrorCode.NOT_FOUND);
+      await clientCase(tx, who.subjectId, doc.caseId);
+      await portalAudit(tx, who, meta, {
+        action: "portal.document.download",
+        entity: "documents",
+        entityId: id,
+      });
+      return doc;
+    });
+    return {
+      fileName: d.fileName,
+      mimeType: d.mimeType,
+      bytes: await this.storage.get(d.storageKey),
+    };
+  }
+
+  /**
+   * A file the client sends from the portal (legacy: 20 MB, any allowed type).
+   * The content is checked against its declared type like staff uploads, and
+   * the document is shared back to the client.
+   */
+  async clientUpload(
+    who: PortalPrincipal,
+    caseId: string,
+    q: { fileName: string; mimeType: string },
+    bytes: Buffer,
+    meta: PortalMeta,
+  ) {
+    const rejected = uploadRejection({ mime: q.mimeType, bytes: bytes.length }, "portal");
+    if (rejected) throw invalid(REJECTION_KEY[rejected]);
+    if (!contentMatchesMime(bytes, q.mimeType)) throw invalid("errors.UPLOAD_CONTENT_MISMATCH");
+    const id = randomUUID();
+    const storageKey = documentKey({
+      officeId: who.officeId,
+      caseId,
+      documentId: id,
+      fileName: q.fileName,
+    });
+    let stored = false;
+    try {
+      return await this.tenantDb.run(async (tx) => {
+        await clientCase(tx, who.subjectId, caseId);
+        await this.storage.put(storageKey, bytes, q.mimeType);
+        stored = true;
+        const now = new Date();
+        await tx.insert(documents).values({
+          id,
+          officeId: who.officeId,
+          caseId,
+          fileName: q.fileName,
+          kind: docKindForMime(q.mimeType),
+          source: "CLIENT",
+          storageKey,
+          mimeType: q.mimeType,
+          sizeBytes: bytes.length,
+          sha256: createHash("sha256").update(bytes).digest("hex"),
+          needsOcr: q.mimeType.startsWith("image/"),
+          clientVisible: true,
+          clientSharedAt: now,
+        });
+        await logCaseEvent(tx, {
+          officeId: who.officeId,
+          caseId,
+          type: "DOC",
+          actorUserId: null,
+          messageKey: "event.clientUploaded",
+          params: { name: q.fileName },
+        });
+        await portalAudit(tx, who, meta, {
+          action: "portal.document.upload",
+          entity: "documents",
+          entityId: id,
+          after: { caseId },
+        });
+        return { id };
+      });
+    } catch (e) {
+      if (stored) await this.storage.delete(storageKey).catch(() => undefined);
+      throw e;
+    }
   }
 
   /** Share with / hide from the client portal (the portal itself is M8). */

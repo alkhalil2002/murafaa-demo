@@ -26,6 +26,7 @@ import {
   IS_PUBLIC,
   PARTNER_ONLY,
   type PermissionRequirement,
+  PORTAL_ROUTE,
   REQUIRED_PERMISSION,
 } from "./permission.decorators.js";
 import { PolicyService } from "./policy.service.js";
@@ -54,6 +55,12 @@ export class PermissionsGuard implements CanActivate {
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, targets)) return true;
 
     const request = context.switchToHttp().getRequest<FastifyRequest>();
+    // Portal routes accept only their own portal session; staff sessions do not reach them.
+    const portalKind = this.reflector.getAllAndOverride<string | undefined>(PORTAL_ROUTE, targets);
+    if (portalKind) {
+      if (request.portal?.kind === portalKind) return true;
+      throw new ApiException(ErrorCode.UNAUTHENTICATED);
+    }
     const principal = request.principal;
     if (!principal) {
       if (request.sessionRejected === "IP_NOT_ALLOWED")

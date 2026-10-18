@@ -9,8 +9,21 @@ export type Principal = {
   previewRole?: Role | null;
 };
 
+/**
+ * A client or employee signed in to their portal. Never a staff principal:
+ * it carries no role and reaches only routes marked @PortalRoute(kind).
+ */
+export type PortalPrincipal = {
+  kind: "CLIENT" | "EMPLOYEE";
+  /** The client or employee id. */
+  subjectId: string;
+  officeId: string;
+};
+
 declare module "fastify" {
   interface FastifyRequest {
+    portal?: PortalPrincipal;
+    portalSessionId?: string;
     principal?: Principal;
     /** The session behind `principal`, for logout and role preview. */
     sessionId?: string;

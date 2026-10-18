@@ -10,5 +10,6 @@ import { HrRecordsService } from "./records.service.js";
   imports: [FinanceModule],
   controllers: [HrController],
   providers: [EmployeesService, HrRecordsService, PayrollService, RecruitmentService],
+  exports: [EmployeesService, HrRecordsService],
 })
 export class HrModule {}

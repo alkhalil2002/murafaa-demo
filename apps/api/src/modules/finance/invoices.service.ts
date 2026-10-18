@@ -416,6 +416,21 @@ export class InvoicesService {
       .limit(take);
   }
 
+  /** بوابة العميل: the client's own invoices, totals and status only. */
+  async clientInvoices(clientId: string) {
+    const rows = await this.tenantDb.run((tx) => this.rows(tx, eq(invoices.clientId, clientId)));
+    return rows.map((r) => ({
+      id: r.id,
+      number: r.number,
+      caseTitle: r.caseTitle,
+      issueDate: r.issueDate,
+      total: r.total,
+      paid: r.paid,
+      remaining: r.remaining,
+      status: r.status,
+    }));
+  }
+
   list(q: { caseId?: string; clientId?: string }) {
     return this.tenantDb.run((tx) =>
       this.rows(

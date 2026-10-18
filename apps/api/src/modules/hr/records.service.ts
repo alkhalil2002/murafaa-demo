@@ -4,6 +4,7 @@ import {
   type createLeaveBody,
   type createRequestBody,
   type decideRequestBody,
+  type empPortalRequestBody,
   ErrorCode,
 } from "@murafaa/contracts";
 import {
@@ -36,6 +37,8 @@ import { TenantDb } from "../../database/tenant-db.service.js";
 import type { Meta } from "../cases/case-access.service.js";
 import { LedgerPoster } from "../finance/ledger-poster.service.js";
 import { lockEmployee } from "./employees.service.js";
+import { type PortalMeta, portalAudit } from "../../common/audit/portal-audit.js";
+import type { PortalPrincipal } from "../../common/tenancy/principal.js";
 
 const conflict = (key: string) => new ApiException(ErrorCode.CONFLICT, undefined, key);
 const today = () => riyadhCalendarDate().toISOString().slice(0, 10);
@@ -247,6 +250,52 @@ export class HrRecordsService {
         entityId: row!.id,
         after: { employeeId: e.id, kind: input.kind },
         ...meta,
+      });
+      return { id: row!.id };
+    });
+  }
+
+  /** بوابة الموظف: the employee's own requests. */
+  selfRequests(employeeId: string) {
+    return this.tenantDb.run(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(employeeRequests)
+        .where(and(eq(employeeRequests.employeeId, employeeId), isNull(employeeRequests.deletedAt)))
+        .orderBy(desc(employeeRequests.createdAt));
+      return rows.map((r) => ({
+        id: r.id,
+        kind: r.kind,
+        detail: r.detail,
+        days: r.days,
+        status: r.status,
+        createdAt: r.createdAt.toISOString(),
+      }));
+    });
+  }
+
+  /** A request the employee files from the portal; HR decides it at /hr/requests (legacy). */
+  selfSubmit(who: PortalPrincipal, input: z.infer<typeof empPortalRequestBody>, meta: PortalMeta) {
+    return this.tenantDb.run(async (tx) => {
+      const e = await lockWorking(tx, who.subjectId);
+      const [row] = await tx
+        .insert(employeeRequests)
+        .values({
+          officeId: who.officeId,
+          employeeId: e.id,
+          kind: input.kind,
+          detail: input.detail,
+          days: input.days ?? null,
+          department: e.department,
+          // "by" is the employee's id: the request came from the employee themself.
+          history: [{ status: "SUBMITTED", by: e.id, at: new Date().toISOString() }],
+        })
+        .returning({ id: employeeRequests.id });
+      await portalAudit(tx, who, meta, {
+        action: "empRequest.selfSubmit",
+        entity: "employee_requests",
+        entityId: row!.id,
+        after: { kind: input.kind },
       });
       return { id: row!.id };
     });

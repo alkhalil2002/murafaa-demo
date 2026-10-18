@@ -17,6 +17,6 @@ import { SessionService } from "./session.service.js";
         env.OTP_PROVIDER === "unifonic" ? new UnifonicOtpProvider() : new ConsoleOtpProvider(),
     },
   ],
-  exports: [SessionService],
+  exports: [OTP_PROVIDER, SessionService],
 })
 export class AuthModule {}

@@ -9,6 +9,7 @@ import { AppModule } from "./app.module.js";
 import { MAX_UPLOAD_BYTES } from "@murafaa/documents";
 import { buildOpenApi } from "./common/zod/openapi.js";
 import { readCookie, SESSION_COOKIE } from "./modules/auth/cookies.js";
+import { PORTAL_COOKIE, PortalSessionService } from "./modules/portal/portal-session.service.js";
 import { SessionService } from "./modules/auth/session.service.js";
 import type { Env } from "./config/env.js";
 import type { LlmProvider } from "./modules/ai/llm.js";
@@ -70,12 +71,35 @@ const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
  */
 function attachSessions(app: NestFastifyApplication, env: Env): void {
   const sessions = app.get(SessionService);
+  const portalSessions = app.get(PortalSessionService);
   app
     .getHttpAdapter()
     .getInstance()
     .addHook("onRequest", async (request) => {
       const auth = request.headers.authorization;
       const bearer = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : null;
+      // Portal routes read their own cookie; a staff session never applies there.
+      const portalKind = request.url.startsWith(`/${API_PREFIX}/v1/portal/`)
+        ? "CLIENT"
+        : request.url.startsWith(`/${API_PREFIX}/v1/emp-portal/`)
+          ? "EMPLOYEE"
+          : null;
+      if (portalKind) {
+        const portalToken = readCookie(request.headers.cookie, PORTAL_COOKIE[portalKind]);
+        if (!portalToken) return;
+        if (
+          UNSAFE_METHODS.has(request.method) &&
+          request.headers.origin &&
+          !env.CORS_ORIGINS.includes(request.headers.origin)
+        )
+          return;
+        const resolved = await portalSessions.resolve(portalToken, portalKind);
+        if (resolved) {
+          request.portal = resolved.principal;
+          request.portalSessionId = resolved.sessionId;
+        }
+        return;
+      }
       const token = bearer ?? readCookie(request.headers.cookie, SESSION_COOKIE);
       if (!token) return;
 

@@ -8,13 +8,13 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 46 | 5 |
+| `src/lib` files | 51 | 50 | 1 |
 | Business rules inside services/components | 37 | 34 | 3 |
-| Services | 54 | 51 | 3 |
-| Service capabilities | 225 | 208 | 17 |
-| Screens | 63 | 57 | 6 |
-| Components | 20 | 18 | 2 |
-| Route handlers | 9 | 4 (+1 replaced) | 4 |
+| Services | 54 | 53 | 1 |
+| Service capabilities | 225 | 221 | 4 |
+| Screens | 63 | 63 | 0 |
+| Components | 20 | 20 | 0 |
+| Route handlers | 9 | 8 (+1 replaced) | 0 |
 | Models | 56 | 55 (+ `outbox`, `sessions` new) | 1 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
@@ -33,14 +33,14 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `api/response.ts` | ✅ Ported | packages/contracts/src/envelope.ts + API envelope interceptor/filter |  |
 | `audit/index.ts` | ✅ Ported | apps/api/src/common/audit/audit.ts | auth events + permission denials written; other modules add theirs |
 | `auth/config.ts` | ✅ Ported | apps/api/src/modules/auth (Auth.js replaced by API sessions) | e2e: apps/api/test/api.e2e.test.ts |
-| `auth/emp-portal-otp.ts` | ⏳ Pending | M8 Portals | employee-portal OTP |
-| `auth/emp-portal-session.ts` | ⏳ Pending | M8 Portals |  |
+| `auth/emp-portal-otp.ts` | ✅ Ported | apps/api/src/modules/portal/portal-auth.service.ts | one flow for both portals; codes bound to the portal kind; own challenge table |
+| `auth/emp-portal-session.ts` | ✅ Ported | apps/api/src/modules/portal/portal-session.service.ts | revocable DB session (legacy: signed cookie, 7 days, no revocation) |
 | `auth/index.ts` | ✅ Ported | apps/api/src/modules/auth/auth.service.ts | OTP + TOTP; same OTP reusable until every check passes |
 | `auth/otp-provider.ts` | ✅ Ported | apps/api/src/modules/auth/otp-provider.ts | console (dev) + Unifonic placeholder exactly as legacy (not connected); boot refuses console in production |
 | `auth/otp.ts` | ✅ Ported | apps/api/src/modules/auth/auth.service.ts | unknown/ambiguous numbers now get the same response (no enumeration) |
 | `auth/phone.ts` | ✅ Ported | packages/rules/src/phone.ts | 2 tests |
-| `auth/portal-otp.ts` | ⏳ Pending | M8 Portals | client-portal OTP |
-| `auth/portal-session.ts` | ⏳ Pending | M8 Portals |  |
+| `auth/portal-otp.ts` | ✅ Ported | apps/api/src/modules/portal/portal-auth.service.ts | unknown numbers get the same answer; sign-in lookup through auth_api.portal_candidates() |
+| `auth/portal-session.ts` | ✅ Ported | apps/api/src/modules/portal/portal-session.service.ts | subject re-checked on every request: deactivation ends access at once |
 | `auth/role-preview.ts` | ✅ Ported | sessions.preview_role + POST/DELETE /api/v1/permissions/preview | server-side, not a cookie; view-only enforced by the guard |
 | `auth/session.ts` | ✅ Ported | apps/api/src/modules/auth/session.service.ts | DB sessions: httpOnly cookie (web) or bearer (mobile); 20-min idle + 30-day limit enforced server-side |
 | `auth/totp.ts` | ✅ Ported | apps/api/src/modules/auth/totp.ts | RFC 6238 tests added; encrypt the secret at rest (legacy stored it in plaintext) |
@@ -90,14 +90,14 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `billing-usage` | ✅ Ported | apps/api/src/modules/billing (GET /billing/usage; live seats, cases, clients, documents) |  |
 | `case-profitability` | ✅ Ported | apps/api/src/modules/finance/reports.service.ts profitability |  |
 | `cases` | ✅ Ported | apps/api/src/modules/cases (effectiveStage follows held hearings) |  |
-| `client-approvals` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts (client decides on the portal, M8) |  |
+| `client-approvals` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts; the client decides in ClientCasesService.decide (row lock, once) |  |
 | `clients` | ✅ Ported | apps/api/src/modules/crm (conflict re-scan on rename joins with cases, M2 slice 2) |  |
 | `communications` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts (+ messageLog behind GET /whatsapp/messages, row-scoped) |  |
 | `contracts` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts |  |
 | `dashboard` | ✅ Ported | apps/api/src/modules/overview |  |
 | `deadlines` | ✅ Ported | apps/api/src/modules/cases/deadlines.service.ts (GET /deadlines) |  |
 | `documents` | ✅ Ported | apps/api/src/modules/documents (uploads checked against file content; template generation; hearing report PDF) |  |
-| `emp-portal` | ⏳ Pending | M8 Portals |  |
+| `emp-portal` | ✅ Ported | apps/api/src/modules/portal + hr EmployeesService.selfProfile, HrRecordsService.selfRequests/selfSubmit |  |
 | `execution` | ✅ Ported | apps/api/src/modules/cases/execution.service.ts (row-locked collections; office-checked follow-up assignee) |  |
 | `expenses` | ✅ Ported | apps/api/src/modules/finance/expenses.service.ts + fees.service.ts (time entries) |  |
 | `fees` | ✅ Ported | apps/api/src/modules/finance/fees.service.ts (hourly time claimed atomically: billed once) |  |
@@ -125,7 +125,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `notifications` | ✅ Ported | apps/api/src/modules/overview (+ GET /notifications/count for the bell; invoices join with M4) |  |
 | `office-settings` | ✅ Ported | apps/api/src/modules/offices (GET/PUT /offices/branding) |  |
 | `permissions-admin` | ✅ Ported | apps/api/src/modules/permissions |  |
-| `portal` | ⏳ Pending | M8 Portals |  |
+| `portal` | ✅ Ported | apps/api/src/modules/portal (controllers) + cases ClientCasesService, documents client*, finance clientInvoices: each module answers only for the signed-in client |  |
 | `procedure-requests` | ✅ Ported | apps/api/src/modules/cases/procedure-requests.service.ts |  |
 | `pulse` | ✅ Ported | apps/api/src/modules/pulse (Riyadh-time windows) |  |
 | `search` | ✅ Ported | apps/api/src/modules/overview (GET /search; documents M3, invoices M4, employees M6) |  |
@@ -160,8 +160,8 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/deadlines` | ✅ Ported | apps/web/src/app/(app)/deadlines |  |
 | `/documents` | ✅ Ported | apps/web/src/app/(app)/documents (template list) |  |
 | `/documents/new/[key]` | ✅ Ported | apps/web/src/app/(app)/documents/new/[key] (prefilled from the case, fee fields hidden for denied roles) |  |
-| `/emp-portal/(app)` | ⏳ Pending | M8 Portals |  |
-| `/emp-portal/login` | ⏳ Pending | M8 Portals |  |
+| `/emp-portal/(app)` | ✅ Ported | apps/web/src/app/emp-portal/(app) |  |
+| `/emp-portal/login` | ✅ Ported | apps/web/src/app/emp-portal/login |  |
 | `/finance` | ✅ Ported | apps/web/src/app/(app)/finance (invoices + new-invoice form from the prototype) |  |
 | `/finance/[id]` | ✅ Ported | apps/web/src/app/(app)/finance/[id] |  |
 | `/finance/bank` | ✅ Ported | apps/web/src/app/(app)/finance/bank |  |
@@ -196,10 +196,10 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/perms/audit` | ✅ Ported | apps/web/src/app/(app)/perms/audit |  |
 | `/perms/security` | ✅ Ported | apps/web/src/app/(app)/perms/security |  |
 | `/perms/users` | ✅ Ported | apps/web/src/app/(app)/perms/users |  |
-| `/portal/(app)` | ⏳ Pending | M8 Portals |  |
-| `/portal/(app)/cases/[id]` | ⏳ Pending | M8 Portals |  |
-| `/portal/(app)/invoices` | ⏳ Pending | M8 Portals |  |
-| `/portal/login` | ⏳ Pending | M8 Portals |  |
+| `/portal/(app)` | ✅ Ported | apps/web/src/app/portal/(app) |  |
+| `/portal/(app)/cases/[id]` | ✅ Ported | apps/web/src/app/portal/(app)/cases/[id] |  |
+| `/portal/(app)/invoices` | ✅ Ported | apps/web/src/app/portal/(app)/invoices |  |
+| `/portal/login` | ✅ Ported | apps/web/src/app/portal/login (+ proxy: own cookie and login page per portal) |  |
 | `/pulse` | ✅ Ported | apps/web/src/app/(app)/pulse |  |
 | `/search` | ✅ Ported | apps/web/src/app/(app)/search (+ topbar dropdown) |  |
 | `/settings` | ✅ Ported | apps/web/src/app/(app)/settings (branding, recycle bin, account) |  |
@@ -215,10 +215,10 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `api/auth/[...nextauth]` | ✅ Ported | POST /api/v1/auth/verify, GET /auth/me, POST /auth/logout |  |
 | `api/auth/otp` | ✅ Ported | POST /api/v1/auth/otp |  |
 | `api/documents/[id]/download` | ✅ Ported | GET /api/v1/documents/:id/download (streamed through the API, audited; no bucket URL) |  |
-| `api/emp-portal-auth/otp` | ⏳ Pending | M8 Portals |  |
-| `api/emp-portal-auth/verify` | ⏳ Pending | M8 Portals |  |
-| `api/portal-auth/otp` | ⏳ Pending | M8 Portals |  |
-| `api/portal-auth/verify` | ⏳ Pending | M8 Portals |  |
+| `api/emp-portal-auth/otp` | ✅ Ported | POST /api/v1/emp-portal/auth/otp |  |
+| `api/emp-portal-auth/verify` | ✅ Ported | POST /api/v1/emp-portal/auth/verify |  |
+| `api/portal-auth/otp` | ✅ Ported | POST /api/v1/portal/auth/otp |  |
+| `api/portal-auth/verify` | ✅ Ported | POST /api/v1/portal/auth/verify |  |
 | `api/search` | ✅ Ported | GET /api/v1/search |  |
 
 ## Prisma models (56) → Drizzle tables
@@ -298,7 +298,7 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `money.test.ts` | ✅ Ported | packages/rules/test/money.test.ts | 3/3 |
 | `permissions.test.ts` | ✅ Ported | packages/auth/test/permissions.test.ts | 20/20 |
 | `phone.test.ts` | ✅ Ported | packages/rules/test/phone.test.ts | 2/2 |
-| `portal.test.ts` | ⏳ Pending | M8 Portals | Prisma integration test; rewrite as API e2e |
+| `portal.test.ts` | ✅ Ported | apps/api/test/api.e2e.test.ts (portals describe) | rewritten as API e2e |
 
 ## Components (20)
 
@@ -316,14 +316,14 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `cases/najiz-picker.tsx` | ✅ Ported | apps/web/src/components/cases/case-form.tsx |  |
 | `cases/role-picker.tsx` | ✅ Ported | apps/web/src/components/cases/case-form.tsx |  |
 | `conflict-badge.tsx` | ✅ Ported | apps/web/src/components/cases/conflict-badge.tsx |  |
-| `emp-portal/emp-portal-login-form.tsx` | ⏳ Pending | M8 Portals |  |
+| `emp-portal/emp-portal-login-form.tsx` | ✅ Ported | apps/web/src/components/portal/portal-login-form.tsx |  |
 | `finance-tabs.tsx` | ✅ Ported | apps/web/src/components/finance/finance-tabs.tsx |  |
 | `hr-tabs.tsx` | ✅ Ported | apps/web/src/components/hr/hr-tabs.tsx |  |
 | `hr-ui.tsx` | ✅ Ported | apps/web/src/components/hr/hr-ui.tsx (errors come from the API messageKey instead of ?err=) |  |
 | `icons.tsx` | ✅ Ported | apps/web/src/components/icons.tsx |  |
 | `idle-logout.tsx` | ✅ Ported | apps/web/src/components/shell/idle-logout.tsx |  |
 | `perms-tabs.tsx` | ✅ Ported | apps/web/src/components/perms/perms-tabs.tsx |  |
-| `portal/portal-login-form.tsx` | ⏳ Pending | M8 Portals |  |
+| `portal/portal-login-form.tsx` | ✅ Ported | apps/web/src/components/portal/portal-login-form.tsx (one form for both portals) |  |
 | `shell-frame.tsx` | ✅ Ported | apps/web/src/components/shell/shell-frame.tsx (live search) |  |
 | `side-nav.tsx` | ✅ Ported | apps/web/src/components/shell/side-nav.tsx |  |
 
@@ -347,8 +347,8 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `src/app/globals.css (component classes)` | ✅ Ported | apps/web/src/app/globals.css | prototype 1:1 classes ported verbatim; tokens in @theme |
 | `prisma/seed.ts` | ✅ Ported | packages/database/src/seed.ts (`pnpm db:seed`, runs as the app role) |  |
 | `src/app/layout.tsx (root: fonts, RTL, metadata)` | ✅ Ported | apps/web/src/app/layout.tsx |  |
-| `src/app/portal/(app)/layout.tsx (client-portal shell)` | ⏳ Pending | M8 Portals |  |
-| `src/app/emp-portal/(app)/layout.tsx (employee-portal shell)` | ⏳ Pending | M8 Portals |  |
+| `src/app/portal/(app)/layout.tsx (client-portal shell)` | ✅ Ported | apps/web/src/app/portal/(app)/layout.tsx |  |
+| `src/app/emp-portal/(app)/layout.tsx (employee-portal shell)` | ✅ Ported | apps/web/src/app/emp-portal/(app)/layout.tsx |  |
 | `prisma/migrations (35)` | ⛔ Not ported | — | history only; the Drizzle schema is rebuilt table by table |
 
 ## Capability checklist (225 exported service functions)
@@ -465,9 +465,9 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **emp-portal** (M8 Portals)
 
-- [ ] `getEmpPortalProfile`
-- [ ] `listMyRequests`
-- [ ] `submitEmpRequest`
+- [x] `getEmpPortalProfile`
+- [x] `listMyRequests`
+- [x] `submitEmpRequest`
 
 **execution** (M2 Core ops)
 
@@ -658,16 +658,16 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **portal** (M8 Portals)
 
-- [ ] `listPortalCases`
-- [ ] `getPortalCase`
-- [ ] `listPortalDocuments`
-- [ ] `getPortalDocumentForDownload`
-- [ ] `listPortalMessages`
-- [ ] `sendPortalMessage`
-- [ ] `listPortalApprovals`
-- [ ] `decidePortalApproval`
-- [ ] `uploadPortalDocument`
-- [ ] `listPortalInvoices`
+- [x] `listPortalCases`
+- [x] `getPortalCase`
+- [x] `listPortalDocuments`
+- [x] `getPortalDocumentForDownload`
+- [x] `listPortalMessages`
+- [x] `sendPortalMessage`
+- [x] `listPortalApprovals`
+- [x] `decidePortalApproval`
+- [x] `uploadPortalDocument`
+- [x] `listPortalInvoices`
 
 **procedure-requests** (M2 Core ops)
 
@@ -845,14 +845,14 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `clients/actions.ts` | ✅ Ported | apps/api /clients endpoints |  |
 | `documents/actions.ts` | ✅ Ported | apps/api /documents/generate, /documents/:id/share, DELETE /documents/:id, /cases/:id/documents/clear-opening |  |
 | `documents/upload-actions.ts` | ✅ Ported | apps/api POST /cases/:id/documents (raw bytes + query metadata) |  |
-| `emp-portal/actions.ts` | ⏳ Pending | M8 Portals |  |
+| `emp-portal/actions.ts` | ✅ Ported | apps/api /emp-portal/* endpoints |  |
 | `finance/actions.ts` | ✅ Ported | apps/api /finance/* endpoints |  |
 | `finance/trust/actions.ts` | ✅ Ported | apps/api POST /finance/trust/:clientId/movements |  |
 | `hr/actions.ts` | ✅ Ported | apps/api /hr/* endpoints |  |
 | `hr/recruitment/actions.ts` | ✅ Ported | apps/api /hr/candidates endpoints |  |
 | `leads/actions.ts` | ✅ Ported | apps/api /leads endpoints |  |
 | `perms/actions.ts` | ✅ Ported | apps/api /permissions endpoints |  |
-| `portal/actions.ts` | ⏳ Pending | M8 Portals |  |
+| `portal/actions.ts` | ✅ Ported | apps/api /portal/* endpoints |  |
 | `pulse/actions.ts` | ✅ Ported | apps/api /pulse/weights endpoints |  |
 | `settings/actions.ts` | ✅ Ported | apps/api /offices/branding, /recycle |  |
 | `tasks/actions.ts` | ✅ Ported | apps/api /tasks endpoints |  |
@@ -969,6 +969,10 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 |---|---|---|
 | AI drafting called api.anthropic.com directly and skipped the citation gate | lib/ai/hearing-draft.ts | ✅ fixed: through the provider (regional) + PII redaction + the gate on every field |
 | Stub LLM produced canned legal-sounding answers | lib/ai/llm.ts StubLlm | ✅ fixed: no fake output; AI shows not connected until a provider is configured |
+| Portal sessions were signed cookies valid 7 days with no revocation; a deactivated client kept access | lib/auth/portal-session.ts, emp-portal-session.ts | ✅ fixed: portal_sessions rows, revoked on sign-out, subject re-checked on every request |
+| Portal OTP verify looked up the latest code by phone across every office and both portals | lib/auth/portal-otp.ts verify | ✅ fixed: per-office, per-portal challenges; codes bound to the portal kind |
+| Portal OTP send revealed unregistered numbers (CLIENT_NOT_FOUND) | lib/auth/portal-otp.ts | ✅ fixed: same answer for every number |
+| Portal upload trusted the declared file type | server/portal.ts uploadPortalDocument | ✅ fixed: content checked against the type, like staff uploads |
 | HR integrations page simulated connect/sync for GOSI, Qiwa, Mudad, ZATCA, Absher, Muqeem | server/hr/integrations.ts | ✅ fixed: all shown not connected, no toggles, until M7 wires a real connection (owner decision) |
 | Terminating an employee left their system login active | server/hr/employees.ts terminateEmployee | ✅ fixed: the linked account is disabled in the same transaction (sessions end on the next request) |
 | Any role with full HR could grant the PARTNER role | server/hr/employees.ts grantEmployeeAccount | ✅ fixed: only a partner may grant PARTNER |

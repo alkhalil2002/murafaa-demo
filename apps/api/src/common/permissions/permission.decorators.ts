@@ -6,6 +6,7 @@ export const IS_AUTHENTICATED_ONLY = "murafaa:authenticated";
 export const REQUIRED_PERMISSION = "murafaa:permission";
 export const PARTNER_ONLY = "murafaa:partner-only";
 export const ALLOW_IN_PREVIEW = "murafaa:allow-in-preview";
+export const PORTAL_ROUTE = "murafaa:portal";
 
 export type PermissionRequirement = { module: PermModule; action: PermAction };
 
@@ -30,3 +31,7 @@ export const RequirePartner = (action: PartnerOnlyAction): MethodDecorator & Cla
 /** A write that stays allowed during role preview (sign out, switch or end the preview). */
 export const AllowInPreview = (): MethodDecorator & ClassDecorator =>
   SetMetadata(ALLOW_IN_PREVIEW, true);
+
+/** A client- or employee-portal route: only that portal's session reaches it, never a staff one. */
+export const PortalRoute = (kind: "CLIENT" | "EMPLOYEE"): MethodDecorator & ClassDecorator =>
+  SetMetadata(PORTAL_ROUTE, kind);
