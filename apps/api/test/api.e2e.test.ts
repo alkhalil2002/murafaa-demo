@@ -596,6 +596,13 @@ describe("account security and office settings", () => {
     expect((await as(lawyer, "GET", "/api/v1/offices/current")).json().data.name).toBe("مكتب هـ");
   });
 
+  it("shows the billing usage summary to partners only", async () => {
+    expect((await as(lawyer, "GET", "/api/v1/billing/usage")).statusCode).toBe(403);
+    const usage = (await as(partner, "GET", "/api/v1/billing/usage")).json().data;
+    expect(usage).toMatchObject({ seats: 2, cases: 0, clients: 0, documents: 0 });
+    expect(Date.parse(usage.memberSince)).not.toBeNaN();
+  });
+
   it("shows an empty recycle bin until modules register their records", async () => {
     expect((await as(lawyer, "GET", "/api/v1/recycle")).json()).toEqual({ data: [], error: null });
   });

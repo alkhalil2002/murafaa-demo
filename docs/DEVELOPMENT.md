@@ -55,6 +55,8 @@ pnpm typecheck
 pnpm test           # اختبارات الوحدة: قواعد العمل والصلاحيات وبوابة الاستشهاد والـ API
 pnpm test:e2e       # عزل المكاتب على Postgres حقيقي (RLS) + مسار HTTP كامل
 pnpm sdk:generate   # بعد أي تغيير في عقود الـ API: يعيد توليد openapi.json والـ SDK
+# يفرّغ كل الجداول في قاعدة التطوير المحلية فقط (يرفض أي قاعدة أخرى)، ثم أعد الـ seed:
+MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnpm db:reset
 ```
 
 - توثيق الـ API: `http://localhost:4000/api/docs` (خارج الإنتاج فقط).

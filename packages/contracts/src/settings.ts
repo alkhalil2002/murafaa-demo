@@ -47,3 +47,18 @@ export const recycleItem = z
   })
   .meta({ id: "RecycleItem" });
 export const recycleBin = z.array(recycleItem).meta({ id: "RecycleBin" });
+
+/**
+ * الباقات (legacy /billing): a real usage summary, not invented plans — there
+ * is no payment gateway. Counts for modules not rebuilt yet are 0 because
+ * those records don't exist yet.
+ */
+export const billingUsage = z
+  .object({
+    seats: z.number().int(),
+    cases: z.number().int(),
+    clients: z.number().int(),
+    documents: z.number().int(),
+    memberSince: z.iso.datetime(),
+  })
+  .meta({ id: "BillingUsage" });

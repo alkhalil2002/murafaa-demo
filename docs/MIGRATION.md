@@ -4,15 +4,15 @@ Every file, screen, route and model in `legacy/` with where it went or which mil
 
 Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP login, TOTP 2FA, editable permissions (all three layers), office IP allowlist enforcement, and audit writers.
 
-## Summary (2026-10-18, after M1 slice 3: account security and settings)
+## Summary (2026-10-18, M1 Foundation complete)
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 29 | 22 |
+| `src/lib` files | 51 | 30 | 21 |
 | Business rules inside services/components | 37 | 26 | 11 |
-| Services | 54 | 4 | 50 |
-| Service capabilities | 225 | 15 | 210 |
-| Screens | 63 | 7 | 56 |
+| Services | 54 | 5 | 49 |
+| Service capabilities | 225 | 16 | 209 |
+| Screens | 63 | 8 | 55 |
 | Components | 20 | 8 | 12 |
 | Route handlers | 9 | 2 (+1 replaced) | 6 |
 | Models | 56 | 7 (+ `outbox`, `sessions` new) | 49 |
@@ -50,7 +50,7 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `conflict/engine.ts` | ✅ Ported | packages/rules/src/conflict.ts | 11 tests |
 | `conflict/service.ts` | ⏳ Pending | M2 Core ops | loads office candidates, persists ConflictFlag |
 | `dates.ts` | ✅ Ported | packages/rules/src/dates.ts | 5 tests |
-| `db.ts` | 🔁 Rebuild | M1 Foundation | Prisma client → packages/database createDb/withTenant (RLS) |
+| `db.ts` | ✅ Ported | packages/database createDb/withTenant (RLS) |  |
 | `documents/render.ts` | ✅ Ported | packages/documents/src/render.ts | 7 tests (with templates) |
 | `documents/template-defs.ts` | ✅ Ported | packages/documents/src/templates.ts |  |
 | `finance/core.ts` | ✅ Ported | packages/rules/src/finance.ts | 19 tests |
@@ -87,7 +87,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `alerts` | ⏳ Pending | M2 Core ops |  |
 | `appointments` | ⏳ Pending | M2 Core ops |  |
 | `approvals` | ⏳ Pending | M2 Core ops | approval chain order ported (packages/rules workflows.ts) |
-| `billing-usage` | ⏳ Pending | M1 Foundation |  |
+| `billing-usage` | ✅ Ported | apps/api/src/modules/billing (GET /billing/usage; case/client/document counts join with their modules) |  |
 | `case-profitability` | ⏳ Pending | M4 Finance |  |
 | `cases` | ⏳ Pending | M2 Core ops | rules ported: effectiveStage, prevProcStage/nextProcStage (packages/rules cases.ts, procedural.ts) |
 | `client-approvals` | ⏳ Pending | M8 Portals |  |
@@ -151,7 +151,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/ai/kb` | ⏳ Pending | M5 AI gate |  |
 | `/alerts` | ⏳ Pending | M2 Core ops |  |
 | `/appointments` | ⏳ Pending | M2 Core ops |  |
-| `/billing` | ⏳ Pending | M1 Foundation |  |
+| `/billing` | ✅ Ported | apps/web/src/app/(app)/billing |  |
 | `/cases` | ⏳ Pending | M2 Core ops |  |
 | `/cases/[id]` | ⏳ Pending | M2 Core ops |  |
 | `/cases/new` | ⏳ Pending | M2 Core ops |  |
@@ -337,7 +337,7 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `phase4-check.ts` | ⛔ Not ported | — | replaced by e2e tests in CI |
 | `phase5-check.ts` | ⛔ Not ported | — | replaced by e2e tests in CI |
 | `phase6-check.ts` | ⛔ Not ported | — | replaced by e2e tests in CI |
-| `reset-dev-data.ts` | ⏳ Pending | M1 Foundation | seed/reset script in packages/database |
+| `reset-dev-data.ts` | ✅ Ported | packages/database/src/reset-dev.ts (`pnpm db:reset`, local databases only) |  |
 
 ## Other
 
@@ -345,7 +345,7 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 |---|---|---|---|
 | `src/middleware.ts` | ✅ Ported | apps/web/src/proxy.ts | navigation redirects only; the API authorizes |
 | `src/app/globals.css (component classes)` | ✅ Ported | apps/web/src/app/globals.css | prototype 1:1 classes ported verbatim; tokens in @theme |
-| `prisma/seed.ts` | ⏳ Pending | M1 Foundation | office + 6 role users seed |
+| `prisma/seed.ts` | ✅ Ported | packages/database/src/seed.ts (`pnpm db:seed`, runs as the app role) |  |
 | `src/app/layout.tsx (root: fonts, RTL, metadata)` | ✅ Ported | apps/web/src/app/layout.tsx |  |
 | `src/app/portal/(app)/layout.tsx (client-portal shell)` | ⏳ Pending | M8 Portals |  |
 | `src/app/emp-portal/(app)/layout.tsx (employee-portal shell)` | ⏳ Pending | M8 Portals |  |
@@ -392,7 +392,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **billing-usage** (M1 Foundation)
 
-- [ ] `getBillingUsage`
+- [x] `getBillingUsage`
 
 **case-profitability** (M4 Finance)
 
@@ -827,7 +827,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 
 | File | Status | Milestone | Notes |
 |---|---|---|---|
-| `account/actions.ts` | ⏳ Pending | M1 Foundation |  |
+| `account/actions.ts` | ✅ Ported | apps/api /security endpoints |  |
 | `ai/actions.ts` | ⏳ Pending | M5 AI gate |  |
 | `cases/actions.ts` | ⏳ Pending | M2 Core ops |  |
 | `cases/approvals-actions.ts` | ⏳ Pending | M2 Core ops |  |
@@ -851,10 +851,10 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `hr/actions.ts` | ⏳ Pending | M6 HR |  |
 | `hr/recruitment/actions.ts` | ⏳ Pending | M6 HR |  |
 | `leads/actions.ts` | ⏳ Pending | M2 Core ops |  |
-| `perms/actions.ts` | ⏳ Pending | M1 Foundation |  |
+| `perms/actions.ts` | ✅ Ported | apps/api /permissions endpoints |  |
 | `portal/actions.ts` | ⏳ Pending | M8 Portals |  |
 | `pulse/actions.ts` | ⏳ Pending | M6 HR |  |
-| `settings/actions.ts` | ⏳ Pending | M1 Foundation |  |
+| `settings/actions.ts` | ✅ Ported | apps/api /offices/branding, /recycle |  |
 | `tasks/actions.ts` | ⏳ Pending | M2 Core ops |  |
 
 ## Database uniqueness rules (25)

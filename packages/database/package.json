@@ -19,7 +19,8 @@
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
     "studio": "drizzle-kit studio",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "reset": "tsx src/reset-dev.ts"
   },
   "devDependencies": {
     "@murafaa/config": "workspace:*",

@@ -78,6 +78,7 @@ pnpm typecheck
 pnpm test                # unit tests (business rules MUST be covered)
 pnpm test:e2e            # RLS isolation + HTTP pipeline against real Postgres
 pnpm db:generate         # new Drizzle migration after a schema change
+pnpm db:reset            # empty a LOCAL dev database (refuses anything else), then db:seed
 pnpm sdk:generate        # after any API contract change (CI fails if stale)
 ```
 Details: `docs/DEVELOPMENT.md`.

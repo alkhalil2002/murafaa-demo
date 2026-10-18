@@ -62,6 +62,14 @@ export type Me = {
     phone: string;
 };
 
+export type BillingUsage = {
+    seats: number;
+    cases: number;
+    clients: number;
+    documents: number;
+    memberSince: string;
+};
+
 export type Health = {
     status: 'ok' | 'degraded';
     db: 'up' | 'down';
@@ -272,6 +280,34 @@ export type AuthLogoutResponses = {
 };
 
 export type AuthLogoutResponse = AuthLogoutResponses[keyof AuthLogoutResponses];
+
+export type BillingUsageData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/billing/usage';
+};
+
+export type BillingUsageErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type BillingUsageError = BillingUsageErrors[keyof BillingUsageErrors];
+
+export type BillingUsageResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: BillingUsage;
+        error: null;
+    };
+};
+
+export type BillingUsageResponse = BillingUsageResponses[keyof BillingUsageResponses];
 
 export type HealthCheckData = {
     body?: never;

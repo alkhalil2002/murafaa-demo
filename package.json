@@ -18,7 +18,8 @@
     "db:generate": "pnpm --filter @murafaa/database generate",
     "db:migrate": "pnpm --filter @murafaa/database migrate",
     "sdk:generate": "pnpm --filter @murafaa/api openapi && pnpm --filter @murafaa/sdk generate",
-    "db:seed": "pnpm --filter @murafaa/database seed"
+    "db:seed": "pnpm --filter @murafaa/database seed",
+    "db:reset": "pnpm --filter @murafaa/database reset"
   },
   "devDependencies": {
     "prettier": "3.9.10",
