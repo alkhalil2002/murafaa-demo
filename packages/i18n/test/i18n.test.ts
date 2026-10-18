@@ -44,6 +44,7 @@ describe("i18n", () => {
   });
 
   it("translates @key params inside stored messages", () => {
+    expect(tStored("notif.hearingSoon", { title: "x", n: 3 })).toContain("٣");
     expect(tStored("event.stagePromoted", { stage: "@case.stage.APPEAL" })).toBe(
       t("event.stagePromoted", { stage: ar["case.stage.APPEAL"] }),
     );

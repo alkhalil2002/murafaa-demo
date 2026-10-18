@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { authCurrent } from "@murafaa/sdk";
+import { authCurrent, overviewNotificationCount } from "@murafaa/sdk";
 import { roleLabel, t } from "@murafaa/i18n";
 import {
   BrandMark,
@@ -60,7 +60,11 @@ const ICONS: Record<NavIcon, React.ReactNode> = {
  * screens the API says this session may open; the API still enforces.
  */
 export async function AppShell({ children }: { children: React.ReactNode }) {
-  const res = await authCurrent({ client: await serverApi() });
+  const api = await serverApi();
+  const [res, bell] = await Promise.all([
+    authCurrent({ client: api }),
+    overviewNotificationCount({ client: api }),
+  ]);
   const me = res.data?.data;
   if (!me) {
     const code = (res.error as { error?: { code?: string } } | undefined)?.error?.code;
@@ -125,7 +129,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       searchLabel={t("search.action")}
       menuLabel={t("nav.menu")}
       bellLabel={t("notif.title")}
-      bellCount={0}
+      bellCount={bell.data?.data.count ?? 0}
     >
       <IdleLogout />
       {me.user.previewRole && (

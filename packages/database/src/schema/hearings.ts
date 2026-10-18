@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { audit, id, tenantPolicy, timestamps } from "./_helpers.js";
 import { cases } from "./cases.js";
 import { offices } from "./offices.js";
@@ -95,6 +96,10 @@ export const hearings = pgTable(
   (t) => [
     index("hearings_case_idx").on(t.officeId, t.caseId),
     index("hearings_date_idx").on(t.officeId, t.hearingDate),
+    // A concurrent second "next hearing" fails instead of leaving two upcoming ones.
+    uniqueIndex("hearings_one_upcoming_key")
+      .on(t.caseId)
+      .where(sql`${t.status} = 'UPCOMING' and ${t.deletedAt} is null`),
     tenantPolicy(),
   ],
 ).enableRLS();

@@ -9,9 +9,10 @@ import type {
 } from "@murafaa/contracts";
 import { clients, leads, type Tx } from "@murafaa/database";
 import { t } from "@murafaa/i18n";
-import { leadConversionPct, LEAD_STAGES, NAJIZ, stepStage } from "@murafaa/rules";
-import { and, count, desc, eq, isNotNull, isNull, sum } from "drizzle-orm";
+import { leadConversionPct, LEAD_STAGES, type LeadStage, NAJIZ, stepStage } from "@murafaa/rules";
+import { and, count, desc, eq, ilike, isNotNull, isNull, or, sum } from "drizzle-orm";
 import { writeAudit } from "../../common/audit/audit.js";
+import { containsPattern } from "../../common/db/like.js";
 import { isUniqueViolation } from "../../common/db/pg-errors.js";
 import { ApiException } from "../../common/http/api.exception.js";
 import type { Principal } from "../../common/tenancy/principal.js";
@@ -347,5 +348,52 @@ export class CrmService {
       .select({ name: leads.name, stage: leads.stage, expectedValue: leads.expectedValue })
       .from(leads)
       .where(and(eq(leads.id, id), isNull(leads.deletedAt), isNull(leads.convertedClientId)));
+  }
+
+  // ── Read models for the office overview ──
+
+  /**
+   * Client count and leads per stage. A converted lead is soft-deleted when it
+   * becomes a client, but still counts as CONTRACTED in the journey funnel.
+   */
+  async stats(tx: Tx) {
+    const [c] = await tx.select({ n: count() }).from(clients).where(isNull(clients.deletedAt));
+    const rows = await tx
+      .select({ stage: leads.stage, n: count() })
+      .from(leads)
+      .where(or(isNull(leads.deletedAt), isNotNull(leads.convertedClientId)))
+      .groupBy(leads.stage);
+    const leadsByStage = Object.fromEntries(LEAD_STAGES.map((st) => [st, 0])) as Record<
+      LeadStage,
+      number
+    >;
+    for (const r of rows) leadsByStage[r.stage] = r.n;
+    return { clients: c?.n ?? 0, leadsByStage };
+  }
+
+  /** Clients and active leads whose name or phone contains `q`. */
+  async search(tx: Tx, q: string, take: number) {
+    const pat = containsPattern(q);
+    const [found, pipeline] = await Promise.all([
+      tx
+        .select({ id: clients.id, name: clients.name, phone: clients.phone })
+        .from(clients)
+        .where(
+          and(isNull(clients.deletedAt), or(ilike(clients.name, pat), ilike(clients.phone, pat))),
+        )
+        .limit(take),
+      tx
+        .select({ id: leads.id, name: leads.name, phone: leads.phone })
+        .from(leads)
+        .where(
+          and(
+            isNull(leads.deletedAt),
+            isNull(leads.convertedClientId),
+            or(ilike(leads.name, pat), ilike(leads.phone, pat)),
+          ),
+        )
+        .limit(take),
+    ]);
+    return { clients: found, leads: pipeline };
   }
 }

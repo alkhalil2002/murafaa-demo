@@ -4,6 +4,7 @@ import { CaseAccess } from "./case-access.service.js";
 import { CasesController } from "./cases.controller.js";
 import { CasesService } from "./cases.service.js";
 import { ConflictsService } from "./conflicts.service.js";
+import { DeadlinesService } from "./deadlines.service.js";
 import { HearingsController } from "./hearings.controller.js";
 import { HearingsService } from "./hearings.service.js";
 import { ProcedureRequestsService } from "./procedure-requests.service.js";
@@ -15,9 +16,10 @@ import { ProcedureRequestsService } from "./procedure-requests.service.js";
     CasesService,
     ConflictsService,
     CaseAccess,
+    DeadlinesService,
     HearingsService,
     ProcedureRequestsService,
   ],
-  exports: [CasesService, ConflictsService, CaseAccess],
+  exports: [CasesService, ConflictsService, CaseAccess, DeadlinesService],
 })
 export class CasesModule {}

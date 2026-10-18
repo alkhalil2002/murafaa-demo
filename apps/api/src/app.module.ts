@@ -8,12 +8,14 @@ import { PolicyService } from "./common/permissions/policy.service.js";
 import { TenantInterceptor } from "./common/tenancy/tenant.interceptor.js";
 import { ENV, type Env } from "./config/env.js";
 import { DatabaseModule } from "./database/database.module.js";
+import { AppointmentsModule } from "./modules/appointments/appointments.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { BillingModule } from "./modules/billing/billing.module.js";
 import { CasesModule } from "./modules/cases/cases.module.js";
 import { CrmModule } from "./modules/crm/crm.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { OfficesModule } from "./modules/offices/offices.module.js";
+import { OverviewModule } from "./modules/overview/overview.module.js";
 import { PermissionsModule } from "./modules/permissions/permissions.module.js";
 import { RecycleModule } from "./modules/recycle/recycle.module.js";
 import { SecurityModule } from "./modules/security/security.module.js";
@@ -46,12 +48,14 @@ export class AppModule {
         }),
         DiscoveryModule,
         DatabaseModule,
+        AppointmentsModule,
         AuthModule,
         BillingModule,
         CasesModule,
         CrmModule,
         HealthModule,
         OfficesModule,
+        OverviewModule,
         PermissionsModule,
         RecycleModule,
         SecurityModule,

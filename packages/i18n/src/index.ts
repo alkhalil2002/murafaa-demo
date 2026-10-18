@@ -71,7 +71,8 @@ export function formatWhen(value: Date | string, locale: Locale = defaultLocale)
 /**
  * Translate a stored message: param values written as "@some.key" are message
  * keys themselves and are translated first (e.g. a stage name inside a
- * timeline event), so stored events stay language-neutral.
+ * timeline event), so stored events stay language-neutral. Numbers are
+ * written in the locale's digits (Arabic-Indic for ar, as legacy did).
  */
 export function tStored(
   key: string,
@@ -83,7 +84,9 @@ export function tStored(
       k,
       typeof v === "string" && v.startsWith("@")
         ? t(v.slice(1) as MessageKey, undefined, locale)
-        : v,
+        : typeof v === "number"
+          ? v.toLocaleString(locale === "ar" ? "ar-SA" : "en-SA")
+          : v,
     ]),
   );
   return t(key as MessageKey, resolved, locale);

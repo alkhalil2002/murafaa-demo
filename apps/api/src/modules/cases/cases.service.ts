@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { OfficePolicy } from "@murafaa/auth";
 import { type createCaseBody, ErrorCode, type updateCaseBody } from "@murafaa/contracts";
 import type { z } from "zod";
 import {
@@ -18,12 +19,27 @@ import {
   type CaseOutcome,
   clampSatisfaction,
   effectiveStage,
+  winRate,
   type ClosingChecklistKey,
   nextProcStage,
   prevProcStage,
 } from "@murafaa/rules";
-import { and, asc, count, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  avg,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  notExists,
+  or,
+} from "drizzle-orm";
 import { writeAudit } from "../../common/audit/audit.js";
+import { containsPattern } from "../../common/db/like.js";
 import { ApiException } from "../../common/http/api.exception.js";
 import { PolicyService } from "../../common/permissions/policy.service.js";
 import type { Principal } from "../../common/tenancy/principal.js";
@@ -709,5 +725,85 @@ export class CasesService {
         ...meta,
       });
     });
+  }
+
+  // ── Read models for the office overview (today, dashboard, journey, alerts, search) ──
+
+  /** Office-wide case aggregates (legacy dashboard/journey count every case, not the caller's scope). */
+  async stats(tx: Tx) {
+    const live = isNull(cases.deletedAt);
+    const [active] = await tx
+      .select({ n: count() })
+      .from(cases)
+      .where(and(live, eq(cases.status, "ACTIVE")));
+    const [archived] = await tx
+      .select({ n: count() })
+      .from(cases)
+      .where(and(live, eq(cases.isArchived, true)));
+    const [csat] = await tx
+      .select({ v: avg(cases.clientSatisfactionScore) })
+      .from(cases)
+      .where(and(live, isNotNull(cases.clientSatisfactionScore)));
+    const outcomes = await tx
+      .select({ outcome: cases.outcome, n: count() })
+      .from(cases)
+      .where(and(live, isNotNull(cases.outcome)))
+      .groupBy(cases.outcome);
+    const byClass = await tx
+      .select({ label: cases.najizMainClass, n: count() })
+      .from(cases)
+      .where(and(live, isNotNull(cases.najizMainClass)))
+      .groupBy(cases.najizMainClass);
+    return {
+      activeCases: active?.n ?? 0,
+      archivedCases: archived?.n ?? 0,
+      avgSatisfaction: csat?.v == null ? null : Number(csat.v),
+      winRatePct: winRate(Object.fromEntries(outcomes.map((o) => [o.outcome!, o.n]))),
+      byClassification: byClass
+        .map((r) => ({ label: r.label!, count: r.n }))
+        .sort((a, b) => b.count - a.count),
+    };
+  }
+
+  /**
+   * Alert sources inside the caller's row scope: cases with an active
+   * conflict, and active cases with no hearing yet. Legacy listed these for
+   * every case in the office, naming cases the caller may not see.
+   */
+  async alertCandidates(tx: Tx, policy: OfficePolicy, p: Principal) {
+    const visible = caseVisibility(tx, policy, p);
+    const conflicted = await tx
+      .select({ id: cases.id, title: cases.title, severity: cases.conflictSeverity })
+      .from(cases)
+      .where(and(visible, isNotNull(cases.conflictSeverity)));
+    const empty = await tx
+      .select({ id: cases.id, title: cases.title })
+      .from(cases)
+      .where(
+        and(
+          visible,
+          eq(cases.status, "ACTIVE"),
+          notExists(
+            tx
+              .select({ one: hearings.id })
+              .from(hearings)
+              .where(and(eq(hearings.caseId, cases.id), isNull(hearings.deletedAt))),
+          ),
+        ),
+      );
+    return { conflicted, empty };
+  }
+
+  /** Title or number contains `q`, within the caller's row scope. */
+  search(tx: Tx, policy: OfficePolicy, p: Principal, q: string, take: number) {
+    const pat = containsPattern(q);
+    return tx
+      .select({ id: cases.id, title: cases.title, number: cases.number })
+      .from(cases)
+      .where(
+        and(caseVisibility(tx, policy, p), or(ilike(cases.title, pat), ilike(cases.number, pat))),
+      )
+      .orderBy(desc(cases.createdAt))
+      .limit(take);
   }
 }

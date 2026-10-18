@@ -1,10 +1,12 @@
 import { Injectable } from "@nestjs/common";
+import type { OfficePolicy } from "@murafaa/auth";
 import { type createTaskBody, ErrorCode } from "@murafaa/contracts";
 import { cases, tasks, type Tx, users } from "@murafaa/database";
 import type { TaskCategory, TaskColumn, TaskPriority, TaskSource } from "@murafaa/rules";
-import { and, asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { writeAudit } from "../../common/audit/audit.js";
+import { containsPattern } from "../../common/db/like.js";
 import { ApiException } from "../../common/http/api.exception.js";
 import { PolicyService } from "../../common/permissions/policy.service.js";
 import type { Principal } from "../../common/tenancy/principal.js";
@@ -63,6 +65,7 @@ export class TasksService {
           origin: tasks.origin,
           caseId: tasks.caseId,
           caseTitle: cases.title,
+          createdAt: tasks.createdAt,
         })
         .from(tasks)
         .leftJoin(users, eq(users.id, tasks.assigneeId))
@@ -74,7 +77,10 @@ export class TasksService {
           ),
         )
         .orderBy(asc(tasks.status), asc(tasks.position), asc(tasks.createdAt));
-      return rows.map((r) => ({ ...r, dueAt: r.dueAt?.toISOString() ?? null }));
+      return rows.map(({ createdAt: _, ...r }) => ({
+        ...r,
+        dueAt: r.dueAt?.toISOString() ?? null,
+      }));
     });
   }
 
@@ -173,5 +179,58 @@ export class TasksService {
       if (!task) throw new ApiException(ErrorCode.NOT_FOUND);
       await fn(tx);
     });
+  }
+
+  // ── Read models for the office overview ──
+
+  /** Open (NEW / IN_PROGRESS) tasks across the office (legacy dashboard count). */
+  async openCount(tx: Tx) {
+    const [r] = await tx
+      .select({ n: count() })
+      .from(tasks)
+      .where(and(isNull(tasks.deletedAt), inArray(tasks.status, ["NEW", "IN_PROGRESS"])));
+    return r?.n ?? 0;
+  }
+
+  /** NEW tasks assigned to the caller, newest first (the notification feed). */
+  async newAssignedTo(p: Principal) {
+    const policy = await this.policies.forOffice(p.officeId);
+    return this.tenantDb.run((tx) => {
+      const visibleCases = tx
+        .select({ id: cases.id })
+        .from(cases)
+        .where(caseVisibility(tx, policy, p));
+      return tx
+        .select({ id: tasks.id, title: tasks.title, createdAt: tasks.createdAt })
+        .from(tasks)
+        .where(
+          and(
+            isNull(tasks.deletedAt),
+            eq(tasks.assigneeId, p.userId),
+            eq(tasks.status, "NEW"),
+            or(isNull(tasks.caseId), inArray(tasks.caseId, visibleCases)),
+          ),
+        )
+        .orderBy(desc(tasks.createdAt));
+    });
+  }
+
+  /** Title contains `q`; tasks of out-of-scope cases stay hidden. */
+  search(tx: Tx, policy: OfficePolicy, p: Principal, q: string, take: number) {
+    const visibleCases = tx
+      .select({ id: cases.id })
+      .from(cases)
+      .where(caseVisibility(tx, policy, p));
+    return tx
+      .select({ id: tasks.id, title: tasks.title })
+      .from(tasks)
+      .where(
+        and(
+          isNull(tasks.deletedAt),
+          ilike(tasks.title, containsPattern(q)),
+          or(isNull(tasks.caseId), inArray(tasks.caseId, visibleCases)),
+        ),
+      )
+      .limit(take);
   }
 }

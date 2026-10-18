@@ -67,7 +67,6 @@ export function ShellFrame({
     const q = query.trim();
     if (q.length < SEARCH_MIN_CHARS) return;
     debounceRef.current = setTimeout(() => {
-      // The search endpoint arrives with M2; until then every query shows "no results".
       fetch(`/api/v1/search?q=${encodeURIComponent(q)}`)
         .then((r) => r.json())
         .then((body) => setResults(body.data ?? NO_RESULTS))

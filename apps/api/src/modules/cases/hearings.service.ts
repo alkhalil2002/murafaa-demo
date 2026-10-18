@@ -10,9 +10,10 @@ import {
   tasks,
   users,
 } from "@murafaa/database";
-import { t } from "@murafaa/i18n";
+import { type MessageKey, t } from "@murafaa/i18n";
 import {
   autoTaskSignature,
+  dateInDays,
   isJudgment,
   objectionDeadline,
   objectionReminderDue,
@@ -53,6 +54,55 @@ export class HearingsService {
       .orderBy(asc(caseAssignees.createdAt));
   }
 
+  /**
+   * A pending hearing keeps a recurring "complete hearing N" reminder
+   * (prototype): any earlier one for the hearing is retired, and a new one is
+   * due `every` days from today while the hearing stays pending.
+   */
+  private async syncPendingReminder(
+    tx: Tx,
+    p: Principal,
+    caseId: string,
+    h: { id: string; sequenceNo: number | null },
+    pending: { items: readonly string[]; every: number | null } | null,
+  ) {
+    await tx
+      .update(caseReminders)
+      .set({ deletedAt: new Date(), updatedBy: p.userId })
+      .where(
+        and(
+          eq(caseReminders.hearingId, h.id),
+          eq(caseReminders.source, "PENDING_HEARING"),
+          isNull(caseReminders.deletedAt),
+        ),
+      );
+    if (!pending?.every) return;
+    const no = h.sequenceNo ?? 0;
+    const items = pending.items.length
+      ? pending.items
+          .map((k) => t(`cases.hearings.pendingItems.${k}` as MessageKey))
+          .join(t("common.listSep"))
+      : t("cases.hearings.pendingItems.minutes");
+    await tx.insert(caseReminders).values({
+      officeId: p.officeId,
+      caseId,
+      hearingId: h.id,
+      text: t("reminder.pendingHearing", { no: no.toLocaleString("ar-SA"), items }),
+      dueOn: dateInDays(pending.every),
+      recurIntervalDays: pending.every,
+      source: "PENDING_HEARING",
+      createdBy: p.userId,
+    });
+    await logCaseEvent(tx, {
+      officeId: p.officeId,
+      caseId,
+      type: "DEADLINE",
+      actorUserId: p.userId,
+      messageKey: "event.hearingSavedPending",
+      params: { no, every: pending.every },
+    });
+  }
+
   async record(p: Principal, caseId: string, input: z.infer<typeof recordHearingBody>, meta: Meta) {
     return this.access.withCase(p, caseId, meta, async (tx, c) => {
       await assertOfficeUser(tx, input.actionTaskAssigneeId, "actionTaskAssigneeId");
@@ -85,6 +135,12 @@ export class HearingsService {
         })
         .returning({ id: hearings.id, sequenceNo: hearings.sequenceNo });
       const hearingId = hearing!.id;
+      if (input.isPending) {
+        await this.syncPendingReminder(tx, p, caseId, hearing!, {
+          items: input.pendingItems,
+          every: input.reminderRecurDays ?? null,
+        });
+      }
 
       // Follow-up actions captured in the same wizard pass (docs BR-CASE-11).
       if (input.actionReminderText) {
@@ -222,15 +278,13 @@ export class HearingsService {
 
   private async scheduleNext(tx: Tx, p: Principal, c: CaseRow, date: Date) {
     await this.retireUpcoming(tx, c.id, p.userId);
-    await tx
-      .insert(hearings)
-      .values({
-        officeId: p.officeId,
-        caseId: c.id,
-        hearingDate: date,
-        status: "UPCOMING",
-        createdBy: p.userId,
-      });
+    await tx.insert(hearings).values({
+      officeId: p.officeId,
+      caseId: c.id,
+      hearingDate: date,
+      status: "UPCOMING",
+      createdBy: p.userId,
+    });
     await logCaseEvent(tx, {
       officeId: p.officeId,
       caseId: c.id,
@@ -310,6 +364,15 @@ export class HearingsService {
     await this.access.withCase(p, caseId, meta, async (tx) => {
       const h = await this.ownHearing(tx, caseId, hearingId);
       const pending = input.isPending ?? h.isPending;
+      const items = pending ? (input.pendingItems ?? h.pendingItems ?? []) : [];
+      const every = pending ? (input.reminderRecurDays ?? h.reminderRecurDays) : null;
+      if (
+        input.isPending !== undefined ||
+        input.pendingItems ||
+        input.reminderRecurDays !== undefined
+      ) {
+        await this.syncPendingReminder(tx, p, caseId, h, pending ? { items, every } : null);
+      }
       await tx
         .update(hearings)
         .set({
@@ -370,17 +433,15 @@ export class HearingsService {
   ) {
     await this.access.withCase(p, caseId, meta, async (tx) => {
       await this.ownHearing(tx, caseId, hearingId);
-      await tx
-        .insert(caseReminders)
-        .values({
-          officeId: p.officeId,
-          caseId,
-          hearingId,
-          text: r.text,
-          dueOn: r.dueOn,
-          recurIntervalDays: r.recurIntervalDays ?? null,
-          createdBy: p.userId,
-        });
+      await tx.insert(caseReminders).values({
+        officeId: p.officeId,
+        caseId,
+        hearingId,
+        text: r.text,
+        dueOn: r.dueOn,
+        recurIntervalDays: r.recurIntervalDays ?? null,
+        createdBy: p.userId,
+      });
       await writeAudit(tx, {
         officeId: p.officeId,
         actorId: p.userId,

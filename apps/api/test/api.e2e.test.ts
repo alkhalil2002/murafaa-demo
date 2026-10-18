@@ -1,6 +1,7 @@
 import { createDb, runMigrations, seedOfficePolicy, withTenant } from "@murafaa/database";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import postgres from "postgres";
+import { dateInDays } from "@murafaa/rules";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp, mountDocs } from "../src/app.factory.js";
 import { loadEnv } from "../src/config/env.js";
@@ -29,6 +30,7 @@ const OFFICE_E = "eeeeeeee-0000-4000-8000-00000000000e";
 const OFFICE_F = "ffffffff-0000-4000-8000-00000000000f";
 const OFFICE_G = "99999999-0000-4000-8000-000000000009";
 const OFFICE_H = "88888888-0000-4000-8000-000000000008";
+const OFFICE_I = "77777777-0000-4000-8000-000000000007";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -60,6 +62,11 @@ const LAWYER_G2 = "0500000503";
 const PARTNER_H = "0500000601";
 const LAWYER_H1 = "0500000602";
 const LAWYER_H2 = "0500000603";
+
+const PARTNER_I = "0500000701";
+const LAWYER_I1 = "0500000702";
+const LAWYER_I2 = "0500000703";
+const RECEPTION_I = "0500000704";
 
 let app: NestFastifyApplication;
 
@@ -97,7 +104,7 @@ const cookieOf = (res: { headers: Record<string, unknown> }) =>
 beforeAll(async () => {
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -143,6 +150,17 @@ beforeAll(async () => {
         [PARTNER_G, "PARTNER"],
         [LAWYER_G1, "LAWYER"],
         [LAWYER_G2, "LAWYER"],
+      ],
+    ],
+    [
+      OFFICE_I,
+      "Office I",
+      [],
+      [
+        [PARTNER_I, "PARTNER"],
+        [LAWYER_I1, "LAWYER"],
+        [LAWYER_I2, "LAWYER"],
+        [RECEPTION_I, "RECEPTION"],
       ],
     ],
     [
@@ -199,6 +217,7 @@ beforeAll(async () => {
     OFFICE_F,
     OFFICE_G,
     OFFICE_H,
+    OFFICE_I,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -1332,6 +1351,28 @@ describe("hearings, tasks and procedural requests", () => {
     expect((await detail(lawyer1, id)).procedureRequests).toHaveLength(1);
   });
 
+  it("keeps one recurring reminder while a hearing is pending", async () => {
+    const id = await newCase(lawyer1, "جلسة معلقة");
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings`, {
+      hearingDate: "2026-06-01",
+      isPending: true,
+      pendingItems: ["minutes", "nextHearing"],
+      reminderRecurDays: 3,
+    });
+    let c = await detail(lawyer1, id);
+    const h = c.hearings[0];
+    expect(h.actions.reminders).toHaveLength(1);
+    expect(h.actions.reminders[0].text).toBe("إكمال الجلسة ١: ضبط الجلسة، تاريخ الجلسة القادمة");
+    expect(keys(c)).toContain("event.hearingSavedPending");
+    await as(lawyer1, "PATCH", `/api/v1/cases/${id}/hearings/${h.id}`, { reminderRecurDays: 5 });
+    c = await detail(lawyer1, id);
+    expect(c.hearings[0].actions.reminders).toHaveLength(1); // replaced, not added
+    await as(lawyer1, "PATCH", `/api/v1/cases/${id}/hearings/${h.id}`, { isPending: false });
+    c = await detail(lawyer1, id);
+    expect(c.hearings[0]).toMatchObject({ isPending: false, pendingItems: [] });
+    expect(c.hearings[0].actions.reminders).toHaveLength(0);
+  });
+
   it("routes the client report through approval; only the full level decides", async () => {
     const id = await newCase(lawyer1, "تقرير العميل");
     await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings`, { hearingDate: "2026-05-01" });
@@ -1399,5 +1440,229 @@ describe("hearings, tasks and procedural requests", () => {
       caseId: await newCase(lawyer1, "y"),
     });
     expect(hidden.statusCode).toBe(400);
+  });
+});
+
+describe("office overview: deadlines, alerts, notifications, search, today, reports", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let lawyer1 = "";
+  let lawyer2 = "";
+  let reception = "";
+  let mine = "";
+  let other = "";
+  const as = (
+    cookie: string,
+    method: "GET" | "PUT" | "POST" | "PATCH" | "DELETE",
+    url: string,
+    payload?: object,
+  ) => app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+  const get = async (cookie: string, url: string) => (await as(cookie, "GET", url)).json().data;
+  /** A calendar date n days from today (Riyadh), as a date input sends it. */
+  const day = (n: number) => dateInDays(n).toISOString().slice(0, 10);
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_I));
+    lawyer1 = cookieOf(await login(LAWYER_I1));
+    lawyer2 = cookieOf(await login(LAWYER_I2));
+    reception = cookieOf(await login(RECEPTION_I));
+    await as(partner, "POST", "/api/v1/clients", {
+      name: "شركة 100% للتجارة",
+      phone: "0555123456",
+    });
+    mine = (
+      await as(lawyer1, "POST", "/api/v1/cases", { number: "1447/50", title: "قضية الموعد" })
+    ).json().data.id;
+    other = (
+      await as(lawyer2, "POST", "/api/v1/cases", { number: "1447/51", title: "قضية زميل" })
+    ).json().data.id;
+    await as(lawyer1, "PUT", `/api/v1/cases/${mine}/hearings/next`, { date: day(3) });
+    await as(lawyer2, "PUT", `/api/v1/cases/${other}/hearings/next`, { date: day(1) });
+  });
+
+  it("books, lists and cancels appointments; a foreign client is refused", async () => {
+    const created = await as(reception, "POST", "/api/v1/appointments", {
+      contactName: "خالد",
+      scheduledOn: day(2),
+      scheduledTime: "10:30",
+      type: "FOLLOW_UP",
+    });
+    expect(created.statusCode).toBe(201);
+    const bad = await as(reception, "POST", "/api/v1/appointments", {
+      contactName: "x",
+      scheduledOn: day(2),
+      clientId: OFFICE_A,
+    });
+    expect(bad.json().error.details[0].path).toBe("clientId");
+    expect(
+      (
+        await as(reception, "POST", "/api/v1/appointments", {
+          contactName: "x",
+          scheduledOn: day(2),
+          scheduledTime: "25:00",
+        })
+      ).statusCode,
+    ).toBe(400);
+    let list = (await get(reception, "/api/v1/appointments")) as Array<{
+      id: string;
+      scheduledTime: string;
+    }>;
+    expect(list).toHaveLength(1);
+    expect(list[0]!.scheduledTime).toBe("10:30");
+    await as(reception, "POST", `/api/v1/appointments/${created.json().data.id}/cancel`);
+    list = await get(reception, "/api/v1/appointments");
+    expect(list).toHaveLength(0);
+    expect(
+      (await as(lawyer1, "POST", "/api/v1/appointments", { contactName: "y", scheduledOn: day(5) }))
+        .statusCode,
+    ).toBe(201);
+  });
+
+  it("lists deadlines inside the row scope, soonest first", async () => {
+    await as(lawyer1, "POST", `/api/v1/cases/${mine}/hearings`, {
+      hearingDate: day(-28),
+      kind: "JUDGMENT_PRONOUNCEMENT",
+    }); // objection due in 2 days; this also retires the upcoming hearing
+    await as(lawyer1, "PUT", `/api/v1/cases/${mine}/hearings/next`, { date: day(3) });
+    const h = (await get(lawyer1, `/api/v1/cases/${mine}`)).hearings[0];
+    await as(lawyer1, "POST", `/api/v1/cases/${mine}/hearings/${h.id}/reminders`, {
+      text: "إحضار الأصل",
+      dueOn: day(-1),
+    });
+
+    const items = (await get(lawyer1, "/api/v1/deadlines")) as Array<{
+      kind: string;
+      caseId: string;
+      daysLeft: number;
+      urgency: string;
+      label: string | null;
+    }>;
+    expect(items.map((d) => d.kind)).toEqual(["reminder", "objection", "nextHearing"]);
+    expect(items[0]).toMatchObject({ daysLeft: -1, urgency: "overdue", label: "إحضار الأصل" });
+    expect(items.every((d) => d.caseId === mine)).toBe(true);
+    const all = (await get(partner, "/api/v1/deadlines")) as Array<{ caseId: string }>;
+    expect(all.some((d) => d.caseId === other)).toBe(true);
+    expect((await as(lawyer1, "GET", "/api/v1/deadlines")).statusCode).toBe(200);
+  });
+
+  it("raises tiered alerts from the caller's own cases only", async () => {
+    const alerts = (await get(lawyer1, "/api/v1/alerts")) as Array<{
+      tier: string;
+      message: { messageKey: string; params: { title: string } };
+    }>;
+    expect(alerts[0]!.tier).toBe("critical");
+    expect(alerts.map((a) => a.message.messageKey)).toEqual(
+      expect.arrayContaining(["alerts.deadlineOverdue", "alerts.deadlineSoon"]),
+    );
+    expect(alerts.every((a) => a.message.params.title === "قضية الموعد")).toBe(true);
+    const tiers = alerts.map((a) => a.tier);
+    expect(
+      [...tiers].sort(
+        (a, b) =>
+          ["critical", "important", "info"].indexOf(a) -
+          ["critical", "important", "info"].indexOf(b),
+      ),
+    ).toEqual(tiers);
+    const bare = (
+      await as(partner, "POST", "/api/v1/cases", { number: "1447/52", title: "ملف جديد" })
+    ).json().data.id;
+    const empty = (await get(partner, "/api/v1/alerts")) as Array<{ id: string; tier: string }>;
+    expect(empty.find((a) => a.id === `empty:${bare}`)?.tier).toBe("info");
+    expect(empty.some((a) => a.id === `empty:${other}`)).toBe(false); // it has an upcoming hearing
+  });
+
+  it("notifies of hearings within a week and newly assigned tasks", async () => {
+    const users = (await get(partner, "/api/v1/cases/assignable-users")) as Array<{
+      id: string;
+      name: string;
+    }>;
+    const l1 = users.find((u) => u.name === `user ${LAWYER_I1}`)!;
+    await as(partner, "POST", "/api/v1/tasks", { title: "راجع العقد", assigneeId: l1.id });
+    const feed = (await get(lawyer1, "/api/v1/notifications")) as Array<{
+      message: { messageKey: string };
+    }>;
+    expect(feed.map((n) => n.message.messageKey)).toEqual(
+      expect.arrayContaining(["notif.hearingSoon", "notif.taskAssigned"]),
+    );
+    expect((await get(lawyer1, "/api/v1/notifications/count")).count).toBe(feed.length);
+    // Reception has no tasks module: no task items, and no error.
+    const rec = (await get(reception, "/api/v1/notifications")) as Array<{
+      message: { messageKey: string };
+    }>;
+    expect(rec.some((n) => n.message.messageKey === "notif.taskAssigned")).toBe(false);
+  });
+
+  it("searches each category within module and row scope, taking % literally", async () => {
+    const r1 = await get(lawyer1, `/api/v1/search?q=${encodeURIComponent("قضية")}`);
+    expect(r1.cases.map((c: { id: string }) => c.id)).toEqual([mine]);
+    const r2 = await get(partner, `/api/v1/search?q=${encodeURIComponent("قضية")}`);
+    expect(r2.cases).toHaveLength(2);
+    const pct = await get(partner, `/api/v1/search?q=${encodeURIComponent("100%")}`);
+    expect(pct.clients.map((c: { label: string }) => c.label)).toEqual(["شركة 100% للتجارة"]);
+    expect(
+      (await get(partner, `/api/v1/search?q=${encodeURIComponent("0%")}`)).clients,
+    ).toHaveLength(1);
+    expect(
+      (await get(partner, `/api/v1/search?q=${encodeURIComponent("%%")}`)).clients,
+    ).toHaveLength(0);
+    const byPhone = await get(reception, "/api/v1/search?q=555123");
+    expect(byPhone.clients).toHaveLength(1);
+    expect(byPhone.cases).toEqual([]); // reception has no cases module
+    expect((await as(partner, "GET", "/api/v1/search?q=a")).statusCode).toBe(400);
+  });
+
+  it("shapes today by module: reception sees dates, not tasks or win rate", async () => {
+    const lw = await get(lawyer1, "/api/v1/today");
+    expect(lw.hearings).toMatchObject({ visible: true, totalWithin7: 1 });
+    expect(lw.deadlines.items.map((d: { kind: string }) => d.kind)).toEqual([
+      "reminder",
+      "objection",
+    ]);
+    expect(lw.tasks.visible).toBe(true);
+    expect(lw.tasks.items[0]).toMatchObject({ urgent: true }); // the objection task comes first
+    expect(lw.winRate.visible).toBe(true);
+    const rc = await get(reception, "/api/v1/today");
+    expect(rc).toMatchObject({ tasks: { visible: false, items: [] }, winRate: { visible: false } });
+    expect(rc.hearings.items.length).toBe(2); // reception's case scope is ALL
+  });
+
+  it("serves dashboard, journey and activity to report viewers only", async () => {
+    expect((await as(reception, "GET", "/api/v1/dashboard")).statusCode).toBe(403);
+    expect((await as(reception, "GET", "/api/v1/activity")).statusCode).toBe(403);
+    const dash = await get(lawyer1, "/api/v1/dashboard");
+    expect(dash).toMatchObject({ activeCases: 3, clients: 1 });
+    expect(dash.criticalAlerts).toBeGreaterThanOrEqual(2);
+
+    await as(partner, "POST", "/api/v1/leads", { name: "مؤسسة الفجر" });
+    const lead = (
+      (await get(partner, "/api/v1/leads")) as Array<{ id: string; name: string }>
+    ).find((l) => l.name === "مؤسسة الفجر")!;
+    for (let i = 0; i < 3; i++)
+      await as(partner, "POST", `/api/v1/leads/${lead.id}/move`, { direction: 1 });
+    await as(partner, "POST", `/api/v1/leads/${lead.id}/convert`);
+    const j = await get(partner, "/api/v1/journey");
+    expect(j).toMatchObject({
+      contracted: 1,
+      firstContact: 1,
+      inPipeline: 0,
+      appointments: 2,
+      followUps: 1,
+      activeCases: 4,
+    });
+
+    const feed = await get(partner, "/api/v1/activity?type=case");
+    expect(feed.rows.length).toBeGreaterThan(0);
+    expect(feed.rows.every((r: { category: string }) => r.category === "case")).toBe(true);
+    expect(feed.counts.client).toBeGreaterThan(0);
+    const users = (await get(partner, "/api/v1/cases/assignable-users")) as Array<{
+      id: string;
+      name: string;
+    }>;
+    const rid = users.find((u) => u.name === `user ${RECEPTION_I}`)!.id;
+    const byRec = await get(partner, `/api/v1/activity?actor=${rid}`);
+    expect(
+      byRec.rows.every((r: { actorName: string }) => r.actorName === `user ${RECEPTION_I}`),
+    ).toBe(true);
+    expect(byRec.rows.map((r: { action: string }) => r.action)).toContain("appointment.cancel");
   });
 });

@@ -10,7 +10,7 @@ import {
 import { ErrorCode } from "@murafaa/contracts";
 import { auditLog, permissions, roleCaseScopes, sessions, users } from "@murafaa/database";
 import { and, asc, desc, eq, isNull, like, or } from "drizzle-orm";
-import { writeAudit } from "../../common/audit/audit.js";
+import { describeAudit, writeAudit } from "../../common/audit/audit.js";
 import { ApiException } from "../../common/http/api.exception.js";
 import { PolicyService } from "../../common/permissions/policy.service.js";
 import type { Principal } from "../../common/tenancy/principal.js";
@@ -159,7 +159,7 @@ export class PermissionsService {
     return rows.map((r) => ({
       id: r.id,
       action: r.action,
-      detail: describe(r.after),
+      detail: describeAudit(r.after),
       actorName: r.actorName,
       createdAt: r.createdAt.toISOString(),
     }));
@@ -183,18 +183,4 @@ export class PermissionsService {
       });
     });
   }
-}
-
-/** Display order for audit details; jsonb does not keep insertion order. */
-const DETAIL_ORDER = ["role", "module", "level", "scope", "from", "to", "channel"];
-const rank = (k: string) =>
-  DETAIL_ORDER.includes(k) ? DETAIL_ORDER.indexOf(k) : DETAIL_ORDER.length;
-
-/** A one-line summary of an audit entry's details (e.g. "role=LAWYER · module=FINANCE · level=VIEW"). */
-function describe(after: unknown): string | null {
-  if (!after || typeof after !== "object") return null;
-  const parts = Object.entries(after as Record<string, unknown>)
-    .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b))
-    .map(([k, v]) => `${k}=${String(v)}`);
-  return parts.length ? parts.join(" · ") : null;
 }

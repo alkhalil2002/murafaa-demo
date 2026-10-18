@@ -9,13 +9,13 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
 | `src/lib` files | 51 | 33 | 18 |
-| Business rules inside services/components | 37 | 28 | 9 |
-| Services | 54 | 11 | 43 |
-| Service capabilities | 225 | 68 | 157 |
-| Screens | 63 | 13 | 50 |
+| Business rules inside services/components | 37 | 30 | 7 |
+| Services | 54 | 20 | 34 |
+| Service capabilities | 225 | 82 | 143 |
+| Screens | 63 | 23 | 40 |
 | Components | 20 | 13 | 7 |
-| Route handlers | 9 | 2 (+1 replaced) | 6 |
-| Models | 56 | 17 (+ `outbox`, `sessions` new) | 39 |
+| Route handlers | 9 | 3 (+1 replaced) | 5 |
+| Models | 56 | 18 (+ `outbox`, `sessions` new) | 38 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -82,10 +82,10 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 
 | Service | Status | Milestone | Notes |
 |---|---|---|---|
-| `activity` | ⏳ Pending | M2 Core ops |  |
+| `activity` | ✅ Ported | apps/api/src/modules/overview |  |
 | `ai` | ⏳ Pending | M5 AI gate | assistant + arena — every answer through the citation gate; system prompts ported to apps/api/src/modules/ai/prompts.ts |
-| `alerts` | ⏳ Pending | M2 Core ops |  |
-| `appointments` | ⏳ Pending | M2 Core ops |  |
+| `alerts` | ✅ Ported | apps/api/src/modules/overview (row-scoped; overdue invoices join with M4) |  |
+| `appointments` | ✅ Ported | apps/api/src/modules/appointments (+ booking/cancel UI legacy lacked) |  |
 | `approvals` | ⏳ Pending | M2 Core ops | approval chain order ported (packages/rules workflows.ts) |
 | `billing-usage` | ✅ Ported | apps/api/src/modules/billing (GET /billing/usage; case/client/document counts join with their modules) |  |
 | `case-profitability` | ⏳ Pending | M4 Finance |  |
@@ -94,8 +94,8 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `clients` | ✅ Ported | apps/api/src/modules/crm (conflict re-scan on rename joins with cases, M2 slice 2) |  |
 | `communications` | ⏳ Pending | M2 Core ops |  |
 | `contracts` | ⏳ Pending | M3 Documents |  |
-| `dashboard` | ⏳ Pending | M2 Core ops |  |
-| `deadlines` | ⏳ Pending | M2 Core ops |  |
+| `dashboard` | ✅ Ported | apps/api/src/modules/overview |  |
+| `deadlines` | ✅ Ported | apps/api/src/modules/cases/deadlines.service.ts (GET /deadlines) |  |
 | `documents` | ⏳ Pending | M3 Documents | upload limits + MIME allowlist ported (packages/documents uploads.ts) |
 | `emp-portal` | ⏳ Pending | M8 Portals |  |
 | `execution` | ⏳ Pending | M2 Core ops | statusAfterCollection + procedure status cycle ported (packages/rules workflows.ts) |
@@ -118,23 +118,23 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `hr/saudization` | ⏳ Pending | M6 HR |  |
 | `hr/wps` | ⏳ Pending | M6 HR | WPS file generation |
 | `invoices` | ⏳ Pending | M4 Finance | ZATCA e-invoicing still missing (M7) |
-| `journey` | ⏳ Pending | M2 Core ops |  |
+| `journey` | ✅ Ported | apps/api/src/modules/overview (approvals/invoices/WhatsApp counts join with their modules) |  |
 | `leads` | ✅ Ported | apps/api/src/modules/crm (incl. convertLead) |  |
 | `ledger-reports` | ⏳ Pending | M4 Finance | normal-side balance ported (packages/rules ledger.ts) |
 | `messages` | ⏳ Pending | M2 Core ops |  |
-| `notifications` | ⏳ Pending | M2 Core ops |  |
+| `notifications` | ✅ Ported | apps/api/src/modules/overview (+ GET /notifications/count for the bell; approvals join with slice 5, invoices with M4) |  |
 | `office-settings` | ✅ Ported | apps/api/src/modules/offices (GET/PUT /offices/branding) |  |
 | `permissions-admin` | ✅ Ported | apps/api/src/modules/permissions |  |
 | `portal` | ⏳ Pending | M8 Portals |  |
 | `procedure-requests` | ✅ Ported | apps/api/src/modules/cases/procedure-requests.service.ts |  |
 | `pulse` | ⏳ Pending | M6 HR | points + override rule ported (packages/rules performance.ts); legacy sinceFor() used server-local time, use Riyadh time (dates.ts) |
-| `search` | ⏳ Pending | M2 Core ops |  |
+| `search` | ✅ Ported | apps/api/src/modules/overview (GET /search; documents M3, invoices M4, employees M6) |  |
 | `security` | ✅ Ported | apps/api/src/modules/security |  |
 | `security-audit` | ✅ Ported | apps/api/src/modules/permissions (GET /permissions/audit) |  |
 | `settings` | ⏳ Pending | M1 Foundation | recycle bin: GET /recycle exists (per-module view filter); kinds, restore and purge register with cases/leads (M2), documents (M3), employees (M6) |
-| `tasks` | ✅ Ported | apps/api/src/modules/tasks (board UI with M2 slice 4) |  |
+| `tasks` | ✅ Ported | apps/api/src/modules/tasks |  |
 | `templates` | ⏳ Pending | M3 Documents |  |
-| `today` | ⏳ Pending | M2 Core ops | computeWinRate rule ported as winRate (packages/rules cases.ts) |
+| `today` | ✅ Ported | apps/api/src/modules/overview (approvals join with slice 5/M6, employee of the week with M6) |  |
 | `trust` | ⏳ Pending | M4 Finance |  |
 
 ## Screens (63 pages)
@@ -145,19 +145,19 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 |---|---|---|---|
 | `/` | ⏳ Pending | M2 Core ops |  |
 | `/account/security` | ✅ Ported | apps/web/src/app/(app)/account/security |  |
-| `/activity` | ⏳ Pending | M2 Core ops |  |
+| `/activity` | ✅ Ported | apps/web/src/app/(app)/activity |  |
 | `/ai` | ⏳ Pending | M5 AI gate |  |
 | `/ai/arena/[caseId]` | ⏳ Pending | M5 AI gate |  |
 | `/ai/kb` | ⏳ Pending | M5 AI gate |  |
-| `/alerts` | ⏳ Pending | M2 Core ops |  |
-| `/appointments` | ⏳ Pending | M2 Core ops |  |
+| `/alerts` | ✅ Ported | apps/web/src/app/(app)/alerts |  |
+| `/appointments` | ✅ Ported | apps/web/src/app/(app)/appointments |  |
 | `/billing` | ✅ Ported | apps/web/src/app/(app)/billing |  |
 | `/cases` | ✅ Ported | apps/web/src/app/(app)/cases (list + filters) |  |
 | `/cases/[id]` | ✅ Ported | apps/web/src/app/(app)/cases/[id] — overview (+ procedural requests), hearings, parties, events, closing tabs; other tabs with their slices |  |
 | `/cases/new` | ✅ Ported | apps/web/src/app/(app)/cases/new |  |
 | `/clients` | ✅ Ported | apps/web/src/app/(app)/clients (+ CRM KPIs) |  |
-| `/dashboard` | ⏳ Pending | M2 Core ops |  |
-| `/deadlines` | ⏳ Pending | M2 Core ops |  |
+| `/dashboard` | ✅ Ported | apps/web/src/app/(app)/dashboard |  |
+| `/deadlines` | ✅ Ported | apps/web/src/app/(app)/deadlines |  |
 | `/documents` | ⏳ Pending | M3 Documents |  |
 | `/documents/new/[key]` | ⏳ Pending | M3 Documents |  |
 | `/emp-portal/(app)` | ⏳ Pending | M8 Portals |  |
@@ -188,10 +188,10 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/hr/recruitment` | ⏳ Pending | M6 HR |  |
 | `/hr/requests` | ⏳ Pending | M6 HR |  |
 | `/hr/saudization` | ⏳ Pending | M6 HR |  |
-| `/journey` | ⏳ Pending | M2 Core ops |  |
+| `/journey` | ✅ Ported | apps/web/src/app/(app)/journey |  |
 | `/leads` | ✅ Ported | apps/web/src/app/(app)/leads (pipeline incl. convert) |  |
 | `/login` | ✅ Ported | apps/web/src/app/login (+ components/auth/login-form.tsx) |  |
-| `/notifications` | ⏳ Pending | M2 Core ops |  |
+| `/notifications` | ✅ Ported | apps/web/src/app/(app)/notifications (+ bell count) |  |
 | `/perms` | ✅ Ported | apps/web/src/app/(app)/perms (matrix + role preview) |  |
 | `/perms/audit` | ✅ Ported | apps/web/src/app/(app)/perms/audit |  |
 | `/perms/security` | ✅ Ported | apps/web/src/app/(app)/perms/security |  |
@@ -201,10 +201,10 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/portal/(app)/invoices` | ⏳ Pending | M8 Portals |  |
 | `/portal/login` | ⏳ Pending | M8 Portals |  |
 | `/pulse` | ⏳ Pending | M6 HR |  |
-| `/search` | ⏳ Pending | M2 Core ops |  |
+| `/search` | ✅ Ported | apps/web/src/app/(app)/search (+ topbar dropdown) |  |
 | `/settings` | ✅ Ported | apps/web/src/app/(app)/settings (branding, recycle bin, account) |  |
-| `/tasks` | ⏳ Pending | M2 Core ops |  |
-| `/today` | ⏳ Pending | M2 Core ops |  |
+| `/tasks` | ✅ Ported | apps/web/src/app/(app)/tasks (kanban) |  |
+| `/today` | ✅ Ported | apps/web/src/app/(app)/today |  |
 | `/whatsapp` | ⏳ Pending | M7 Integrations |  |
 
 ## Route handlers (9)
@@ -219,7 +219,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `api/emp-portal-auth/verify` | ⏳ Pending | M8 Portals |  |
 | `api/portal-auth/otp` | ⏳ Pending | M8 Portals |  |
 | `api/portal-auth/verify` | ⏳ Pending | M8 Portals |  |
-| `api/search` | ⏳ Pending | M2 Core ops |  |
+| `api/search` | ✅ Ported | GET /api/v1/search |  |
 
 ## Prisma models (56) → Drizzle tables
 
@@ -242,7 +242,7 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `CaseReminder` | ✅ Ported | packages/database case_reminders |  |
 | `Lead` | ✅ Ported | packages/database leads (expected_value bigint halalas) |  |
 | `Task` | ✅ Ported | packages/database tasks (unique office_id + auto_signature) |  |
-| `Appointment` | ⏳ Pending | M2 Core ops |  |
+| `Appointment` | ✅ Ported | packages/database appointments |  |
 | `ConflictFlag` | ✅ Ported | packages/database conflict_flags (+ RESOLVED status) |  |
 | `NajizClassification` | ⏳ Pending | M2 Core ops |  |
 | `DocumentTemplate` | ⏳ Pending | M3 Documents |  |
@@ -307,7 +307,7 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | Component | Status | Milestone | Notes |
 |---|---|---|---|
 | `ai-answer.tsx` | ⏳ Pending | M5 AI gate |  |
-| `app-shell.tsx` | ✅ Ported | apps/web/src/components/shell/app-shell.tsx + nav.ts (bell count waits for M2) |  |
+| `app-shell.tsx` | ✅ Ported | apps/web/src/components/shell/app-shell.tsx + nav.ts (bell count from /notifications/count) |  |
 | `auth/login-form.tsx` | ✅ Ported | apps/web/src/components/auth/login-form.tsx |  |
 | `auto-submit-select.tsx` | ✅ Ported | apps/web/src/components/auto-submit-select.tsx |  |
 | `cases/ai-draft-hearing-button.tsx` | ⏳ Pending | M2 Core ops |  |
@@ -324,7 +324,7 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `idle-logout.tsx` | ✅ Ported | apps/web/src/components/shell/idle-logout.tsx |  |
 | `perms-tabs.tsx` | ✅ Ported | apps/web/src/components/perms/perms-tabs.tsx |  |
 | `portal/portal-login-form.tsx` | ⏳ Pending | M8 Portals |  |
-| `shell-frame.tsx` | ✅ Ported | apps/web/src/components/shell/shell-frame.tsx (search waits for M2) |  |
+| `shell-frame.tsx` | ✅ Ported | apps/web/src/components/shell/shell-frame.tsx (live search) |  |
 | `side-nav.tsx` | ✅ Ported | apps/web/src/components/shell/side-nav.tsx |  |
 
 ## Scripts (7)
@@ -357,9 +357,9 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **activity** (M2 Core ops)
 
-- [ ] `listActivity`
-- [ ] `listActivityActors`
-- [ ] `countActivityByCategory`
+- [x] `listActivity`
+- [x] `listActivityActors`
+- [x] `countActivityByCategory`
 
 **ai** (M5 AI gate)
 
@@ -373,13 +373,13 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **alerts** (M2 Core ops)
 
-- [ ] `getSmartAlerts`
+- [x] `getSmartAlerts`
 
 **appointments** (M2 Core ops)
 
-- [ ] `listAppointments`
-- [ ] `createAppointment`
-- [ ] `cancelAppointment`
+- [x] `listAppointments`
+- [x] `createAppointment`
+- [x] `cancelAppointment`
 
 **approvals** (M2 Core ops)
 
@@ -445,11 +445,11 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **dashboard** (M2 Core ops)
 
-- [ ] `getDashboardSummary`
+- [x] `getDashboardSummary`
 
 **deadlines** (M2 Core ops)
 
-- [ ] `getDeadlines`
+- [x] `getDeadlines`
 
 **documents** (M3 Documents)
 
@@ -611,7 +611,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **journey** (M2 Core ops)
 
-- [ ] `getJourneySummary`
+- [x] `getJourneySummary`
 
 **leads** (M2 Core ops)
 
@@ -641,7 +641,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **notifications** (M2 Core ops)
 
-- [ ] `getNotifications`
+- [x] `getNotifications`
 
 **office-settings** (M1 Foundation)
 
@@ -690,7 +690,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **search** (M2 Core ops)
 
-- [ ] `globalSearch`
+- [x] `globalSearch`
 
 **security** (M1 Foundation)
 
@@ -727,8 +727,8 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **today** (M2 Core ops)
 
-- [ ] `computeWinRate`
-- [ ] `getTodaySummary`
+- [x] `computeWinRate`
+- [x] `getTodaySummary`
 
 **trust** (M4 Finance)
 
@@ -758,9 +758,9 @@ These lived in service files, not in `src/lib`, so a file-level port would miss 
 | `Upload limits (25 MB staff, 20 MB portal) + MIME allowlist` | documents.ts, portal.ts | packages/documents uploads.ts | ✅ Ported |
 | `AI system prompts with the closed-KB citation rule` | server/ai.ts | apps/api/src/modules/ai/prompts.ts | ✅ Ported (verbatim) |
 | `Auto-task idempotency by autoSignature` | server/tasks.ts createAutoTask | apps/api tasks createAuto (unique index on office_id + auto_signature, ON CONFLICT DO NOTHING) | ✅ Ported (e2e) |
-| `Smart alert tiers (overdue → critical, ≤2 days → important, …), filtered by module permission` | server/alerts.ts | M2 alerts module | ⏳ Pending |
+| `Smart alert tiers (overdue → critical, ≤2 days → important, …), filtered by module permission` | server/alerts.ts | packages/rules overview.ts deadlineAlertTier + apps/api overview | ✅ Ported (e2e; scoped to the caller's cases) |
 | `Security-audit action prefixes (auth., portal.login, portal.otp, security., permission., access.)` | server/security-audit.ts | M1 security module | ⏳ Pending |
-| `Activity categories from action/resource` | server/activity.ts categorize | M2 activity module | ⏳ Pending |
+| `Activity categories from action/resource` | server/activity.ts categorize | packages/rules overview.ts activityCategory | ✅ Ported |
 | `Fee basis labels + unbilled-time collection` | server/fees.ts | M4 fees module | ⏳ Pending |
 | `Journal posting rules for invoice, payment, credit note, bad debt, expense, advance, payroll, trust (deposit/withdraw/transfer)` | invoices.ts, trust.ts, expenses.ts, hr/advances.ts, hr/payroll.ts | packages/rules postings.ts (every builder tested balanced) | ✅ Ported |
 | `Standard account codes (ACC) + default chart of accounts (14 accounts)` | lib/finance/ledger.ts, prisma/seed.ts | packages/rules postings.ts ACC, COA_SEED | ✅ Ported |
@@ -775,10 +775,10 @@ These lived in service files, not in `src/lib`, so a file-level port would miss 
 | `Saudization counts every non-terminated employee` | server/hr/saudization.ts | packages/rules countsForSaudization | ✅ Ported |
 | `A decided (approved/rejected) HR request is terminal` | server/hr/requests.ts | M6 requests module | ⏳ Pending |
 | `Conflict flags: a documented waiver survives re-scans; creating a client/lead re-scans existing cases` | lib/conflict/service.ts | apps/api cases/conflicts.service.ts | ✅ Ported (e2e) |
-| `Hearing reminders can recur (reminderRecurDays) and escalate to a task` | server/hearings.ts | apps/api hearings (escalate done; the recurring nudge is sent by the alerts job, M2 slice 4) | 🟡 Partial |
+| `Hearing reminders can recur (reminderRecurDays) and escalate to a task` | server/hearings.ts | apps/api hearings: escalate, and a pending hearing keeps one recurring reminder (prototype; legacy only stored the interval). Rolling the due date forward needs the Cloud Scheduler jobs runner | 🟡 Partial |
 | `Integrations start disconnected and are never shown as connected without a real connection` | server/hr/integrations.ts | M7 | ⏳ Pending (owner decision) |
 | `Screen → module map + free screens (docs/04 VIEW2MOD/FREE_VIEWS); legacy app-shell nav` | components/app-shell.tsx | packages/auth screens.ts (docs/04 wins on 4 deviations, see AUDIT table) | ✅ Ported |
-| `Global search: ≥2 chars, 8 per category, category gated by module, cases/documents/tasks row-scoped` | server/search.ts, shell-frame.tsx | packages/auth SEARCH_CATEGORY_MODULE + packages/contracts search.ts | ✅ Ported (rules); endpoint in M2 |
+| `Global search: ≥2 chars, 8 per category, category gated by module, cases/documents/tasks row-scoped` | server/search.ts, shell-frame.tsx | packages/auth SEARCH_CATEGORY_MODULE + apps/api overview search | ✅ Ported (e2e; % and _ taken literally) |
 | `Idle sign-out after 20 minutes (mouse/key/click/scroll/touch)` | components/idle-logout.tsx | packages/auth SESSION_POLICY | ✅ Ported (rule); component in M1 |
 | `Service error codes with localized messages (PAYROLL_ALREADY_RUN, PERIOD_LOCKED, …)` | components/hr-ui.tsx ERR_KEYS | packages/contracts error codes per module | ⏳ Pending |
 | `Input validation limits (MAX_HALALAS cap, 4000-char text, colour regex, …) in ~60 Zod schemas` | src/server/*.ts | packages/contracts, per module | ⏳ Pending (port each schema with its module) |
@@ -855,7 +855,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `portal/actions.ts` | ⏳ Pending | M8 Portals |  |
 | `pulse/actions.ts` | ⏳ Pending | M6 HR |  |
 | `settings/actions.ts` | ✅ Ported | apps/api /offices/branding, /recycle |  |
-| `tasks/actions.ts` | ⏳ Pending | M2 Core ops |  |
+| `tasks/actions.ts` | ✅ Ported | apps/api /tasks endpoints |  |
 
 ## Database uniqueness rules (25)
 

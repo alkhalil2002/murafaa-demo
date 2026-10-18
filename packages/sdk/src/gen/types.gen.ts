@@ -19,6 +19,32 @@ export type ApiError = {
     requestId?: string;
 };
 
+export type AppointmentList = Array<Appointment>;
+
+export type Appointment = {
+    id: string;
+    contactName: string;
+    clientId: string | null;
+    leadId: string | null;
+    scheduledOn: string;
+    scheduledTime: string | null;
+    type: 'FIRST_CONSULTATION' | 'CONTRACT_REVIEW' | 'FOLLOW_UP';
+    status: 'SCHEDULED' | 'CANCELLED' | 'DONE';
+};
+
+export type CreatedCase = {
+    id: string;
+};
+
+export type CreateAppointmentBody = {
+    contactName: string;
+    clientId?: string | null;
+    leadId?: string | null;
+    scheduledOn: string;
+    scheduledTime?: string | null;
+    type?: 'FIRST_CONSULTATION' | 'CONTRACT_REVIEW' | 'FOLLOW_UP';
+};
+
 export type RequestOtpResponse = {
     sent: true;
     devCode?: string;
@@ -89,10 +115,6 @@ export type AssignableUsers = Array<{
     id: string;
     name: string;
 }>;
-
-export type CreatedCase = {
-    id: string;
-};
 
 export type CreateCaseBody = {
     number: string;
@@ -447,6 +469,203 @@ export type OfficeBranding = {
     confidentialityNotice: string;
 };
 
+export type TodaySummary = {
+    employeeOfWeek: {
+        name: string;
+        role: string;
+        points: number;
+    } | null;
+    hearings: {
+        visible: boolean;
+        items: Array<{
+            caseId: string;
+            caseTitle: string;
+            date: string;
+            daysLeft: number;
+        }>;
+        totalWithin7: number;
+    };
+    deadlines: {
+        visible: boolean;
+        items: Array<{
+            caseId: string;
+            caseTitle: string;
+            date: string;
+            daysLeft: number;
+            kind: 'nextHearing' | 'objection' | 'poa' | 'reminder';
+            label: string | null;
+        }>;
+        totalWithin7: number;
+    };
+    approvals: {
+        visible: boolean;
+        items: Array<{
+            id: string;
+            title: string;
+            caseId: string;
+            caseTitle: string;
+            stage: string;
+        }>;
+        total: number;
+    };
+    tasks: {
+        visible: boolean;
+        items: Array<{
+            id: string;
+            title: string;
+            urgent: boolean;
+            dueOn: string | null;
+            caseTitle: string | null;
+        }>;
+        total: number;
+    };
+    winRate: {
+        visible: boolean;
+        pct: number | null;
+    };
+};
+
+export type DeadlineList = Array<DeadlineItem>;
+
+export type DeadlineItem = {
+    kind: 'nextHearing' | 'objection' | 'poa' | 'reminder';
+    date: string;
+    daysLeft: number;
+    urgency: 'overdue' | 'critical' | 'soon' | 'upcoming' | 'normal';
+    caseId: string;
+    caseTitle: string;
+    label: string | null;
+    recurIntervalDays: number | null;
+};
+
+export type AlertList = Array<AlertItem>;
+
+export type AlertItem = {
+    id: string;
+    tier: 'critical' | 'important' | 'info';
+    message: {
+        messageKey: string;
+        params: {
+            [key: string]: string | number;
+        };
+    };
+    href: string;
+};
+
+export type NotificationList = Array<NotificationItem>;
+
+export type NotificationItem = {
+    id: string;
+    message: {
+        messageKey: string;
+        params: {
+            [key: string]: string | number;
+        };
+    };
+    href: string;
+    at: string;
+};
+
+export type NotificationCount = {
+    count: number;
+};
+
+export type SearchResults = {
+    cases: Array<{
+        id: string;
+        label: string;
+        sub: string | null;
+        href: string;
+    }>;
+    clients: Array<{
+        id: string;
+        label: string;
+        sub: string | null;
+        href: string;
+    }>;
+    leads: Array<{
+        id: string;
+        label: string;
+        sub: string | null;
+        href: string;
+    }>;
+    documents: Array<{
+        id: string;
+        label: string;
+        sub: string | null;
+        href: string;
+    }>;
+    invoices: Array<{
+        id: string;
+        label: string;
+        sub: string | null;
+        href: string;
+    }>;
+    tasks: Array<{
+        id: string;
+        label: string;
+        sub: string | null;
+        href: string;
+    }>;
+    employees: Array<{
+        id: string;
+        label: string;
+        sub: string | null;
+        href: string;
+    }>;
+};
+
+export type DashboardSummary = {
+    activeCases: number;
+    winRatePct: number | null;
+    criticalAlerts: number;
+    clients: number;
+    openTasks: number;
+    byClassification: Array<{
+        label: string;
+        count: number;
+    }>;
+};
+
+export type JourneySummary = {
+    firstContact: number;
+    inboundChats: number;
+    leadsByStage: {
+        [key: string]: number;
+    };
+    inPipeline: number;
+    appointments: number;
+    followUps: number;
+    contracted: number;
+    activeCases: number;
+    pendingApprovals: number;
+    invoicesDue: number;
+    uncollected: number;
+    archivedCases: number;
+    deadlinesWithin7: number;
+    unreadNotifications: number;
+    avgSatisfaction: number | null;
+};
+
+export type ActivityFeed = {
+    rows: Array<{
+        id: string;
+        action: string;
+        entity: string | null;
+        detail: string | null;
+        category: 'case' | 'approval' | 'client' | 'finance' | 'whatsapp' | 'hr' | 'other';
+        actorName: string | null;
+        at: string;
+    }>;
+    actors: Array<{
+        id: string;
+        name: string;
+    }>;
+    counts: {
+        [key: string]: number;
+    };
+};
+
 export type RoleMatrix = Array<RoleMatrixRow>;
 
 export type RoleMatrixRow = {
@@ -549,6 +768,92 @@ export type CreateTaskBody = {
 export type MoveTaskBody = {
     status: 'NEW' | 'IN_PROGRESS' | 'DONE';
 };
+
+export type AppointmentsListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/appointments';
+};
+
+export type AppointmentsListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AppointmentsListError = AppointmentsListErrors[keyof AppointmentsListErrors];
+
+export type AppointmentsListResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: AppointmentList;
+        error: null;
+    };
+};
+
+export type AppointmentsListResponse = AppointmentsListResponses[keyof AppointmentsListResponses];
+
+export type AppointmentsCreateData = {
+    body: CreateAppointmentBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/appointments';
+};
+
+export type AppointmentsCreateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AppointmentsCreateError = AppointmentsCreateErrors[keyof AppointmentsCreateErrors];
+
+export type AppointmentsCreateResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type AppointmentsCreateResponse = AppointmentsCreateResponses[keyof AppointmentsCreateResponses];
+
+export type AppointmentsCancelData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/appointments/{id}/cancel';
+};
+
+export type AppointmentsCancelErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AppointmentsCancelError = AppointmentsCancelErrors[keyof AppointmentsCancelErrors];
+
+export type AppointmentsCancelResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type AppointmentsCancelResponse = AppointmentsCancelResponses[keyof AppointmentsCancelResponses];
 
 export type AuthRequestOtpData = {
     body: RequestOtpBody;
@@ -2126,6 +2431,263 @@ export type OfficesUpdateBrandingResponses = {
 };
 
 export type OfficesUpdateBrandingResponse = OfficesUpdateBrandingResponses[keyof OfficesUpdateBrandingResponses];
+
+export type OverviewTodayData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/today';
+};
+
+export type OverviewTodayErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OverviewTodayError = OverviewTodayErrors[keyof OverviewTodayErrors];
+
+export type OverviewTodayResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: TodaySummary;
+        error: null;
+    };
+};
+
+export type OverviewTodayResponse = OverviewTodayResponses[keyof OverviewTodayResponses];
+
+export type OverviewListDeadlinesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/deadlines';
+};
+
+export type OverviewListDeadlinesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OverviewListDeadlinesError = OverviewListDeadlinesErrors[keyof OverviewListDeadlinesErrors];
+
+export type OverviewListDeadlinesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: DeadlineList;
+        error: null;
+    };
+};
+
+export type OverviewListDeadlinesResponse = OverviewListDeadlinesResponses[keyof OverviewListDeadlinesResponses];
+
+export type OverviewAlertsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/alerts';
+};
+
+export type OverviewAlertsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OverviewAlertsError = OverviewAlertsErrors[keyof OverviewAlertsErrors];
+
+export type OverviewAlertsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: AlertList;
+        error: null;
+    };
+};
+
+export type OverviewAlertsResponse = OverviewAlertsResponses[keyof OverviewAlertsResponses];
+
+export type OverviewNotificationsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/notifications';
+};
+
+export type OverviewNotificationsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OverviewNotificationsError = OverviewNotificationsErrors[keyof OverviewNotificationsErrors];
+
+export type OverviewNotificationsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: NotificationList;
+        error: null;
+    };
+};
+
+export type OverviewNotificationsResponse = OverviewNotificationsResponses[keyof OverviewNotificationsResponses];
+
+export type OverviewNotificationCountData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/notifications/count';
+};
+
+export type OverviewNotificationCountErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OverviewNotificationCountError = OverviewNotificationCountErrors[keyof OverviewNotificationCountErrors];
+
+export type OverviewNotificationCountResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: NotificationCount;
+        error: null;
+    };
+};
+
+export type OverviewNotificationCountResponse = OverviewNotificationCountResponses[keyof OverviewNotificationCountResponses];
+
+export type OverviewSearchData = {
+    body?: never;
+    path?: never;
+    query: {
+        q: string;
+    };
+    url: '/api/v1/search';
+};
+
+export type OverviewSearchErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OverviewSearchError = OverviewSearchErrors[keyof OverviewSearchErrors];
+
+export type OverviewSearchResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: SearchResults;
+        error: null;
+    };
+};
+
+export type OverviewSearchResponse = OverviewSearchResponses[keyof OverviewSearchResponses];
+
+export type OverviewDashboardData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/dashboard';
+};
+
+export type OverviewDashboardErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OverviewDashboardError = OverviewDashboardErrors[keyof OverviewDashboardErrors];
+
+export type OverviewDashboardResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: DashboardSummary;
+        error: null;
+    };
+};
+
+export type OverviewDashboardResponse = OverviewDashboardResponses[keyof OverviewDashboardResponses];
+
+export type OverviewJourneyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/journey';
+};
+
+export type OverviewJourneyErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OverviewJourneyError = OverviewJourneyErrors[keyof OverviewJourneyErrors];
+
+export type OverviewJourneyResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: JourneySummary;
+        error: null;
+    };
+};
+
+export type OverviewJourneyResponse = OverviewJourneyResponses[keyof OverviewJourneyResponses];
+
+export type OverviewActivityData = {
+    body?: never;
+    path?: never;
+    query?: {
+        type?: 'case' | 'approval' | 'client' | 'finance' | 'whatsapp' | 'hr' | 'other';
+        actor?: string;
+    };
+    url: '/api/v1/activity';
+};
+
+export type OverviewActivityErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OverviewActivityError = OverviewActivityErrors[keyof OverviewActivityErrors];
+
+export type OverviewActivityResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: ActivityFeed;
+        error: null;
+    };
+};
+
+export type OverviewActivityResponse = OverviewActivityResponses[keyof OverviewActivityResponses];
 
 export type PermissionsMatrixData = {
     body?: never;
