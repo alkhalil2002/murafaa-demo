@@ -8,6 +8,7 @@ import { PolicyService } from "./common/permissions/policy.service.js";
 import { TenantInterceptor } from "./common/tenancy/tenant.interceptor.js";
 import { ENV, type Env } from "./config/env.js";
 import { DatabaseModule } from "./database/database.module.js";
+import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { OfficesModule } from "./modules/offices/offices.module.js";
 
@@ -38,6 +39,7 @@ export class AppModule {
         }),
         DiscoveryModule,
         DatabaseModule,
+        AuthModule,
         HealthModule,
         OfficesModule,
       ],
@@ -49,7 +51,7 @@ export class AppModule {
         { provide: APP_INTERCEPTOR, useClass: TenantInterceptor },
         { provide: APP_FILTER, useClass: AllExceptionsFilter },
       ],
-      exports: [ENV],
+      exports: [ENV, PolicyService],
     };
   }
 }

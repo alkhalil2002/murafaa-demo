@@ -24,6 +24,8 @@
     "vitest": "5.0.5"
   },
   "dependencies": {
+    "@murafaa/auth": "workspace:*",
+    "@murafaa/rules": "workspace:*",
     "zod": "4.6.7"
   }
 }

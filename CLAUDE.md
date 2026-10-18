@@ -70,6 +70,7 @@ Decided 2026-10-18 (ADR-0001). Versions are pinned in each `package.json`.
 nvm use && pnpm install
 pnpm db:up               # local Postgres 17 + pgvector on :5440 (Docker)
 MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnpm db:migrate
+MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnpm db:seed   # demo office, users 0500000001–6
 pnpm dev                 # api :4000, web :3000
 pnpm build
 pnpm lint                # lint (incl. i18n rule)

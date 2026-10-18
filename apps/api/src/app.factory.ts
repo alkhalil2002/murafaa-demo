@@ -7,6 +7,8 @@ import { SwaggerModule } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
 import { AppModule } from "./app.module.js";
 import { buildOpenApi } from "./common/zod/openapi.js";
+import { readCookie, SESSION_COOKIE } from "./modules/auth/cookies.js";
+import { SessionService } from "./modules/auth/session.service.js";
 import type { Env } from "./config/env.js";
 
 export const API_PREFIX = "api";
@@ -31,6 +33,7 @@ export async function createApp(env: Env): Promise<NestFastifyApplication> {
   app.setGlobalPrefix(API_PREFIX);
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: API_VERSION });
   app.enableShutdownHooks();
+  attachSessions(app, env);
   return app;
 }
 
@@ -49,4 +52,44 @@ export function mountDocs(app: NestFastifyApplication, env: Env): void {
   if (env.NODE_ENV === "production") return;
   // buildOpenApi emits a plain OpenAPI 3.1 object; SwaggerModule only needs it to render.
   SwaggerModule.setup(`${API_PREFIX}/docs`, app, () => openApiOf(app, env) as never);
+}
+
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+/**
+ * Resolve the caller's session before routing: a bearer token (mobile) or the
+ * httpOnly cookie (web). Cookie-authenticated writes must come from an allowed
+ * origin (CSRF defence on top of SameSite=Lax). Authorization itself stays in
+ * PermissionsGuard.
+ */
+function attachSessions(app: NestFastifyApplication, env: Env): void {
+  const sessions = app.get(SessionService);
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook("onRequest", async (request) => {
+      const auth = request.headers.authorization;
+      const bearer = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : null;
+      const token = bearer ?? readCookie(request.headers.cookie, SESSION_COOKIE);
+      if (!token) return;
+
+      const origin = request.headers.origin;
+      if (
+        !bearer &&
+        UNSAFE_METHODS.has(request.method) &&
+        origin &&
+        !env.CORS_ORIGINS.includes(origin)
+      ) {
+        request.sessionRejected = "ORIGIN";
+        return;
+      }
+      const resolved = await sessions.resolve(token, request.ip);
+      if (resolved === "IP_NOT_ALLOWED") {
+        request.sessionRejected = "IP_NOT_ALLOWED";
+        return;
+      }
+      if (!resolved) return;
+      request.principal = resolved.principal;
+      request.sessionId = resolved.sessionId;
+    });
 }

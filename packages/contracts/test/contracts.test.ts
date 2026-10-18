@@ -35,6 +35,8 @@ describe("contracts", () => {
     // Schemas with .meta({ id }) become shared components, as the API's OpenAPI builder uses them.
     const { schemas } = z.toJSONSchema(z.globalRegistry, {
       target: "openapi-3.0",
+      // Same as the API's OpenAPI builder: request transforms (e.g. phone normalization) are allowed.
+      unrepresentable: "any",
       uri: (id) => `#/components/schemas/${id}`,
     });
     expect(schemas.Health).toMatchObject({ type: "object", required: ["status", "db", "version"] });

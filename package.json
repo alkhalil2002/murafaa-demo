@@ -17,7 +17,8 @@
     "db:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
     "db:generate": "pnpm --filter @murafaa/database generate",
     "db:migrate": "pnpm --filter @murafaa/database migrate",
-    "sdk:generate": "pnpm --filter @murafaa/api openapi && pnpm --filter @murafaa/sdk generate"
+    "sdk:generate": "pnpm --filter @murafaa/api openapi && pnpm --filter @murafaa/sdk generate",
+    "db:seed": "pnpm --filter @murafaa/database seed"
   },
   "devDependencies": {
     "prettier": "3.9.10",

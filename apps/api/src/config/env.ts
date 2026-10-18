@@ -17,10 +17,23 @@ const envSchema = z
     RBAC_ENFORCEMENT: z.enum(["strict", "permissive"]).default("strict"),
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
     APP_VERSION: z.string().default("0.0.0"),
+    /** HMAC key for stored OTP codes. Required: an empty key would make the hashes guessable. */
+    AUTH_SECRET: z.string().min(32),
+    /** 32-byte base64 key for encrypting TOTP secrets at rest (AES-256-GCM). */
+    ENCRYPTION_KEY: z
+      .string()
+      .refine((v) => Buffer.from(v, "base64").length === 32, "must be 32 bytes, base64-encoded"),
+    /** console = dev only (code returned to the client and logged); unifonic = real SMS/WhatsApp. */
+    OTP_PROVIDER: z.enum(["console", "unifonic"]).default("console"),
   })
   .refine((e) => e.NODE_ENV !== "production" || e.RBAC_ENFORCEMENT === "strict", {
     message: "RBAC_ENFORCEMENT must be 'strict' in production",
     path: ["RBAC_ENFORCEMENT"],
+  })
+  .refine((e) => e.NODE_ENV !== "production" || e.OTP_PROVIDER !== "console", {
+    message:
+      "OTP_PROVIDER=console would return login codes to the client; not allowed in production",
+    path: ["OTP_PROVIDER"],
   });
 
 export type Env = z.infer<typeof envSchema>;

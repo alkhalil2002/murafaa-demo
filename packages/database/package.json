@@ -18,7 +18,8 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
-    "studio": "drizzle-kit studio"
+    "studio": "drizzle-kit studio",
+    "seed": "tsx src/seed.ts"
   },
   "devDependencies": {
     "@murafaa/config": "workspace:*",

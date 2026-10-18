@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDb, type DbHandle, withTenant } from "../src/client.js";
+import { loginCandidates } from "../src/login-lookup.js";
 import { runMigrations } from "../src/migrator.js";
 import { auditLog, offices, users } from "../src/schema/index.js";
 
@@ -36,7 +37,7 @@ let app: DbHandle;
 beforeAll(async () => {
   await runMigrations(OWNER_URL);
   owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate audit_log, outbox, users, offices cascade`;
+  await owner`truncate sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   // The owner is subject to FORCE RLS too, so seed each office inside its own scope.
   for (const [office, phone] of [
     [OFFICE_A, "+966500000001"],
@@ -122,5 +123,14 @@ describe("row-level security", () => {
         withTenant(app.db, OFFICE_A, (tx) => tx.update(auditLog).set({ action: "tampered" })),
       ),
     ).toMatch(/permission denied/);
+  });
+
+  it("finds login candidates across offices only through the narrow lookup", async () => {
+    expect(await loginCandidates(app.db, "+966500000001")).toEqual([
+      { userId: expect.any(String), officeId: OFFICE_A, totpEnabled: false },
+    ]);
+    expect(await loginCandidates(app.db, "+966599999999")).toEqual([]);
+    // The lookup's broad policy belongs to murafaa_auth, not to the app role.
+    expect(await app.db.select().from(users)).toHaveLength(0);
   });
 });

@@ -5,6 +5,7 @@ export const IS_PUBLIC = "murafaa:public";
 export const IS_AUTHENTICATED_ONLY = "murafaa:authenticated";
 export const REQUIRED_PERMISSION = "murafaa:permission";
 export const PARTNER_ONLY = "murafaa:partner-only";
+export const ALLOW_IN_PREVIEW = "murafaa:allow-in-preview";
 
 export type PermissionRequirement = { module: PermModule; action: PermAction };
 
@@ -25,3 +26,7 @@ export const RequirePermission = (
 /** A partner-only action (outside the module matrix; see @murafaa/auth PARTNER_ONLY_ACTIONS). */
 export const RequirePartner = (action: PartnerOnlyAction): MethodDecorator & ClassDecorator =>
   SetMetadata(PARTNER_ONLY, action);
+
+/** A write that stays allowed during role preview (sign out, switch or end the preview). */
+export const AllowInPreview = (): MethodDecorator & ClassDecorator =>
+  SetMetadata(ALLOW_IN_PREVIEW, true);

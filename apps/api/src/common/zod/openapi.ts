@@ -1,5 +1,5 @@
 import { type INestApplication, RequestMethod } from "@nestjs/common";
-import { METHOD_METADATA, PATH_METADATA } from "@nestjs/common/constants.js";
+import { HTTP_CODE_METADATA, METHOD_METADATA, PATH_METADATA } from "@nestjs/common/constants.js";
 import { DiscoveryService, MetadataScanner } from "@nestjs/core";
 import { errorEnvelope } from "@murafaa/contracts";
 import { z } from "zod";
@@ -120,7 +120,9 @@ export function buildOpenApi(
           ),
         ],
         responses: {
-          [method === "post" ? "201" : "200"]: {
+          [String(
+            Reflect.getMetadata(HTTP_CODE_METADATA, handler) ?? (method === "post" ? 201 : 200),
+          )]: {
             description: "OK",
             content: {
               "application/json": {

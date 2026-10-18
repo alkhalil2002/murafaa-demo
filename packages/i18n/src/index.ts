@@ -43,3 +43,8 @@ export function formatSar(halalas: number, locale: Locale = defaultLocale): stri
   });
   return `${amount} ${t("common.currency.sar", undefined, locale)}`;
 }
+
+/** Display name of a role (keys role.partner, role.lawyer, …). */
+export function roleLabel(role: string, locale: Locale = defaultLocale): string {
+  return t(`role.${role.toLowerCase()}` as MessageKey, undefined, locale);
+}

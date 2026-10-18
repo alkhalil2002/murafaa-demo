@@ -24,7 +24,27 @@ MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnp
 # المتغيّرات (لا تلتزم .env أبداً)
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
+
+# بيانات تجريبية: مكتب + 6 مستخدمين بالأدوار
+MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnpm db:seed
 ```
+
+## تسجيل الدخول (بيئة التطوير)
+`OTP_PROVIDER=console`: الرمز لا يُرسل لأي جهة، ويظهر تلقائياً في خانة الرمز في صفحة الدخول، ويُطبع في سجل الـ API.
+
+| الدور | الجوال |
+|---|---|
+| شريك | `0500000001` |
+| محامي | `0500000002` |
+| مساعد | `0500000003` |
+| محاسب | `0500000004` |
+| إداري | `0500000005` |
+| موظف استقبال | `0500000006` |
+
+- لا يمكن طلب رمز جديد لنفس الرقم قبل مرور 30 ثانية.
+- الرمز صالح 5 دقائق، و5 محاولات خاطئة تقفله.
+- الجلسة تنتهي بعد 20 دقيقة خمول.
+
 
 ## الأوامر
 ```bash

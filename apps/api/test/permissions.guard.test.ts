@@ -35,7 +35,12 @@ const principal = (role: Principal["role"], previewRole?: Principal["role"]): Pr
 function setup(mode: "strict" | "permissive" = "strict") {
   const transaction = vi.fn(async () => undefined);
   const db = { transaction } as unknown as Db;
-  const env = loadEnv({ DATABASE_URL: "postgres://u@localhost/db", RBAC_ENFORCEMENT: mode });
+  const env = loadEnv({
+    DATABASE_URL: "postgres://u@localhost/db",
+    RBAC_ENFORCEMENT: mode,
+    AUTH_SECRET: "x".repeat(32),
+    ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"),
+  });
   return {
     guard: new PermissionsGuard(new Reflector(), new PolicyService(), env, db),
     transaction,

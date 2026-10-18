@@ -4,22 +4,18 @@ Every file, screen, route and model in `legacy/` with where it went or which mil
 
 Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP login, TOTP 2FA, editable permissions (all three layers), office IP allowlist enforcement, and audit writers.
 
-## Summary (2026-10-18)
+## Summary (2026-10-18, after M1 slice 1: login)
 
-| Area | Legacy | ✅ Ported | Remaining |
+| Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 20 | 31 (pending or rebuild) |
-| Business rules inside services/components | 37 found | 26 | 11 (with their modules) |
+| `src/lib` files | 51 | 26 | 25 |
+| Business rules inside services/components | 37 | 26 | 11 |
 | Service capabilities | 225 | 0 endpoints | 225 (checklist below) |
 | Server actions files | 29 | 0 | 29 |
-| Screens / layouts | 63 + 3 | 1 layout | 63 + 2 |
-| Components | 20 | 0 | 20 (behaviours listed below) |
-| Route handlers | 9 | 0 | 9 |
-| Models | 56 | 3 (+ `outbox` new) | 53 |
-| Uniqueness rules | 25 | 1 (`users` office + phone) | 24 |
-| Audited actions | 113 | 1 (`permission.denied`) | 112 |
-| Owner decisions found in code | 4 | 4 recorded | — |
-| AUDIT.md questions | 12 (+2 new) | 6 implemented | 8 open or to confirm |
+| Screens | 63 | 1 | 62 |
+| Components | 20 | 6 | 14 |
+| Route handlers | 9 | 2 (+1 replaced) | 6 |
+| Models | 56 | 4 (+ `outbox`, `sessions` new) | 52 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -35,18 +31,18 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `ai/llm.ts` | 🔁 Rebuild | M5 AI gate | StubLlm → Claude on Vertex (me-central2) |
 | `ai/vector.ts` | 🔁 Rebuild | M5 AI gate | in-app cosine over all chunks → pgvector index |
 | `api/response.ts` | ✅ Ported | packages/contracts/src/envelope.ts + API envelope interceptor/filter |  |
-| `audit/index.ts` | ⏳ Pending | M1 Foundation | audit_log table exists; login/sensitive-action writers come with auth |
-| `auth/config.ts` | 🔁 Rebuild | M1 Foundation | Auth.js → API-issued sessions |
+| `audit/index.ts` | ✅ Ported | apps/api/src/common/audit/audit.ts | auth events + permission denials written; other modules add theirs |
+| `auth/config.ts` | ✅ Ported | apps/api/src/modules/auth (Auth.js replaced by API sessions) | e2e: apps/api/test/api.e2e.test.ts |
 | `auth/emp-portal-otp.ts` | ⏳ Pending | M8 Portals | employee-portal OTP |
 | `auth/emp-portal-session.ts` | ⏳ Pending | M8 Portals |  |
-| `auth/index.ts` | 🔁 Rebuild | M1 Foundation | staff login (OTP + TOTP) in apps/api auth module |
-| `auth/otp-provider.ts` | ⏳ Pending | M1 Foundation | console (dev) + Unifonic (legacy choice, Saudi SMS/WhatsApp) adapter; Buraq/Meta adapters exist in Alkhalil |
-| `auth/otp.ts` | ⏳ Pending | M1 Foundation | staff OTP challenge/verify |
+| `auth/index.ts` | ✅ Ported | apps/api/src/modules/auth/auth.service.ts | OTP + TOTP; same OTP reusable until every check passes |
+| `auth/otp-provider.ts` | ✅ Ported | apps/api/src/modules/auth/otp-provider.ts | console (dev) + Unifonic placeholder exactly as legacy (not connected); boot refuses console in production |
+| `auth/otp.ts` | ✅ Ported | apps/api/src/modules/auth/auth.service.ts | unknown/ambiguous numbers now get the same response (no enumeration) |
 | `auth/phone.ts` | ✅ Ported | packages/rules/src/phone.ts | 2 tests |
 | `auth/portal-otp.ts` | ⏳ Pending | M8 Portals | client-portal OTP |
 | `auth/portal-session.ts` | ⏳ Pending | M8 Portals |  |
-| `auth/role-preview.ts` | ⏳ Pending | M1 Foundation | effectiveRole() ported in packages/auth; session plumbing pending |
-| `auth/session.ts` | 🔁 Rebuild | M1 Foundation | httpOnly cookie (web) / bearer + refresh (mobile) |
+| `auth/role-preview.ts` | ⏳ Pending | M1 Foundation | preview stored on the session row (sessions.preview_role); start/end endpoints + perms screen in M1 slice 2 |
+| `auth/session.ts` | ✅ Ported | apps/api/src/modules/auth/session.service.ts | DB sessions: httpOnly cookie (web) or bearer (mobile); 20-min idle + 30-day limit enforced server-side |
 | `auth/totp.ts` | ✅ Ported | apps/api/src/modules/auth/totp.ts | RFC 6238 tests added; encrypt the secret at rest (legacy stored it in plaintext) |
 | `auth/types.ts` | ✅ Ported | apps/api/src/common/tenancy/principal.ts |  |
 | `case-events.ts` | ⏳ Pending | M2 Core ops | case timeline writer |
@@ -74,7 +70,7 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `permissions/matrix.ts` | ✅ Ported | packages/auth/src/matrix.ts + policy.ts (seedPolicy) |  |
 | `permissions/policy.ts` | 🔁 Rebuild | M1 Foundation | editable DB policy; no process-local cache (stale on multi-instance Cloud Run) |
 | `permissions/scope.ts` | ⏳ Pending | M2 Core ops | row scope (ALL/ASSIGNED) as a Drizzle where-clause |
-| `security/ip.ts` | ✅ Ported | apps/api/src/common/security/ip-allowlist.ts | tests added; enforcement hook pending (M1) |
+| `security/ip.ts` | ✅ Ported | apps/api/src/common/security/ip-allowlist.ts | enforced by the API on login and on every request (legacy enforced it only in the page shell) |
 | `storage/gcs.ts` | ⏳ Pending | M3 Documents | GCS me-central2 |
 | `storage/index.ts` | ⏳ Pending | M3 Documents |  |
 | `storage/local.ts` | ⏳ Pending | M3 Documents | dev storage |
@@ -194,7 +190,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/hr/saudization` | ⏳ Pending | M6 HR |  |
 | `/journey` | ⏳ Pending | M2 Core ops |  |
 | `/leads` | ⏳ Pending | M2 Core ops |  |
-| `/login` | ⏳ Pending | M1 Foundation |  |
+| `/login` | ✅ Ported | apps/web/src/app/login (+ components/auth/login-form.tsx) |  |
 | `/notifications` | ⏳ Pending | M2 Core ops |  |
 | `/perms` | ⏳ Pending | M1 Foundation |  |
 | `/perms/audit` | ⏳ Pending | M1 Foundation |  |
@@ -215,9 +211,9 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 
 | Route | Status | Milestone | Notes |
 |---|---|---|---|
-| `api/auth/2fa-status` | 🔁 Rebuild | M1 Foundation | API endpoint |
-| `api/auth/[...nextauth]` | 🔁 Rebuild | M1 Foundation | Auth.js removed; API sessions |
-| `api/auth/otp` | ⏳ Pending | M1 Foundation |  |
+| `api/auth/2fa-status` | ⛔ Not ported | — | replaced by the TOTP_REQUIRED answer after a correct OTP, so 2FA status is not exposed before the code |
+| `api/auth/[...nextauth]` | ✅ Ported | POST /api/v1/auth/verify, GET /auth/me, POST /auth/logout |  |
+| `api/auth/otp` | ✅ Ported | POST /api/v1/auth/otp |  |
 | `api/documents/[id]/download` | ⏳ Pending | M3 Documents | signed GCS URL |
 | `api/emp-portal-auth/otp` | ⏳ Pending | M8 Portals |  |
 | `api/emp-portal-auth/verify` | ⏳ Pending | M8 Portals |  |
@@ -231,9 +227,9 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 
 | Model | Status | Where / milestone | Notes |
 |---|---|---|---|
-| `Office` | ✅ Ported | packages/database offices |  |
-| `User` | ✅ Ported | packages/database users (no OTP fields yet) |  |
-| `OtpChallenge` | ⏳ Pending | M1 Foundation |  |
+| `Office` | ✅ Ported | packages/database offices (+ ip_allowlist) |  |
+| `User` | ✅ Ported | packages/database users (+ encrypted TOTP) |  |
+| `OtpChallenge` | ✅ Ported | packages/database otp_challenges |  |
 | `Permission` | ⏳ Pending | M1 Foundation |  |
 | `FieldPermission` | ⏳ Pending | M1 Foundation |  |
 | `RoleCaseScope` | ⏳ Pending | M1 Foundation |  |
@@ -311,8 +307,8 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | Component | Status | Milestone | Notes |
 |---|---|---|---|
 | `ai-answer.tsx` | ⏳ Pending | M5 AI gate |  |
-| `app-shell.tsx` | ⏳ Pending | M1 Foundation |  |
-| `auth/login-form.tsx` | ⏳ Pending | M1 Foundation |  |
+| `app-shell.tsx` | ✅ Ported | apps/web/src/components/shell/app-shell.tsx + nav.ts (bell count waits for M2) |  |
+| `auth/login-form.tsx` | ✅ Ported | apps/web/src/components/auth/login-form.tsx |  |
 | `auto-submit-select.tsx` | ⏳ Pending | M1 Foundation |  |
 | `cases/ai-draft-hearing-button.tsx` | ⏳ Pending | M2 Core ops |  |
 | `cases/case-list.tsx` | ⏳ Pending | M2 Core ops |  |
@@ -324,12 +320,12 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `finance-tabs.tsx` | ⏳ Pending | M4 Finance |  |
 | `hr-tabs.tsx` | ⏳ Pending | M6 HR |  |
 | `hr-ui.tsx` | ⏳ Pending | M6 HR |  |
-| `icons.tsx` | ⏳ Pending | M1 Foundation |  |
-| `idle-logout.tsx` | ⏳ Pending | M1 Foundation |  |
+| `icons.tsx` | ✅ Ported | apps/web/src/components/icons.tsx |  |
+| `idle-logout.tsx` | ✅ Ported | apps/web/src/components/shell/idle-logout.tsx |  |
 | `perms-tabs.tsx` | ⏳ Pending | M1 Foundation |  |
 | `portal/portal-login-form.tsx` | ⏳ Pending | M8 Portals |  |
-| `shell-frame.tsx` | ⏳ Pending | M1 Foundation |  |
-| `side-nav.tsx` | ⏳ Pending | M1 Foundation |  |
+| `shell-frame.tsx` | ✅ Ported | apps/web/src/components/shell/shell-frame.tsx (search waits for M2) |  |
+| `side-nav.tsx` | ✅ Ported | apps/web/src/components/shell/side-nav.tsx |  |
 
 ## Scripts (7)
 
@@ -347,8 +343,8 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 
 | Item | Status | Where / milestone | Notes |
 |---|---|---|---|
-| `src/middleware.ts` | 🔁 Rebuild | M1 Foundation | auth redirects in web; authorization stays in the API |
-| `src/app/globals.css (component classes)` | ⏳ Pending | M1 Foundation | tokens ported to apps/web @theme; prototype component classes with the app shell |
+| `src/middleware.ts` | ✅ Ported | apps/web/src/proxy.ts | navigation redirects only; the API authorizes |
+| `src/app/globals.css (component classes)` | ✅ Ported | apps/web/src/app/globals.css | prototype 1:1 classes ported verbatim; tokens in @theme |
 | `prisma/seed.ts` | ⏳ Pending | M1 Foundation | office + 6 role users seed |
 | `src/app/layout.tsx (root: fonts, RTL, metadata)` | ✅ Ported | apps/web/src/app/layout.tsx |  |
 | `src/app/portal/(app)/layout.tsx (client-portal shell)` | ⏳ Pending | M8 Portals |  |
@@ -908,7 +904,8 @@ Every action legacy wrote to the audit log. The rebuilt modules must keep loggin
 | 8 document templates | ✅ Ported | packages/documents templates.ts |
 | Permission matrix | ✅ Ported | packages/auth seedPolicy |
 | Knowledge base sample sources | ⏳ Pending | M5 (lib/ai/kb-seed.ts) |
-| Demo office + 6 role users (0500000001–6) + 2 cases | ⏳ Pending | M1/M2 seed script |
+| Demo office + 6 role users (0500000001–6) | ✅ Ported | packages/database/src/seed.ts (`pnpm db:seed`) |
+| Demo cases (2) | ⏳ Pending | M2 |
 
 ## Owner decisions recorded in legacy
 
@@ -964,13 +961,14 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | Issue | Where | Fix |
 |---|---|---|
 | AI drafting called api.anthropic.com directly and skipped the citation gate | lib/ai/hearing-draft.ts | Vertex me-central2 + gate (M5) |
-| TOTP secret stored in plaintext | User.totpSecret | encrypt at rest (M1) |
+| TOTP secret stored in plaintext | User.totpSecret | ✅ fixed: AES-256-GCM (users.totp_secret_enc) |
 | Permission policy cached per process (stale on other Cloud Run instances) | lib/permissions/policy.ts | load per request or shared invalidation (M1) |
 | Hard-coded Arabic in 9 components/pages | idle-logout, ai-draft-hearing-button, dashboard, today, hr, payroll, cases/[id], emp-portal | i18n + lint rule (done) |
 | Pulse time windows used server-local time | server/pulse.ts sinceFor | Riyadh calendar (packages/rules dates.ts) |
 | Overdue invoices / reminders computed only on read | lib/finance/core.ts | outbox + Cloud Tasks jobs |
-| OTP HMAC key falls back to an empty AUTH_SECRET | lib/auth/otp.ts hashCode | required secret via env schema (M1) |
-| Login reveals whether a phone is registered (USER_NOT_FOUND) | lib/auth/otp.ts | same response either way (M1) |
+| OTP HMAC key falls back to an empty AUTH_SECRET | lib/auth/otp.ts hashCode | ✅ fixed: AUTH_SECRET required (≥32 chars) at boot |
+| Login reveals whether a phone is registered (USER_NOT_FOUND) and whether it has 2FA (2fa-status) | lib/auth/otp.ts, api/auth/2fa-status | ✅ fixed: same answer for every number; 2FA is asked only after a correct OTP |
+| IP allowlist enforced only when rendering the page shell, not on actions | components/app-shell.tsx | ✅ fixed: enforced by the API on every request |
 | A phone registered in two offices cannot log in (resolveUser needs exactly one match) | lib/auth/otp.ts | office picker or per-office login (M1 decision) |
 | Money columns are int4 (MAX_HALALAS ≈ 21.47M SAR) | prisma schema | bigint halalas in Drizzle (M4) |
 

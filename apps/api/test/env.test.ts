@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { loadEnv } from "../src/config/env.js";
 
-const base = { DATABASE_URL: "postgres://u:p@localhost:5432/db" };
+const base = {
+  DATABASE_URL: "postgres://u:p@localhost:5432/db",
+  AUTH_SECRET: "x".repeat(32),
+  ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"),
+};
 
 describe("loadEnv", () => {
   it("applies safe defaults", () => {
@@ -17,6 +21,20 @@ describe("loadEnv", () => {
 
   it("refuses a missing database URL", () => {
     expect(() => loadEnv({})).toThrow(/DATABASE_URL/);
+  });
+
+  it("refuses missing or weak auth secrets", () => {
+    expect(() => loadEnv({ ...base, AUTH_SECRET: "" })).toThrow(/AUTH_SECRET/);
+    expect(() => loadEnv({ ...base, ENCRYPTION_KEY: "c2hvcnQ=" })).toThrow(/ENCRYPTION_KEY/);
+  });
+
+  it("refuses the console OTP provider in production", () => {
+    expect(() => loadEnv({ ...base, NODE_ENV: "production", OTP_PROVIDER: "console" })).toThrow(
+      /OTP_PROVIDER/,
+    );
+    expect(
+      loadEnv({ ...base, NODE_ENV: "production", OTP_PROVIDER: "unifonic" }).OTP_PROVIDER,
+    ).toBe("unifonic");
   });
 
   it("splits CORS origins", () => {

@@ -10,13 +10,55 @@ export type ErrorEnvelope = {
 };
 
 export type ApiError = {
-    code: 'VALIDATION_FAILED' | 'UNAUTHENTICATED' | 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'RATE_LIMITED' | 'INTERNAL';
+    code: 'VALIDATION_FAILED' | 'UNAUTHENTICATED' | 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'RATE_LIMITED' | 'OTP_EXPIRED' | 'OTP_INVALID' | 'OTP_TOO_MANY_ATTEMPTS' | 'TOTP_REQUIRED' | 'TOTP_INVALID' | 'IP_NOT_ALLOWED' | 'INTERNAL';
     messageKey: string;
     details?: Array<{
         path: string;
         message: string;
     }>;
     requestId?: string;
+};
+
+export type RequestOtpResponse = {
+    sent: true;
+    devCode?: string;
+};
+
+export type RequestOtpBody = {
+    phone: string;
+    channel?: 'sms' | 'whatsapp';
+};
+
+export type VerifyOtpResponse = {
+    user: SessionUser;
+    token?: string;
+};
+
+export type SessionUser = {
+    id: string;
+    officeId: string;
+    name: string;
+    role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+    previewRole: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION' | null;
+};
+
+export type VerifyOtpBody = {
+    phone: string;
+    code: string;
+    totp?: string;
+};
+
+export type Me = {
+    user: SessionUser;
+    office: {
+        id: string;
+        name: string;
+    };
+    screens: Array<'today' | 'dashboard' | 'settings' | 'notifications' | 'clientportal' | 'empportal' | 'search' | 'accountSecurity' | 'cases' | 'workspace' | 'copilot' | 'clients' | 'leads' | 'documents' | 'kb' | 'finance' | 'billing' | 'hr' | 'journey' | 'activity' | 'perms' | 'whatsapp' | 'deadlines' | 'appointments' | 'tasks' | 'alerts' | 'pulse'>;
+    modules: {
+        [key: string]: 'NONE' | 'VIEW' | 'EDIT' | 'FULL';
+    };
+    isPartner: boolean;
 };
 
 export type Health = {
@@ -30,6 +72,118 @@ export type Office = {
     name: string;
     createdAt: string;
 };
+
+export type AuthRequestOtpData = {
+    body: RequestOtpBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/otp';
+};
+
+export type AuthRequestOtpErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AuthRequestOtpError = AuthRequestOtpErrors[keyof AuthRequestOtpErrors];
+
+export type AuthRequestOtpResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: RequestOtpResponse;
+        error: null;
+    };
+};
+
+export type AuthRequestOtpResponse = AuthRequestOtpResponses[keyof AuthRequestOtpResponses];
+
+export type AuthVerifyData = {
+    body: VerifyOtpBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/verify';
+};
+
+export type AuthVerifyErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AuthVerifyError = AuthVerifyErrors[keyof AuthVerifyErrors];
+
+export type AuthVerifyResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: VerifyOtpResponse;
+        error: null;
+    };
+};
+
+export type AuthVerifyResponse = AuthVerifyResponses[keyof AuthVerifyResponses];
+
+export type AuthCurrentData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me';
+};
+
+export type AuthCurrentErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AuthCurrentError = AuthCurrentErrors[keyof AuthCurrentErrors];
+
+export type AuthCurrentResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: Me;
+        error: null;
+    };
+};
+
+export type AuthCurrentResponse = AuthCurrentResponses[keyof AuthCurrentResponses];
+
+export type AuthLogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/logout';
+};
+
+export type AuthLogoutErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type AuthLogoutError = AuthLogoutErrors[keyof AuthLogoutErrors];
+
+export type AuthLogoutResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type AuthLogoutResponse = AuthLogoutResponses[keyof AuthLogoutResponses];
 
 export type HealthCheckData = {
     body?: never;

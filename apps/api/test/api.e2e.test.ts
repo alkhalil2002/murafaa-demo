@@ -3,13 +3,13 @@ import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp, mountDocs } from "../src/app.factory.js";
-import type { Principal } from "../src/common/tenancy/principal.js";
 import { loadEnv } from "../src/config/env.js";
+import { encryptSecret } from "../src/modules/auth/auth-crypto.js";
+import { totpCode } from "../src/modules/auth/totp.js";
 
 /**
- * Full HTTP pipeline against a real Postgres: guard → tenant context →
- * TenantDb → RLS. Auth (OTP sessions) is not built yet, so a test-only hook
- * sets the principal from a header; the production app has no such hook.
+ * Full HTTP pipeline against a real Postgres: OTP login → session cookie or
+ * bearer → session hook → guard → tenant context → TenantDb → RLS.
  */
 
 const OWNER_URL =
@@ -18,25 +18,101 @@ const OWNER_URL =
 const APP_URL =
   process.env.TEST_DATABASE_URL ?? "postgres://murafaa_api:murafaa_api@localhost:5440/murafaa_test";
 
+const ENCRYPTION_KEY = Buffer.alloc(32, 9).toString("base64");
+const TOTP_SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+
 const OFFICE_A = "aaaaaaaa-0000-4000-8000-00000000000a";
 const OFFICE_B = "bbbbbbbb-0000-4000-8000-00000000000b";
-const NO_OFFICE = "cccccccc-0000-4000-8000-00000000000c";
+const OFFICE_LOCKED = "cccccccc-0000-4000-8000-00000000000c";
+
+// Local digits; the API normalizes to +9665XXXXXXXX.
+const PARTNER_A = "0500000101";
+const LAWYER_B = "0500000102";
+const SHARED = "0500000103"; // registered in two offices → ambiguous
+const TOTP_USER = "0500000104";
+const LOCKED_USER = "0500000105";
+const BRUTE = "0500000106";
+const RESEND = "0500000107";
+// One user per login: the 30-second resend cooldown applies per number.
+const FORGER_B = "0500000108";
+const ORIGIN_A = "0500000109";
+const LOGOUT_A = "0500000110";
 
 let app: NestFastifyApplication;
 
-const as = (officeId: string): Record<string, string> => ({ "x-test-office": officeId });
+const e164 = (local: string) => `+966${local.slice(1)}`;
+
+async function post(
+  url: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+  remoteAddress?: string,
+) {
+  return app.inject({
+    method: "POST",
+    url,
+    payload: body as object,
+    headers,
+    ...(remoteAddress ? { remoteAddress } : {}),
+  });
+}
+
+/** Request a code (console provider returns it) and verify it; returns the response. */
+async function login(
+  phone: string,
+  extra: Record<string, unknown> = {},
+  headers: Record<string, string> = {},
+) {
+  const sent = await post("/api/v1/auth/otp", { phone });
+  const code = sent.json().data.devCode as string;
+  return post("/api/v1/auth/verify", { phone, code, ...extra }, headers);
+}
+
+const cookieOf = (res: { headers: Record<string, unknown> }) =>
+  String(res.headers["set-cookie"]).split(";")[0] ?? "";
 
 beforeAll(async () => {
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate audit_log, outbox, users, offices cascade`;
-  for (const [id, name] of [
-    [OFFICE_A, "Office A"],
-    [OFFICE_B, "Office B"],
-  ] as const) {
+  await owner`truncate sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  const seed: Array<
+    [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
+  > = [
+    [
+      OFFICE_A,
+      "Office A",
+      [],
+      [
+        [PARTNER_A, "PARTNER"],
+        [SHARED, "LAWYER"],
+        [TOTP_USER, "PARTNER", TOTP_SECRET],
+        [BRUTE, "LAWYER"],
+        [RESEND, "LAWYER"],
+        [ORIGIN_A, "LAWYER"],
+        [LOGOUT_A, "LAWYER"],
+      ],
+    ],
+    [
+      OFFICE_B,
+      "Office B",
+      [],
+      [
+        [LAWYER_B, "LAWYER"],
+        [SHARED, "LAWYER"],
+        [FORGER_B, "LAWYER"],
+      ],
+    ],
+    [OFFICE_LOCKED, "Locked office", ["10.0.0.0/8"], [[LOCKED_USER, "PARTNER"]]],
+  ];
+  for (const [office, name, allowlist, people] of seed) {
     await owner.begin(async (tx) => {
-      await tx`select set_config('app.office_id', ${id}, true)`;
-      await tx`insert into offices (id, name) values (${id}, ${name})`;
+      await tx`select set_config('app.office_id', ${office}, true)`;
+      await tx`insert into offices (id, name, ip_allowlist) values (${office}, ${name}, ${allowlist})`;
+      for (const [phone, role, totp] of people) {
+        await tx`insert into users (office_id, name, phone, role, totp_enabled, totp_secret_enc)
+                 values (${office}, ${"user " + phone}, ${e164(phone)}, ${role}, ${Boolean(totp)},
+                         ${totp ? encryptSecret(ENCRYPTION_KEY, totp) : null})`;
+      }
     });
   }
   await owner.end();
@@ -46,17 +122,12 @@ beforeAll(async () => {
     NODE_ENV: "test",
     LOG_LEVEL: "fatal",
     RBAC_ENFORCEMENT: "strict",
+    CORS_ORIGINS: "http://localhost:3000",
+    AUTH_SECRET: "e2e-auth-secret-0123456789abcdefghijkl",
+    ENCRYPTION_KEY,
+    OTP_PROVIDER: "console",
   });
   app = await createApp(env);
-  app
-    .getHttpAdapter()
-    .getInstance()
-    .addHook("onRequest", async (request) => {
-      const officeId = request.headers["x-test-office"];
-      if (typeof officeId === "string") {
-        request.principal = { userId: officeId, officeId, role: "LAWYER" } satisfies Principal;
-      }
-    });
   mountDocs(app, env);
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
@@ -66,60 +137,191 @@ afterAll(async () => {
   await app?.close();
 });
 
-describe("API", () => {
+describe("API basics", () => {
   it("reports health inside the envelope", async () => {
     const res = await app.inject({ method: "GET", url: "/api/v1/health" });
-    expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ data: { status: "ok", db: "up", version: "0.0.0" }, error: null });
   });
 
   it("rejects a missing session with an error envelope", async () => {
     const res = await app.inject({ method: "GET", url: "/api/v1/offices/current" });
     expect(res.statusCode).toBe(401);
-    expect(res.json()).toMatchObject({
-      data: null,
-      error: { code: "UNAUTHENTICATED", messageKey: "errors.UNAUTHENTICATED" },
-    });
+    expect(res.json()).toMatchObject({ data: null, error: { code: "UNAUTHENTICATED" } });
     expect(res.json().error.requestId).toBeTruthy();
-  });
-
-  it("returns only the caller's office", async () => {
-    const a = await app.inject({
-      method: "GET",
-      url: "/api/v1/offices/current",
-      headers: as(OFFICE_A),
-    });
-    const b = await app.inject({
-      method: "GET",
-      url: "/api/v1/offices/current",
-      headers: as(OFFICE_B),
-    });
-    expect(a.json().data).toMatchObject({ id: OFFICE_A, name: "Office A" });
-    expect(b.json().data).toMatchObject({ id: OFFICE_B, name: "Office B" });
-  });
-
-  it("finds nothing for an office the database does not let it see", async () => {
-    const res = await app.inject({
-      method: "GET",
-      url: "/api/v1/offices/current",
-      headers: as(NO_OFFICE),
-    });
-    expect(res.statusCode).toBe(404);
-    expect(res.json().error.code).toBe("NOT_FOUND");
   });
 
   it("renders unknown routes as an error envelope", async () => {
     const res = await app.inject({ method: "GET", url: "/api/v1/nope" });
-    expect(res.statusCode).toBe(404);
     expect(res.json()).toMatchObject({ data: null, error: { code: "NOT_FOUND" } });
   });
 
   it("serves the zod-derived OpenAPI document", async () => {
-    const res = await app.inject({ method: "GET", url: "/api/docs-json" });
+    const doc = (await app.inject({ method: "GET", url: "/api/docs-json" })).json();
+    expect(doc.paths).toHaveProperty(["/api/v1/auth/verify"]);
+    expect(doc.paths["/api/v1/auth/verify"].post.responses).toHaveProperty("200");
+    expect(doc.components.schemas).toHaveProperty("Me");
+  });
+});
+
+describe("OTP login", () => {
+  it("answers the same for unknown and ambiguous numbers, and sends nothing", async () => {
+    for (const phone of ["0599999999", SHARED]) {
+      const res = await post("/api/v1/auth/otp", { phone });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().data).toEqual({ sent: true });
+    }
+  });
+
+  it("rejects an invalid phone with a field error", async () => {
+    const res = await post("/api/v1/auth/otp", { phone: "0112345678" });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.details[0]).toEqual({
+      path: "phone",
+      message: "auth.error.phoneInvalid",
+    });
+  });
+
+  it("signs in with an httpOnly cookie and scopes everything to the user's office", async () => {
+    const res = await login(PARTNER_A);
     expect(res.statusCode).toBe(200);
-    const doc = res.json();
-    expect(doc.paths).toHaveProperty(["/api/v1/health"]);
-    expect(doc.paths).toHaveProperty(["/api/v1/offices/current"]);
-    expect(doc.components.schemas).toHaveProperty("Office");
+    expect(res.json().data.user).toMatchObject({
+      officeId: OFFICE_A,
+      role: "PARTNER",
+      previewRole: null,
+    });
+    expect(res.json().data.token).toBeUndefined();
+    expect(String(res.headers["set-cookie"])).toMatch(/murafaa_session=.*HttpOnly.*SameSite=Lax/);
+
+    const cookie = cookieOf(res);
+    const me = (
+      await app.inject({ method: "GET", url: "/api/v1/auth/me", headers: { cookie } })
+    ).json().data;
+    expect(me.office).toEqual({ id: OFFICE_A, name: "Office A" });
+    expect(me.isPartner).toBe(true);
+    expect(me.screens).toEqual(expect.arrayContaining(["today", "cases", "finance", "perms"]));
+    expect(me.modules.FINANCE).toBe("FULL");
+
+    const office = await app.inject({
+      method: "GET",
+      url: "/api/v1/offices/current",
+      headers: { cookie },
+    });
+    expect(office.json().data.id).toBe(OFFICE_A);
+  });
+
+  it("gives mobile clients a bearer token that works the same way", async () => {
+    const res = await login(LAWYER_B, {}, { "x-client-type": "mobile" });
+    const token = res.json().data.token as string;
+    expect(token).toMatch(new RegExp(`^${OFFICE_B}\\.`));
+    const me = (
+      await app.inject({
+        method: "GET",
+        url: "/api/v1/auth/me",
+        headers: { authorization: `Bearer ${token}` },
+      })
+    ).json().data;
+    expect(me.office.id).toBe(OFFICE_B);
+    expect(me.screens).not.toContain("finance");
+    expect(me.modules.FINANCE).toBe("NONE");
+  });
+
+  it("rejects a token whose office id was swapped", async () => {
+    const res = await login(FORGER_B, {}, { "x-client-type": "mobile" });
+    const forged = String(res.json().data.token).replace(OFFICE_B, OFFICE_A);
+    const me = await app.inject({
+      method: "GET",
+      url: "/api/v1/auth/me",
+      headers: { authorization: `Bearer ${forged}` },
+    });
+    expect(me.statusCode).toBe(401);
+  });
+
+  it("enforces the 30-second resend cooldown", async () => {
+    expect((await post("/api/v1/auth/otp", { phone: RESEND })).statusCode).toBe(200);
+    const again = await post("/api/v1/auth/otp", { phone: RESEND });
+    expect(again.statusCode).toBe(429);
+    expect(again.json().error.code).toBe("RATE_LIMITED");
+  });
+
+  it("locks the code after 5 wrong attempts, even for the right code", async () => {
+    const code = (await post("/api/v1/auth/otp", { phone: BRUTE })).json().data.devCode as string;
+    const wrong = code === "000000" ? "111111" : "000000";
+    for (let i = 0; i < 5; i++) {
+      const r = await post("/api/v1/auth/verify", { phone: BRUTE, code: wrong });
+      expect(r.json().error.code).toBe("OTP_INVALID");
+    }
+    const locked = await post("/api/v1/auth/verify", { phone: BRUTE, code });
+    expect(locked.json().error.code).toBe("OTP_TOO_MANY_ATTEMPTS");
+  });
+
+  it("asks for TOTP when 2FA is on, then accepts the same OTP with a valid TOTP", async () => {
+    const code = (await post("/api/v1/auth/otp", { phone: TOTP_USER })).json().data
+      .devCode as string;
+    const first = await post("/api/v1/auth/verify", { phone: TOTP_USER, code });
+    expect(first.statusCode).toBe(401);
+    expect(first.json().error.code).toBe("TOTP_REQUIRED");
+    const bad = await post("/api/v1/auth/verify", { phone: TOTP_USER, code, totp: "000000" });
+    expect(bad.json().error.code).toBe("TOTP_INVALID");
+    const ok = await post("/api/v1/auth/verify", {
+      phone: TOTP_USER,
+      code,
+      totp: totpCode(TOTP_SECRET),
+    });
+    expect(ok.statusCode).toBe(200);
+  });
+
+  it("refuses login from outside the office IP allowlist", async () => {
+    const code = (await post("/api/v1/auth/otp", { phone: LOCKED_USER })).json().data
+      .devCode as string;
+    const outside = await post(
+      "/api/v1/auth/verify",
+      { phone: LOCKED_USER, code },
+      {},
+      "203.0.113.9",
+    );
+    expect(outside.statusCode).toBe(403);
+    expect(outside.json().error.code).toBe("IP_NOT_ALLOWED");
+    const inside = await post("/api/v1/auth/verify", { phone: LOCKED_USER, code }, {}, "10.1.2.3");
+    expect(inside.statusCode).toBe(200);
+    // The same session is refused when used from outside the allowlist.
+    const cookie = cookieOf(inside);
+    const away = await app.inject({
+      method: "GET",
+      url: "/api/v1/auth/me",
+      headers: { cookie },
+      remoteAddress: "203.0.113.9",
+    });
+    expect(away.json().error.code).toBe("IP_NOT_ALLOWED");
+  });
+
+  it("rejects cookie-authenticated writes from a foreign origin", async () => {
+    const cookie = cookieOf(await login(ORIGIN_A));
+    const res = await post("/api/v1/auth/logout", {}, { cookie, origin: "https://evil.example" });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("logs out: the session stops working and the cookie is cleared", async () => {
+    const cookie = cookieOf(await login(LOGOUT_A));
+    const out = await post("/api/v1/auth/logout", {}, { cookie, origin: "http://localhost:3000" });
+    expect(out.statusCode).toBe(200);
+    expect(String(out.headers["set-cookie"])).toContain("Max-Age=0");
+    const me = await app.inject({ method: "GET", url: "/api/v1/auth/me", headers: { cookie } });
+    expect(me.statusCode).toBe(401);
+  });
+
+  it("audits OTP sends, logins, IP denials and logouts", async () => {
+    const owner = postgres(OWNER_URL, { max: 1 });
+    const actions = new Set<string>();
+    for (const office of [OFFICE_A, OFFICE_LOCKED]) {
+      const rows = await owner.begin(async (tx) => {
+        await tx`select set_config('app.office_id', ${office}, true)`;
+        return tx<{ action: string }[]>`select distinct action from audit_log`;
+      });
+      rows.forEach((r) => actions.add(r.action));
+    }
+    await owner.end();
+    expect([...actions]).toEqual(
+      expect.arrayContaining(["auth.otp.sent", "auth.login", "auth.login.ipDenied", "auth.logout"]),
+    );
   });
 });

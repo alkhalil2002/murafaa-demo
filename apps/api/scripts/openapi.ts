@@ -9,6 +9,8 @@ import { loadEnv } from "../src/config/env.js";
 const env = loadEnv({
   DATABASE_URL: "postgres://unused@localhost:5432/unused",
   LOG_LEVEL: "warn",
+  AUTH_SECRET: "openapi-generation-only-not-a-real-secret",
+  ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"),
   ...process.env,
   NODE_ENV: "test",
 });

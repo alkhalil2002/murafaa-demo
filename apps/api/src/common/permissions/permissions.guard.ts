@@ -21,6 +21,7 @@ import { DB } from "../../database/database.tokens.js";
 import { ApiException } from "../http/api.exception.js";
 import type { Principal } from "../tenancy/principal.js";
 import {
+  ALLOW_IN_PREVIEW,
   IS_AUTHENTICATED_ONLY,
   IS_PUBLIC,
   PARTNER_ONLY,
@@ -54,7 +55,12 @@ export class PermissionsGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<FastifyRequest>();
     const principal = request.principal;
-    if (!principal) throw new ApiException(ErrorCode.UNAUTHENTICATED);
+    if (!principal) {
+      if (request.sessionRejected === "IP_NOT_ALLOWED")
+        throw new ApiException(ErrorCode.IP_NOT_ALLOWED);
+      if (request.sessionRejected === "ORIGIN") throw new ApiException(ErrorCode.FORBIDDEN);
+      throw new ApiException(ErrorCode.UNAUTHENTICATED);
+    }
 
     const partnerAction = this.reflector.getAllAndOverride<PartnerOnlyAction | undefined>(
       PARTNER_ONLY,
@@ -71,6 +77,7 @@ export class PermissionsGuard implements CanActivate {
     if (
       principal.previewRole &&
       partnerAction !== "rolePreview.start" &&
+      !this.reflector.getAllAndOverride<boolean>(ALLOW_IN_PREVIEW, targets) &&
       (!READ_METHODS.has(request.method) ||
         (required && !previewAllows(principal, required.action)))
     ) {

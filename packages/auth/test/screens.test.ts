@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PermModule, Role } from "../src/enums.js";
 import { seedPolicy } from "../src/policy.js";
-import { canSeeScreen, SCREEN_ACCESS } from "../src/screens.js";
+import { canSeeScreen, isSessionLive, SCREEN_ACCESS } from "../src/screens.js";
 
 describe("screen access (docs/04 VIEW2MOD + FREE_VIEWS)", () => {
   const policy = seedPolicy();
@@ -45,5 +45,24 @@ describe("screen access (docs/04 VIEW2MOD + FREE_VIEWS)", () => {
     expect(
       canSeeScreen(policy, { role: Role.PARTNER, previewRole: Role.RECEPTION }, "finance"),
     ).toBe(false);
+  });
+});
+
+describe("session liveness", () => {
+  const now = new Date("2026-10-18T12:00:00Z");
+  const ago = (ms: number) => new Date(now.getTime() - ms);
+  const later = new Date(now.getTime() + 3_600_000);
+
+  it("expires after 20 idle minutes, at the absolute lifetime, or when revoked", () => {
+    expect(
+      isSessionLive({ expiresAt: later, lastSeenAt: ago(19 * 60_000), revokedAt: null }, now),
+    ).toBe(true);
+    expect(
+      isSessionLive({ expiresAt: later, lastSeenAt: ago(20 * 60_000), revokedAt: null }, now),
+    ).toBe(false);
+    expect(isSessionLive({ expiresAt: now, lastSeenAt: now, revokedAt: null }, now)).toBe(false);
+    expect(isSessionLive({ expiresAt: later, lastSeenAt: now, revokedAt: ago(1) }, now)).toBe(
+      false,
+    );
   });
 });

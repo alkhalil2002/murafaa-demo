@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses } from './types.gen.js';
+import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -17,6 +17,28 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      */
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
+
+export const authRequestOtp = <ThrowOnError extends boolean = false>(options: Options<AuthRequestOtpData, ThrowOnError>): RequestResult<AuthRequestOtpResponses, AuthRequestOtpErrors, ThrowOnError> => (options.client ?? client).post<AuthRequestOtpResponses, AuthRequestOtpErrors, ThrowOnError>({
+    url: '/api/v1/auth/otp',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const authVerify = <ThrowOnError extends boolean = false>(options: Options<AuthVerifyData, ThrowOnError>): RequestResult<AuthVerifyResponses, AuthVerifyErrors, ThrowOnError> => (options.client ?? client).post<AuthVerifyResponses, AuthVerifyErrors, ThrowOnError>({
+    url: '/api/v1/auth/verify',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const authCurrent = <ThrowOnError extends boolean = false>(options?: Options<AuthCurrentData, ThrowOnError>): RequestResult<AuthCurrentResponses, AuthCurrentErrors, ThrowOnError> => (options?.client ?? client).get<AuthCurrentResponses, AuthCurrentErrors, ThrowOnError>({ url: '/api/v1/auth/me', ...options });
+
+export const authLogout = <ThrowOnError extends boolean = false>(options?: Options<AuthLogoutData, ThrowOnError>): RequestResult<AuthLogoutResponses, AuthLogoutErrors, ThrowOnError> => (options?.client ?? client).post<AuthLogoutResponses, AuthLogoutErrors, ThrowOnError>({ url: '/api/v1/auth/logout', ...options });
 
 export const healthCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthCheckData, ThrowOnError>): RequestResult<HealthCheckResponses, HealthCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthCheckResponses, HealthCheckErrors, ThrowOnError>({ url: '/api/v1/health', ...options });
 

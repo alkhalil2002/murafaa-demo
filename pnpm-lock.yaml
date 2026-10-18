@@ -266,6 +266,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@murafaa/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@murafaa/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@murafaa/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -363,6 +369,12 @@ importers:
 
   packages/contracts:
     dependencies:
+      '@murafaa/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@murafaa/rules':
+        specifier: workspace:*
+        version: link:../rules
       zod:
         specifier: 4.6.7
         version: 4.6.7

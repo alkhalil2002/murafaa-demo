@@ -1,4 +1,4 @@
-import { boolean, pgEnum, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { audit, id, tenantPolicy, timestamps } from "./_helpers.js";
 import { offices } from "./offices.js";
 
@@ -24,6 +24,10 @@ export const users = pgTable(
     phone: text("phone").notNull(),
     role: roleEnum("role").notNull(),
     isActive: boolean("is_active").notNull().default(true),
+    /** TOTP secret, AES-256-GCM encrypted by the API (never stored in plaintext). */
+    totpSecretEnc: text("totp_secret_enc"),
+    totpEnabled: boolean("totp_enabled").notNull().default(false),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     ...timestamps,
     ...audit,
   },

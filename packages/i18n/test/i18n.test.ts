@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ar, dirOf, formatSar, messagesFor, t } from "../src/index.js";
+import { ar, dirOf, formatSar, messagesFor, roleLabel, t } from "../src/index.js";
 
 describe("i18n", () => {
   it("interpolates params and leaves unknown placeholders", () => {
@@ -20,5 +20,12 @@ describe("i18n", () => {
   it("formats halalas as SAR without float drift", () => {
     expect(formatSar(690000)).toContain(ar["common.currency.sar"]);
     expect(formatSar(5, "en")).toMatch(/^0\.05 /);
+  });
+
+  it("labels every role", () => {
+    for (const role of ["PARTNER", "LAWYER", "ASSISTANT", "ACCOUNTANT", "ADMIN", "RECEPTION"]) {
+      expect(roleLabel(role), role).toBe(ar[`role.${role.toLowerCase()}` as keyof typeof ar]);
+      expect(roleLabel(role)).toBeTruthy();
+    }
   });
 });

@@ -5,6 +5,198 @@
     "version": "0.0.0"
   },
   "paths": {
+    "/api/v1/auth/otp": {
+      "post": {
+        "operationId": "authRequestOtp",
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RequestOtpResponse"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestOtpBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify": {
+      "post": {
+        "operationId": "authVerify",
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/VerifyOtpResponse"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "authCurrent",
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Me"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "authLogout",
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {},
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "operationId": "healthCheck",
@@ -123,6 +315,12 @@
               "NOT_FOUND",
               "CONFLICT",
               "RATE_LIMITED",
+              "OTP_EXPIRED",
+              "OTP_INVALID",
+              "OTP_TOO_MANY_ATTEMPTS",
+              "TOTP_REQUIRED",
+              "TOTP_INVALID",
+              "IP_NOT_ALLOWED",
               "INTERNAL"
             ]
           },
@@ -155,6 +353,251 @@
         "required": [
           "code",
           "messageKey"
+        ],
+        "additionalProperties": false
+      },
+      "RequestOtpResponse": {
+        "type": "object",
+        "properties": {
+          "sent": {
+            "type": "boolean",
+            "const": true
+          },
+          "devCode": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          }
+        },
+        "required": [
+          "sent"
+        ],
+        "additionalProperties": false
+      },
+      "RequestOtpBody": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "channel": {
+            "default": "whatsapp",
+            "type": "string",
+            "enum": [
+              "sms",
+              "whatsapp"
+            ]
+          }
+        },
+        "required": [
+          "phone"
+        ]
+      },
+      "VerifyOtpResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SessionUser"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "additionalProperties": false
+      },
+      "SessionUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "officeId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "PARTNER",
+              "LAWYER",
+              "ASSISTANT",
+              "ACCOUNTANT",
+              "ADMIN",
+              "RECEPTION"
+            ]
+          },
+          "previewRole": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "PARTNER",
+                  "LAWYER",
+                  "ASSISTANT",
+                  "ACCOUNTANT",
+                  "ADMIN",
+                  "RECEPTION"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "officeId",
+          "name",
+          "role",
+          "previewRole"
+        ],
+        "additionalProperties": false
+      },
+      "VerifyOtpBody": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          },
+          "totp": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          }
+        },
+        "required": [
+          "phone",
+          "code"
+        ]
+      },
+      "Me": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SessionUser"
+          },
+          "office": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "screens": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "today",
+                "dashboard",
+                "settings",
+                "notifications",
+                "clientportal",
+                "empportal",
+                "search",
+                "accountSecurity",
+                "cases",
+                "workspace",
+                "copilot",
+                "clients",
+                "leads",
+                "documents",
+                "kb",
+                "finance",
+                "billing",
+                "hr",
+                "journey",
+                "activity",
+                "perms",
+                "whatsapp",
+                "deadlines",
+                "appointments",
+                "tasks",
+                "alerts",
+                "pulse"
+              ]
+            }
+          },
+          "modules": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "CASES",
+                "AI",
+                "CLIENTS",
+                "DOCUMENTS",
+                "FINANCE",
+                "HR",
+                "REPORTS",
+                "PERMISSIONS",
+                "WHATSAPP",
+                "APPOINTMENTS",
+                "TASKS",
+                "ALERTS",
+                "PULSE"
+              ]
+            },
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "NONE",
+                "VIEW",
+                "EDIT",
+                "FULL"
+              ]
+            },
+            "required": [
+              "CASES",
+              "AI",
+              "CLIENTS",
+              "DOCUMENTS",
+              "FINANCE",
+              "HR",
+              "REPORTS",
+              "PERMISSIONS",
+              "WHATSAPP",
+              "APPOINTMENTS",
+              "TASKS",
+              "ALERTS",
+              "PULSE"
+            ]
+          },
+          "isPartner": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "user",
+          "office",
+          "screens",
+          "modules",
+          "isPartner"
         ],
         "additionalProperties": false
       },

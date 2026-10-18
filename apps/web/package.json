@@ -12,6 +12,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@murafaa/auth": "workspace:*",
+    "@murafaa/contracts": "workspace:*",
     "@murafaa/i18n": "workspace:*",
     "@murafaa/sdk": "workspace:*",
     "class-variance-authority": "0.7.1",

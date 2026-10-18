@@ -73,8 +73,25 @@ export const SEARCH_CATEGORY_MODULE = {
   employees: PermModule.HR,
 } as const satisfies Record<string, PermModule>;
 
-/** Session rules from legacy idle-logout: sign out after 20 minutes without activity. */
+/**
+ * Session rules. Idle sign-out after 20 minutes (legacy idle-logout), enforced
+ * by the API as well as the browser; sessions last at most 30 days (legacy
+ * Auth.js default).
+ */
 export const SESSION_POLICY = {
   idleTimeoutMs: 20 * 60 * 1000,
+  absoluteTtlMs: 30 * 24 * 60 * 60 * 1000,
+  /** Refresh last-seen at most this often, to avoid a write on every request. */
+  touchIntervalMs: 60 * 1000,
   activityEvents: ["mousemove", "keydown", "click", "scroll", "touchstart"],
 } as const;
+
+/** Whether a session is still usable at `now` (not revoked, not idle too long, not past its lifetime). */
+export function isSessionLive(
+  s: { expiresAt: Date; lastSeenAt: Date; revokedAt: Date | null },
+  now: Date,
+): boolean {
+  if (s.revokedAt) return false;
+  if (s.expiresAt.getTime() <= now.getTime()) return false;
+  return now.getTime() - s.lastSeenAt.getTime() < SESSION_POLICY.idleTimeoutMs;
+}
