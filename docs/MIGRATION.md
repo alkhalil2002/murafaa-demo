@@ -4,18 +4,18 @@ Every file, screen, route and model in `legacy/` with where it went or which mil
 
 Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP login, TOTP 2FA, editable permissions (all three layers), office IP allowlist enforcement, and audit writers.
 
-## Summary (2026-10-18, M1 Foundation complete)
+## Summary (2026-10-18, M2 slice 1: clients and leads)
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
 | `src/lib` files | 51 | 30 | 21 |
 | Business rules inside services/components | 37 | 26 | 11 |
-| Services | 54 | 5 | 49 |
-| Service capabilities | 225 | 16 | 209 |
-| Screens | 63 | 8 | 55 |
+| Services | 54 | 6 | 48 |
+| Service capabilities | 225 | 26 | 199 |
+| Screens | 63 | 10 | 53 |
 | Components | 20 | 8 | 12 |
 | Route handlers | 9 | 2 (+1 replaced) | 6 |
-| Models | 56 | 7 (+ `outbox`, `sessions` new) | 49 |
+| Models | 56 | 9 (+ `outbox`, `sessions` new) | 47 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -91,7 +91,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `case-profitability` | ⏳ Pending | M4 Finance |  |
 | `cases` | ⏳ Pending | M2 Core ops | rules ported: effectiveStage, prevProcStage/nextProcStage (packages/rules cases.ts, procedural.ts) |
 | `client-approvals` | ⏳ Pending | M8 Portals |  |
-| `clients` | ⏳ Pending | M2 Core ops |  |
+| `clients` | ✅ Ported | apps/api/src/modules/crm (conflict re-scan on rename joins with cases, M2 slice 2) |  |
 | `communications` | ⏳ Pending | M2 Core ops |  |
 | `contracts` | ⏳ Pending | M3 Documents |  |
 | `dashboard` | ⏳ Pending | M2 Core ops |  |
@@ -119,7 +119,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `hr/wps` | ⏳ Pending | M6 HR | WPS file generation |
 | `invoices` | ⏳ Pending | M4 Finance | ZATCA e-invoicing still missing (M7) |
 | `journey` | ⏳ Pending | M2 Core ops |  |
-| `leads` | ⏳ Pending | M2 Core ops | pipeline order + bounded move ported (packages/rules workflows.ts) |
+| `leads` | ⏳ Pending | M2 Core ops | list/KPIs/create/update/move/delete done (apps/api/src/modules/crm); convertLead + conflict re-scan with cases (M2 slice 2) |
 | `ledger-reports` | ⏳ Pending | M4 Finance | normal-side balance ported (packages/rules ledger.ts) |
 | `messages` | ⏳ Pending | M2 Core ops |  |
 | `notifications` | ⏳ Pending | M2 Core ops |  |
@@ -155,7 +155,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/cases` | ⏳ Pending | M2 Core ops |  |
 | `/cases/[id]` | ⏳ Pending | M2 Core ops |  |
 | `/cases/new` | ⏳ Pending | M2 Core ops |  |
-| `/clients` | ⏳ Pending | M2 Core ops |  |
+| `/clients` | ✅ Ported | apps/web/src/app/(app)/clients (+ CRM KPIs) |  |
 | `/dashboard` | ⏳ Pending | M2 Core ops |  |
 | `/deadlines` | ⏳ Pending | M2 Core ops |  |
 | `/documents` | ⏳ Pending | M3 Documents |  |
@@ -189,7 +189,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/hr/requests` | ⏳ Pending | M6 HR |  |
 | `/hr/saudization` | ⏳ Pending | M6 HR |  |
 | `/journey` | ⏳ Pending | M2 Core ops |  |
-| `/leads` | ⏳ Pending | M2 Core ops |  |
+| `/leads` | ✅ Ported | apps/web/src/app/(app)/leads (pipeline; convert button with cases) |  |
 | `/login` | ✅ Ported | apps/web/src/app/login (+ components/auth/login-form.tsx) |  |
 | `/notifications` | ⏳ Pending | M2 Core ops |  |
 | `/perms` | ✅ Ported | apps/web/src/app/(app)/perms (matrix + role preview) |  |
@@ -233,14 +233,14 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `Permission` | ✅ Ported | packages/database permissions |  |
 | `FieldPermission` | ✅ Ported | packages/database field_permissions |  |
 | `RoleCaseScope` | ✅ Ported | packages/database role_case_scopes |  |
-| `Client` | ⏳ Pending | M2 Core ops |  |
+| `Client` | ✅ Ported | packages/database clients |  |
 | `Case` | ⏳ Pending | M2 Core ops |  |
 | `CaseAssignee` | ⏳ Pending | M2 Core ops |  |
 | `AuditLog` | ✅ Ported | packages/database audit_log (append-only) |  |
 | `Hearing` | ⏳ Pending | M2 Core ops |  |
 | `CaseEvent` | ⏳ Pending | M2 Core ops |  |
 | `CaseReminder` | ⏳ Pending | M2 Core ops |  |
-| `Lead` | ⏳ Pending | M2 Core ops |  |
+| `Lead` | ✅ Ported | packages/database leads (expected_value bigint halalas) |  |
 | `Task` | ⏳ Pending | M2 Core ops |  |
 | `Appointment` | ⏳ Pending | M2 Core ops |  |
 | `ConflictFlag` | ⏳ Pending | M2 Core ops |  |
@@ -425,9 +425,9 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **clients** (M2 Core ops)
 
-- [ ] `listClients`
-- [ ] `createClient`
-- [ ] `updateClient`
+- [x] `listClients`
+- [x] `createClient`
+- [x] `updateClient`
 
 **communications** (M2 Core ops)
 
@@ -615,12 +615,12 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **leads** (M2 Core ops)
 
-- [ ] `listLeads`
-- [ ] `getLeadsKpis`
-- [ ] `createLead`
-- [ ] `updateLead`
-- [ ] `deleteLead`
-- [ ] `moveLead`
+- [x] `listLeads`
+- [x] `getLeadsKpis`
+- [x] `createLead`
+- [x] `updateLead`
+- [x] `deleteLead`
+- [x] `moveLead`
 - [ ] `convertLead`
 
 **ledger-reports** (M4 Finance)
@@ -708,7 +708,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 **settings** (M1 Foundation)
 
 - [x] `listRecycleBin`
-- [ ] `restoreRecycleItem`
+- [x] `restoreRecycleItem`
 - [ ] `purgeRecycleBin`
 
 **tasks** (M2 Core ops)
@@ -842,7 +842,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `cases/message-actions.ts` | ⏳ Pending | M2 Core ops |  |
 | `cases/proc-actions.ts` | ⏳ Pending | M2 Core ops |  |
 | `cases/procedure-request-actions.ts` | ⏳ Pending | M2 Core ops |  |
-| `clients/actions.ts` | ⏳ Pending | M2 Core ops |  |
+| `clients/actions.ts` | ✅ Ported | apps/api /clients endpoints |  |
 | `documents/actions.ts` | ⏳ Pending | M3 Documents |  |
 | `documents/upload-actions.ts` | ⏳ Pending | M3 Documents |  |
 | `emp-portal/actions.ts` | ⏳ Pending | M8 Portals |  |
@@ -975,4 +975,6 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | TOTP could be disabled without a code; the enrolment secret round-tripped through the browser | server/security.ts | ✅ fixed: disabling needs a current code; pending secret stored encrypted server-side for 10 min |
 | IP allowlist saved without validation; a partner could lock the office out with one save | server/security.ts | ✅ fixed: entries validated, and a list excluding the caller's own address is refused |
 | Recycle bin listed every deleted case/lead/document/employee to every user | server/settings.ts | ✅ fixed by design: each kind filtered by its module's view permission |
+| Converted leads showed up in the recycle bin (conversion soft-deletes them) | server/settings.ts | ✅ fixed: converted leads excluded |
+| An invalid client/lead phone was silently dropped; a duplicate client phone crashed the page (unique violation) | server/clients.ts, leads.ts | ✅ fixed: field error auth.error.phoneInvalid; 409 errors.CLIENT_PHONE_TAKEN |
 

@@ -70,6 +70,74 @@ export type BillingUsage = {
     memberSince: string;
 };
 
+export type ClientList = Array<Client>;
+
+export type Client = {
+    id: string;
+    name: string;
+    phone: string | null;
+    city: string | null;
+    type: 'INDIVIDUAL' | 'COMPANY' | 'ESTABLISHMENT';
+    status: 'ACTIVE' | 'PROSPECT' | 'INACTIVE';
+    casesCount: number;
+};
+
+export type CreateClientBody = {
+    name: string;
+    phone?: string | null;
+    city?: string | null;
+    type?: 'INDIVIDUAL' | 'COMPANY' | 'ESTABLISHMENT';
+    status?: 'ACTIVE' | 'PROSPECT' | 'INACTIVE';
+};
+
+export type UpdateClientBody = {
+    name?: string;
+    phone?: string | null;
+    city?: string | null;
+    type?: 'INDIVIDUAL' | 'COMPANY' | 'ESTABLISHMENT';
+    status?: 'ACTIVE' | 'PROSPECT' | 'INACTIVE';
+};
+
+export type LeadList = Array<Lead>;
+
+export type Lead = {
+    id: string;
+    name: string;
+    type: 'INDIVIDUAL' | 'COMPANY' | 'ESTABLISHMENT';
+    source: 'REFERRAL' | 'WEBSITE' | 'LINKEDIN' | 'PHONE_CALL' | 'EXHIBITION' | 'WHATSAPP' | 'OTHER';
+    stage: 'PROSPECT' | 'FIRST_CONSULTATION' | 'FEE_PROPOSAL_SENT' | 'CONTRACTED';
+    expectedValue: number;
+    nextAction: string | null;
+    phone: string | null;
+};
+
+export type LeadsKpis = {
+    activeCount: number;
+    pipelineValue: number;
+    conversionRatePct: number;
+};
+
+export type CreateLeadBody = {
+    name: string;
+    type?: 'INDIVIDUAL' | 'COMPANY' | 'ESTABLISHMENT';
+    source?: 'REFERRAL' | 'WEBSITE' | 'LINKEDIN' | 'PHONE_CALL' | 'EXHIBITION' | 'WHATSAPP' | 'OTHER';
+    stage?: 'PROSPECT' | 'FIRST_CONSULTATION' | 'FEE_PROPOSAL_SENT' | 'CONTRACTED';
+    expectedValue?: number;
+    nextAction?: string | null;
+    phone?: string | null;
+};
+
+export type UpdateLeadBody = {
+    name: string;
+    expectedValue?: number;
+    nextAction?: string | null;
+    phone?: string | null;
+};
+
+export type MoveLeadBody = {
+    direction: 1 | -1;
+};
+
 export type Health = {
     status: 'ok' | 'degraded';
     db: 'up' | 'down';
@@ -308,6 +376,266 @@ export type BillingUsageResponses = {
 };
 
 export type BillingUsageResponse = BillingUsageResponses[keyof BillingUsageResponses];
+
+export type CrmClientsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/clients';
+};
+
+export type CrmClientsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CrmClientsError = CrmClientsErrors[keyof CrmClientsErrors];
+
+export type CrmClientsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: ClientList;
+        error: null;
+    };
+};
+
+export type CrmClientsResponse = CrmClientsResponses[keyof CrmClientsResponses];
+
+export type CrmCreateClientData = {
+    body: CreateClientBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/clients';
+};
+
+export type CrmCreateClientErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CrmCreateClientError = CrmCreateClientErrors[keyof CrmCreateClientErrors];
+
+export type CrmCreateClientResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: Client;
+        error: null;
+    };
+};
+
+export type CrmCreateClientResponse = CrmCreateClientResponses[keyof CrmCreateClientResponses];
+
+export type CrmUpdateClientData = {
+    body: UpdateClientBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/clients/{id}';
+};
+
+export type CrmUpdateClientErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CrmUpdateClientError = CrmUpdateClientErrors[keyof CrmUpdateClientErrors];
+
+export type CrmUpdateClientResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CrmUpdateClientResponse = CrmUpdateClientResponses[keyof CrmUpdateClientResponses];
+
+export type CrmLeadsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/leads';
+};
+
+export type CrmLeadsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CrmLeadsError = CrmLeadsErrors[keyof CrmLeadsErrors];
+
+export type CrmLeadsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: LeadList;
+        error: null;
+    };
+};
+
+export type CrmLeadsResponse = CrmLeadsResponses[keyof CrmLeadsResponses];
+
+export type CrmCreateLeadData = {
+    body: CreateLeadBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/leads';
+};
+
+export type CrmCreateLeadErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CrmCreateLeadError = CrmCreateLeadErrors[keyof CrmCreateLeadErrors];
+
+export type CrmCreateLeadResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CrmCreateLeadResponse = CrmCreateLeadResponses[keyof CrmCreateLeadResponses];
+
+export type CrmKpisData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/leads/kpis';
+};
+
+export type CrmKpisErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CrmKpisError = CrmKpisErrors[keyof CrmKpisErrors];
+
+export type CrmKpisResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: LeadsKpis;
+        error: null;
+    };
+};
+
+export type CrmKpisResponse = CrmKpisResponses[keyof CrmKpisResponses];
+
+export type CrmDeleteLeadData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/leads/{id}';
+};
+
+export type CrmDeleteLeadErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CrmDeleteLeadError = CrmDeleteLeadErrors[keyof CrmDeleteLeadErrors];
+
+export type CrmDeleteLeadResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CrmDeleteLeadResponse = CrmDeleteLeadResponses[keyof CrmDeleteLeadResponses];
+
+export type CrmUpdateLeadData = {
+    body: UpdateLeadBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/leads/{id}';
+};
+
+export type CrmUpdateLeadErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CrmUpdateLeadError = CrmUpdateLeadErrors[keyof CrmUpdateLeadErrors];
+
+export type CrmUpdateLeadResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CrmUpdateLeadResponse = CrmUpdateLeadResponses[keyof CrmUpdateLeadResponses];
+
+export type CrmMoveLeadData = {
+    body: MoveLeadBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/leads/{id}/move';
+};
+
+export type CrmMoveLeadErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CrmMoveLeadError = CrmMoveLeadErrors[keyof CrmMoveLeadErrors];
+
+export type CrmMoveLeadResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CrmMoveLeadResponse = CrmMoveLeadResponses[keyof CrmMoveLeadResponses];
 
 export type HealthCheckData = {
     body?: never;
@@ -674,6 +1002,37 @@ export type RecycleListResponses = {
 };
 
 export type RecycleListResponse = RecycleListResponses[keyof RecycleListResponses];
+
+export type RecycleRestoreData = {
+    body?: never;
+    path: {
+        kind: 'case' | 'lead' | 'document' | 'employee';
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/recycle/{kind}/{id}/restore';
+};
+
+export type RecycleRestoreErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type RecycleRestoreError = RecycleRestoreErrors[keyof RecycleRestoreErrors];
+
+export type RecycleRestoreResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type RecycleRestoreResponse = RecycleRestoreResponses[keyof RecycleRestoreResponses];
 
 export type SecurityStatusData = {
     body?: never;

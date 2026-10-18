@@ -4,6 +4,31 @@
  * execution.ts). Labels live in @murafaa/i18n.
  */
 
+/** Client kinds (shared by clients and leads). Labels: clientType.* */
+export const CLIENT_TYPES = ["INDIVIDUAL", "COMPANY", "ESTABLISHMENT"] as const;
+export type ClientType = (typeof CLIENT_TYPES)[number];
+
+/** Labels: clientStatus.* */
+export const CLIENT_STATUSES = ["ACTIVE", "PROSPECT", "INACTIVE"] as const;
+export type ClientStatus = (typeof CLIENT_STATUSES)[number];
+
+/** Where a lead came from. Labels: leadSource.* */
+export const LEAD_SOURCES = [
+  "REFERRAL",
+  "WEBSITE",
+  "LINKEDIN",
+  "PHONE_CALL",
+  "EXHIBITION",
+  "WHATSAPP",
+  "OTHER",
+] as const;
+export type LeadSource = (typeof LEAD_SOURCES)[number];
+
+/** CRM KPI strip (legacy getLeadsKpis): conversion = converted ÷ every lead ever created, whole percent. */
+export function leadConversionPct(everCreated: number, converted: number): number {
+  return everCreated > 0 ? Math.round((converted / everCreated) * 100) : 0;
+}
+
 /** CRM lead pipeline; moving is bounded at both ends. Labels: leadStage.* */
 export const LEAD_STAGES = [
   "PROSPECT",

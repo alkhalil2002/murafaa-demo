@@ -1,6 +1,7 @@
 import { formatWhen, t, type MessageKey } from "@murafaa/i18n";
 import { authCurrent, officesBranding, recycleList } from "@murafaa/sdk";
 import { BrandingForm } from "@/components/settings/branding-form";
+import { RestoreButton } from "@/components/settings/restore-button";
 import { SignOutButton } from "@/components/shell/sign-out-button";
 import { serverApi } from "@/lib/api";
 
@@ -56,6 +57,7 @@ export default async function SettingsPage() {
                 <span className="sub" style={{ marginInlineEnd: 8 }}>
                   {formatWhen(item.deletedAt)}
                 </span>
+                <RestoreButton kind={item.kind} id={item.id} />
               </div>
             ))}
           </div>

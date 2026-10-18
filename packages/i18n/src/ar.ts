@@ -26,6 +26,7 @@ export const ar = {
   "errors.IP_NOT_ALLOWED": "الوصول مقيّد من هذا العنوان",
   "common.underConstruction": "هذه الشاشة قيد الإنشاء.",
   "errors.LAST_PARTNER": "لا يمكن تغيير دور آخر شريك في المكتب.",
+  "errors.CLIENT_PHONE_TAKEN": "رقم الجوال مسجّل لعميل آخر في المكتب.",
   "errors.IP_LOCKOUT":
     "هذه القائمة لا تشمل عنوانك الحالي، وحفظها سيمنعك من الدخول. أضف عنوانك أولاً.",
   "security.ip.invalidEntry": "عنوان غير صالح. استخدم عنوان IP أو نطاق IPv4 مثل 203.0.113.0/24.",

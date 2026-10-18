@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, BillingUsageData, BillingUsageErrors, BillingUsageResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesBrandingData, OfficesBrandingErrors, OfficesBrandingResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, OfficesUpdateBrandingData, OfficesUpdateBrandingErrors, OfficesUpdateBrandingResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses, RecycleListData, RecycleListErrors, RecycleListResponses, SecurityBeginData, SecurityBeginErrors, SecurityBeginResponses, SecurityConfirmData, SecurityConfirmErrors, SecurityConfirmResponses, SecurityDisableData, SecurityDisableErrors, SecurityDisableResponses, SecurityGetIpAllowlistData, SecurityGetIpAllowlistErrors, SecurityGetIpAllowlistResponses, SecuritySetIpAllowlistData, SecuritySetIpAllowlistErrors, SecuritySetIpAllowlistResponses, SecurityStatusData, SecurityStatusErrors, SecurityStatusResponses } from './types.gen.js';
+import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, BillingUsageData, BillingUsageErrors, BillingUsageResponses, CrmClientsData, CrmClientsErrors, CrmClientsResponses, CrmCreateClientData, CrmCreateClientErrors, CrmCreateClientResponses, CrmCreateLeadData, CrmCreateLeadErrors, CrmCreateLeadResponses, CrmDeleteLeadData, CrmDeleteLeadErrors, CrmDeleteLeadResponses, CrmKpisData, CrmKpisErrors, CrmKpisResponses, CrmLeadsData, CrmLeadsErrors, CrmLeadsResponses, CrmMoveLeadData, CrmMoveLeadErrors, CrmMoveLeadResponses, CrmUpdateClientData, CrmUpdateClientErrors, CrmUpdateClientResponses, CrmUpdateLeadData, CrmUpdateLeadErrors, CrmUpdateLeadResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesBrandingData, OfficesBrandingErrors, OfficesBrandingResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, OfficesUpdateBrandingData, OfficesUpdateBrandingErrors, OfficesUpdateBrandingResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses, RecycleListData, RecycleListErrors, RecycleListResponses, RecycleRestoreData, RecycleRestoreErrors, RecycleRestoreResponses, SecurityBeginData, SecurityBeginErrors, SecurityBeginResponses, SecurityConfirmData, SecurityConfirmErrors, SecurityConfirmResponses, SecurityDisableData, SecurityDisableErrors, SecurityDisableResponses, SecurityGetIpAllowlistData, SecurityGetIpAllowlistErrors, SecurityGetIpAllowlistResponses, SecuritySetIpAllowlistData, SecuritySetIpAllowlistErrors, SecuritySetIpAllowlistResponses, SecurityStatusData, SecurityStatusErrors, SecurityStatusResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -41,6 +41,59 @@ export const authCurrent = <ThrowOnError extends boolean = false>(options?: Opti
 export const authLogout = <ThrowOnError extends boolean = false>(options?: Options<AuthLogoutData, ThrowOnError>): RequestResult<AuthLogoutResponses, AuthLogoutErrors, ThrowOnError> => (options?.client ?? client).post<AuthLogoutResponses, AuthLogoutErrors, ThrowOnError>({ url: '/api/v1/auth/logout', ...options });
 
 export const billingUsage = <ThrowOnError extends boolean = false>(options?: Options<BillingUsageData, ThrowOnError>): RequestResult<BillingUsageResponses, BillingUsageErrors, ThrowOnError> => (options?.client ?? client).get<BillingUsageResponses, BillingUsageErrors, ThrowOnError>({ url: '/api/v1/billing/usage', ...options });
+
+export const crmClients = <ThrowOnError extends boolean = false>(options?: Options<CrmClientsData, ThrowOnError>): RequestResult<CrmClientsResponses, CrmClientsErrors, ThrowOnError> => (options?.client ?? client).get<CrmClientsResponses, CrmClientsErrors, ThrowOnError>({ url: '/api/v1/clients', ...options });
+
+export const crmCreateClient = <ThrowOnError extends boolean = false>(options: Options<CrmCreateClientData, ThrowOnError>): RequestResult<CrmCreateClientResponses, CrmCreateClientErrors, ThrowOnError> => (options.client ?? client).post<CrmCreateClientResponses, CrmCreateClientErrors, ThrowOnError>({
+    url: '/api/v1/clients',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const crmUpdateClient = <ThrowOnError extends boolean = false>(options: Options<CrmUpdateClientData, ThrowOnError>): RequestResult<CrmUpdateClientResponses, CrmUpdateClientErrors, ThrowOnError> => (options.client ?? client).patch<CrmUpdateClientResponses, CrmUpdateClientErrors, ThrowOnError>({
+    url: '/api/v1/clients/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const crmLeads = <ThrowOnError extends boolean = false>(options?: Options<CrmLeadsData, ThrowOnError>): RequestResult<CrmLeadsResponses, CrmLeadsErrors, ThrowOnError> => (options?.client ?? client).get<CrmLeadsResponses, CrmLeadsErrors, ThrowOnError>({ url: '/api/v1/leads', ...options });
+
+export const crmCreateLead = <ThrowOnError extends boolean = false>(options: Options<CrmCreateLeadData, ThrowOnError>): RequestResult<CrmCreateLeadResponses, CrmCreateLeadErrors, ThrowOnError> => (options.client ?? client).post<CrmCreateLeadResponses, CrmCreateLeadErrors, ThrowOnError>({
+    url: '/api/v1/leads',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const crmKpis = <ThrowOnError extends boolean = false>(options?: Options<CrmKpisData, ThrowOnError>): RequestResult<CrmKpisResponses, CrmKpisErrors, ThrowOnError> => (options?.client ?? client).get<CrmKpisResponses, CrmKpisErrors, ThrowOnError>({ url: '/api/v1/leads/kpis', ...options });
+
+export const crmDeleteLead = <ThrowOnError extends boolean = false>(options: Options<CrmDeleteLeadData, ThrowOnError>): RequestResult<CrmDeleteLeadResponses, CrmDeleteLeadErrors, ThrowOnError> => (options.client ?? client).delete<CrmDeleteLeadResponses, CrmDeleteLeadErrors, ThrowOnError>({ url: '/api/v1/leads/{id}', ...options });
+
+export const crmUpdateLead = <ThrowOnError extends boolean = false>(options: Options<CrmUpdateLeadData, ThrowOnError>): RequestResult<CrmUpdateLeadResponses, CrmUpdateLeadErrors, ThrowOnError> => (options.client ?? client).put<CrmUpdateLeadResponses, CrmUpdateLeadErrors, ThrowOnError>({
+    url: '/api/v1/leads/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const crmMoveLead = <ThrowOnError extends boolean = false>(options: Options<CrmMoveLeadData, ThrowOnError>): RequestResult<CrmMoveLeadResponses, CrmMoveLeadErrors, ThrowOnError> => (options.client ?? client).post<CrmMoveLeadResponses, CrmMoveLeadErrors, ThrowOnError>({
+    url: '/api/v1/leads/{id}/move',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 export const healthCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthCheckData, ThrowOnError>): RequestResult<HealthCheckResponses, HealthCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthCheckResponses, HealthCheckErrors, ThrowOnError>({ url: '/api/v1/health', ...options });
 
@@ -102,6 +155,8 @@ export const permissionsStartPreview = <ThrowOnError extends boolean = false>(op
 });
 
 export const recycleList = <ThrowOnError extends boolean = false>(options?: Options<RecycleListData, ThrowOnError>): RequestResult<RecycleListResponses, RecycleListErrors, ThrowOnError> => (options?.client ?? client).get<RecycleListResponses, RecycleListErrors, ThrowOnError>({ url: '/api/v1/recycle', ...options });
+
+export const recycleRestore = <ThrowOnError extends boolean = false>(options: Options<RecycleRestoreData, ThrowOnError>): RequestResult<RecycleRestoreResponses, RecycleRestoreErrors, ThrowOnError> => (options.client ?? client).post<RecycleRestoreResponses, RecycleRestoreErrors, ThrowOnError>({ url: '/api/v1/recycle/{kind}/{id}/restore', ...options });
 
 export const securityStatus = <ThrowOnError extends boolean = false>(options?: Options<SecurityStatusData, ThrowOnError>): RequestResult<SecurityStatusResponses, SecurityStatusErrors, ThrowOnError> => (options?.client ?? client).get<SecurityStatusResponses, SecurityStatusErrors, ThrowOnError>({ url: '/api/v1/security/status', ...options });
 

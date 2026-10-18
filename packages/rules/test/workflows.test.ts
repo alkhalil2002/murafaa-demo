@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   APPROVAL_STAGES,
+  leadConversionPct,
   cycleNext,
   LEAD_STAGES,
   PROCEDURE_REQUEST_STATUSES,
@@ -50,5 +51,12 @@ describe("ledger", () => {
   it("keys accounting periods by UTC year-month", () => {
     expect(periodKeyOf(new Date("2026-03-31T23:30:00Z"))).toBe("2026-03");
     expect(periodKeyFor(2026, 9)).toBe("2026-09");
+  });
+});
+
+describe("lead KPIs", () => {
+  it("rounds the conversion rate and handles no leads", () => {
+    expect(leadConversionPct(3, 1)).toBe(33);
+    expect(leadConversionPct(0, 0)).toBe(0);
   });
 });

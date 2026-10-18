@@ -1,21 +1,37 @@
-import { Controller, Get } from "@nestjs/common";
-import { recycleBin } from "@murafaa/contracts";
+import { Controller, Get, HttpCode, Post, Req } from "@nestjs/common";
+import { ErrorCode, recycleBin, recycleRestoreParams } from "@murafaa/contracts";
+import type { FastifyRequest } from "fastify";
+import type { z } from "zod";
+import { ApiException } from "../../common/http/api.exception.js";
 import { Authenticated } from "../../common/permissions/permission.decorators.js";
-import { ZodResponse } from "../../common/zod/zod.decorators.js";
+import { ZodParams, ZodResponse } from "../../common/zod/zod.decorators.js";
+import { RecycleService } from "./recycle.service.js";
 
-/**
- * Recycle bin (legacy settings → سلة المحذوفات): soft-deleted cases, leads,
- * documents and employees. Each kind is added here when its module is rebuilt
- * (M2/M3/M6), filtered by that module's view permission — legacy listed every
- * kind to every user. Restore needs the module's edit level; purge is
- * partner-only and needs a hard-delete path the app role doesn't have yet.
- */
+/** سلة المحذوفات. Per-kind module checks happen in RecycleService. */
 @Controller("recycle")
 export class RecycleController {
+  constructor(private readonly recycle: RecycleService) {}
+
   @Authenticated()
   @Get()
   @ZodResponse(recycleBin)
-  list(): never[] {
-    return [];
+  list(@Req() req: FastifyRequest) {
+    if (!req.principal) throw new ApiException(ErrorCode.UNAUTHENTICATED);
+    return this.recycle.list(req.principal);
+  }
+
+  @Authenticated()
+  @Post(":kind/:id/restore")
+  @HttpCode(200)
+  async restore(
+    @ZodParams(recycleRestoreParams) params: z.infer<typeof recycleRestoreParams>,
+    @Req() req: FastifyRequest,
+  ) {
+    if (!req.principal) throw new ApiException(ErrorCode.UNAUTHENTICATED);
+    await this.recycle.restore(req.principal, params.kind, params.id, {
+      ip: req.ip,
+      requestId: String(req.id),
+    });
+    return null;
   }
 }

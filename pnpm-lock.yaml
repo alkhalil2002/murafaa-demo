@@ -278,6 +278,9 @@ importers:
       '@murafaa/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@murafaa/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
       '@murafaa/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk

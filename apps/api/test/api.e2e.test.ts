@@ -26,6 +26,7 @@ const OFFICE_B = "bbbbbbbb-0000-4000-8000-00000000000b";
 const OFFICE_LOCKED = "cccccccc-0000-4000-8000-00000000000c";
 const OFFICE_D = "dddddddd-0000-4000-8000-00000000000d";
 const OFFICE_E = "eeeeeeee-0000-4000-8000-00000000000e";
+const OFFICE_F = "ffffffff-0000-4000-8000-00000000000f";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -45,6 +46,10 @@ const LAWYER_D = "0500000202";
 // Office E: account security and settings.
 const PARTNER_E = "0500000301";
 const LAWYER_E = "0500000302";
+// Office F: CRM with four roles.
+const PARTNER_F = "0500000401";
+const RECEPTION_F = "0500000402";
+const ACCOUNTANT_F = "0500000403";
 
 let app: NestFastifyApplication;
 
@@ -82,7 +87,7 @@ const cookieOf = (res: { headers: Record<string, unknown> }) =>
 beforeAll(async () => {
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -121,6 +126,16 @@ beforeAll(async () => {
       ],
     ],
     [
+      OFFICE_F,
+      "Office F",
+      [],
+      [
+        [PARTNER_F, "PARTNER"],
+        [RECEPTION_F, "RECEPTION"],
+        [ACCOUNTANT_F, "ACCOUNTANT"],
+      ],
+    ],
+    [
       OFFICE_E,
       "Office E",
       [],
@@ -145,7 +160,7 @@ beforeAll(async () => {
 
   // Every office starts from the docs/04 default policy, as a new office would.
   const seeder = createDb(OWNER_URL, { max: 1 });
-  for (const office of [OFFICE_A, OFFICE_B, OFFICE_LOCKED, OFFICE_D, OFFICE_E]) {
+  for (const office of [OFFICE_A, OFFICE_B, OFFICE_LOCKED, OFFICE_D, OFFICE_E, OFFICE_F]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
   await seeder.close();
@@ -622,5 +637,168 @@ describe("account security and office settings", () => {
         "office.branding.update",
       ]),
     );
+  });
+});
+
+describe("clients and leads (CRM)", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let reception = "";
+  let accountant = "";
+  const as = (
+    cookie: string,
+    method: "GET" | "PUT" | "POST" | "PATCH" | "DELETE",
+    url: string,
+    payload?: object,
+  ) => app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_F));
+    reception = cookieOf(await login(RECEPTION_F));
+    accountant = cookieOf(await login(ACCOUNTANT_F));
+  });
+
+  it("is closed to roles without the clients module", async () => {
+    expect((await as(accountant, "GET", "/api/v1/clients")).statusCode).toBe(403);
+    expect((await as(accountant, "GET", "/api/v1/leads")).statusCode).toBe(403);
+  });
+
+  it("creates clients with a normalized phone and rejects bad or taken numbers", async () => {
+    const created = await as(reception, "POST", "/api/v1/clients", {
+      name: "شركة الإمداد",
+      phone: "0555000111",
+      city: "الرياض",
+      type: "COMPANY",
+    });
+    expect(created.json().data).toMatchObject({
+      name: "شركة الإمداد",
+      phone: "+966555000111",
+      type: "COMPANY",
+      status: "ACTIVE",
+      casesCount: 0,
+    });
+
+    const taken = await as(reception, "POST", "/api/v1/clients", {
+      name: "آخر",
+      phone: "+966555000111",
+    });
+    expect(taken.json().error).toMatchObject({
+      code: "CONFLICT",
+      messageKey: "errors.CLIENT_PHONE_TAKEN",
+    });
+
+    const bad = await as(reception, "POST", "/api/v1/clients", {
+      name: "خطأ",
+      phone: "0112345678",
+    });
+    expect(bad.json().error.details[0]).toEqual({
+      path: "phone",
+      message: "auth.error.phoneInvalid",
+    });
+
+    expect(
+      (await as(reception, "POST", "/api/v1/clients", { name: "بلا جوال", phone: "" })).json().data
+        .phone,
+    ).toBeNull();
+  });
+
+  it("updates a client and 404s on another office's id", async () => {
+    const list = (await as(reception, "GET", "/api/v1/clients")).json().data as Array<{
+      id: string;
+      name: string;
+    }>;
+    const target = list.find((c) => c.name === "شركة الإمداد")!;
+    expect(
+      (
+        await as(reception, "PATCH", `/api/v1/clients/${target.id}`, {
+          status: "INACTIVE",
+          city: "",
+        })
+      ).statusCode,
+    ).toBe(200);
+    const after = (await as(reception, "GET", "/api/v1/clients"))
+      .json()
+      .data.find((c: { id: string }) => c.id === target.id);
+    expect(after).toMatchObject({ status: "INACTIVE", city: null });
+    expect(
+      (await as(reception, "PATCH", `/api/v1/clients/${OFFICE_A}`, { name: "x" })).statusCode,
+    ).toBe(404);
+  });
+
+  it("runs the leads pipeline with bounded moves and KPIs", async () => {
+    await as(reception, "POST", "/api/v1/leads", {
+      name: "مؤسسة النخبة",
+      source: "WEBSITE",
+      expectedValue: 500000,
+      nextAction: "اتصال",
+    });
+    await as(reception, "POST", "/api/v1/leads", { name: "عميل ثانٍ", expectedValue: 150000 });
+    const leads = (await as(reception, "GET", "/api/v1/leads")).json().data as Array<{
+      id: string;
+      name: string;
+      stage: string;
+    }>;
+    const lead = leads.find((l) => l.name === "مؤسسة النخبة")!;
+    expect(lead).toMatchObject({ stage: "PROSPECT", source: "WEBSITE", expectedValue: 500000 });
+
+    await as(reception, "POST", `/api/v1/leads/${lead.id}/move`, { direction: -1 });
+    await as(reception, "POST", `/api/v1/leads/${lead.id}/move`, { direction: 1 });
+    await as(reception, "POST", `/api/v1/leads/${lead.id}/move`, { direction: 1 });
+    const moved = (await as(reception, "GET", "/api/v1/leads"))
+      .json()
+      .data.find((l: { id: string }) => l.id === lead.id);
+    expect(moved.stage).toBe("FEE_PROPOSAL_SENT");
+
+    await as(reception, "PUT", `/api/v1/leads/${lead.id}`, {
+      name: "مؤسسة النخبة",
+      expectedValue: 600000,
+      nextAction: "",
+      phone: "0500000777",
+    });
+    const edited = (await as(reception, "GET", "/api/v1/leads"))
+      .json()
+      .data.find((l: { id: string }) => l.id === lead.id);
+    expect(edited).toMatchObject({
+      expectedValue: 600000,
+      nextAction: null,
+      phone: "+966500000777",
+    });
+
+    const kpis = (await as(reception, "GET", "/api/v1/leads/kpis")).json().data;
+    expect(kpis).toEqual({ activeCount: 2, pipelineValue: 750000, conversionRatePct: 0 });
+  });
+
+  it("deletes leads (full access only) into the recycle bin, restorable with edit access", async () => {
+    const lead = (
+      (await as(reception, "GET", "/api/v1/leads")).json().data as Array<{
+        id: string;
+        name: string;
+      }>
+    ).find((l) => l.name === "عميل ثانٍ")!;
+    expect((await as(reception, "DELETE", `/api/v1/leads/${lead.id}`)).statusCode).toBe(403);
+    expect((await as(partner, "DELETE", `/api/v1/leads/${lead.id}`)).statusCode).toBe(200);
+    expect(
+      (await as(reception, "GET", "/api/v1/leads"))
+        .json()
+        .data.some((l: { id: string }) => l.id === lead.id),
+    ).toBe(false);
+
+    const bin = (await as(reception, "GET", "/api/v1/recycle")).json().data;
+    expect(bin).toEqual([
+      expect.objectContaining({ kind: "lead", id: lead.id, label: "عميل ثانٍ" }),
+    ]);
+    expect((await as(accountant, "GET", "/api/v1/recycle")).json().data).toEqual([]);
+
+    expect(
+      (await as(accountant, "POST", `/api/v1/recycle/lead/${lead.id}/restore`)).statusCode,
+    ).toBe(403);
+    expect(
+      (await as(reception, "POST", `/api/v1/recycle/lead/${lead.id}/restore`)).statusCode,
+    ).toBe(200);
+    expect(
+      (await as(reception, "GET", "/api/v1/leads"))
+        .json()
+        .data.some((l: { id: string }) => l.id === lead.id),
+    ).toBe(true);
   });
 });

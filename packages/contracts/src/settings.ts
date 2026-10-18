@@ -62,3 +62,8 @@ export const billingUsage = z
     memberSince: z.iso.datetime(),
   })
   .meta({ id: "BillingUsage" });
+
+export const recycleRestoreParams = z.object({
+  kind: z.enum(["case", "lead", "document", "employee"]),
+  id: z.uuid(),
+});
