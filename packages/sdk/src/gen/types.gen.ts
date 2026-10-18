@@ -674,6 +674,10 @@ export type BillingParties = {
         title: string;
         clientId: string | null;
     }>;
+    staff: Array<{
+        id: string;
+        name: string;
+    }>;
 };
 
 export type InvoiceList = Array<InvoiceRow>;
@@ -980,6 +984,91 @@ export type BankView = {
         amount: number;
         label: string;
         cleared: boolean;
+    }>;
+};
+
+export type LedgerReport = {
+    trial: Array<TrialRow>;
+    vat: {
+        outputVat: number;
+        inputVat: number;
+        net: number;
+        payable: boolean;
+    };
+    aging: {
+        buckets: {
+            [key: string]: number;
+        };
+        total: number;
+        rows: Array<{
+            invoiceId: string;
+            number: string;
+            clientName: string;
+            remaining: number;
+            ageDays: number;
+            bucket: 'b0_30' | 'b31_60' | 'b61_90' | 'b90_plus';
+        }>;
+    };
+};
+
+export type TrialRow = {
+    code: string;
+    name: string;
+    type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
+    debit: number;
+    credit: number;
+};
+
+export type Statements = {
+    revenue: number;
+    expenses: number;
+    netIncome: number;
+    assets: number;
+    liabilities: number;
+    equity: number;
+    cashFlow: {
+        collected: number;
+        trustToFees: number;
+        expensePaid: number;
+        operating: number;
+        cashBank: number;
+    };
+};
+
+export type FinanceDashboard = {
+    outstanding: number;
+    overdueCount: number;
+    monthRevenue: number;
+    monthExpense: number;
+    revenueByMonth: Array<{
+        month: string;
+        total: number;
+    }>;
+    recent: Array<{
+        kind: 'payment' | 'expense';
+        id: string;
+        label: string | null;
+        category: 'SALARIES' | 'OFFICE_RENT' | 'MARKETING' | 'SUBSCRIPTIONS' | 'GOVERNMENT_FEES' | 'COURT_FEES' | 'EXPERT_FEES' | 'ADMIN_EXPENSES' | 'HOSPITALITY_TRANSPORT' | 'OTHER' | null;
+        amount: number;
+        date: string;
+    }>;
+};
+
+export type Profitability = Array<{
+    caseId: string;
+    caseTitle: string;
+    fees: number;
+    expenses: number;
+    margin: number;
+}>;
+
+export type ManualJournalBody = {
+    date: string;
+    description: string;
+    lines: Array<{
+        code: string;
+        debit?: number;
+        credit?: number;
     }>;
 };
 
@@ -4456,6 +4545,34 @@ export type FinanceJournalResponses = {
 
 export type FinanceJournalResponse = FinanceJournalResponses[keyof FinanceJournalResponses];
 
+export type FinanceManualEntryData = {
+    body: ManualJournalBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/journal';
+};
+
+export type FinanceManualEntryErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceManualEntryError = FinanceManualEntryErrors[keyof FinanceManualEntryErrors];
+
+export type FinanceManualEntryResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedNumber;
+        error: null;
+    };
+};
+
+export type FinanceManualEntryResponse = FinanceManualEntryResponses[keyof FinanceManualEntryResponses];
+
 export type FinancePeriodsData = {
     body?: never;
     path?: never;
@@ -4834,6 +4951,118 @@ export type FinanceToggleClearedResponses = {
 };
 
 export type FinanceToggleClearedResponse = FinanceToggleClearedResponses[keyof FinanceToggleClearedResponses];
+
+export type FinanceLedgerReportData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/reports/ledger';
+};
+
+export type FinanceLedgerReportErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceLedgerReportError = FinanceLedgerReportErrors[keyof FinanceLedgerReportErrors];
+
+export type FinanceLedgerReportResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: LedgerReport;
+        error: null;
+    };
+};
+
+export type FinanceLedgerReportResponse = FinanceLedgerReportResponses[keyof FinanceLedgerReportResponses];
+
+export type FinanceStatementsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/reports/statements';
+};
+
+export type FinanceStatementsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceStatementsError = FinanceStatementsErrors[keyof FinanceStatementsErrors];
+
+export type FinanceStatementsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: Statements;
+        error: null;
+    };
+};
+
+export type FinanceStatementsResponse = FinanceStatementsResponses[keyof FinanceStatementsResponses];
+
+export type FinanceDashboardData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/reports/dashboard';
+};
+
+export type FinanceDashboardErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceDashboardError = FinanceDashboardErrors[keyof FinanceDashboardErrors];
+
+export type FinanceDashboardResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: FinanceDashboard;
+        error: null;
+    };
+};
+
+export type FinanceDashboardResponse = FinanceDashboardResponses[keyof FinanceDashboardResponses];
+
+export type FinanceProfitabilityData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/reports/profitability';
+};
+
+export type FinanceProfitabilityErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceProfitabilityError = FinanceProfitabilityErrors[keyof FinanceProfitabilityErrors];
+
+export type FinanceProfitabilityResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: Profitability;
+        error: null;
+    };
+};
+
+export type FinanceProfitabilityResponse = FinanceProfitabilityResponses[keyof FinanceProfitabilityResponses];
 
 export type HealthCheckData = {
     body?: never;

@@ -18,6 +18,11 @@ import {
   financeSettings,
   pendingApprovals,
   requireApprovalBody,
+  financeDashboard,
+  ledgerReport,
+  manualJournalBody,
+  profitability,
+  statements,
   ErrorCode,
   feeAgreementBody,
   feeAgreementView,
@@ -50,6 +55,7 @@ import { BankService } from "./bank.service.js";
 import { ExpensesService } from "./expenses.service.js";
 import { FeesService } from "./fees.service.js";
 import { GovernanceService } from "./governance.service.js";
+import { ReportsService } from "./reports.service.js";
 import { InvoicesService } from "./invoices.service.js";
 import { LedgerService } from "./ledger.service.js";
 import { TrustService } from "./trust.service.js";
@@ -73,6 +79,7 @@ export class FinanceController {
     private readonly expenses: ExpensesService,
     private readonly governance: GovernanceService,
     private readonly bank: BankService,
+    private readonly reports: ReportsService,
   ) {}
 
   @RequirePermission(PermModule.FINANCE, "view")
@@ -353,5 +360,44 @@ export class FinanceController {
     const { p, meta } = caller(req);
     await this.bank.toggleCleared(p, params.kind, params.id, meta);
     return null;
+  }
+
+  @RequirePermission(PermModule.FINANCE, "view")
+  @Get("finance/reports/ledger")
+  @ZodResponse(ledgerReport)
+  ledgerReport() {
+    return this.reports.ledger();
+  }
+
+  @RequirePermission(PermModule.FINANCE, "view")
+  @Get("finance/reports/statements")
+  @ZodResponse(statements)
+  statements() {
+    return this.reports.statements();
+  }
+
+  @RequirePermission(PermModule.FINANCE, "view")
+  @Get("finance/reports/dashboard")
+  @ZodResponse(financeDashboard)
+  dashboard() {
+    return this.reports.dashboard();
+  }
+
+  @RequirePermission(PermModule.FINANCE, "view")
+  @Get("finance/reports/profitability")
+  @ZodResponse(profitability)
+  profitability() {
+    return this.reports.profitability();
+  }
+
+  @RequirePermission(PermModule.FINANCE, "delete")
+  @Post("finance/journal")
+  @ZodResponse(createdNumber)
+  manualEntry(
+    @ZodBody(manualJournalBody) body: z.infer<typeof manualJournalBody>,
+    @Req() req: FastifyRequest,
+  ) {
+    const { p, meta } = caller(req);
+    return this.reports.manualEntry(p, body, meta);
   }
 }

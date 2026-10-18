@@ -9,6 +9,7 @@ import {
   offices,
   payments,
   type Tx,
+  users,
 } from "@murafaa/database";
 import { t } from "@murafaa/i18n";
 import {
@@ -387,6 +388,11 @@ export class InvoicesService {
         .from(cases)
         .where(caseVisibility(tx, policy, p))
         .orderBy(desc(cases.createdAt)),
+      staff: await tx
+        .select({ id: users.id, name: users.name })
+        .from(users)
+        .where(and(eq(users.isActive, true), isNull(users.deletedAt)))
+        .orderBy(asc(users.name)),
     }));
   }
 

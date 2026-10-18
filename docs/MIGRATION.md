@@ -10,9 +10,9 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 |---|---|---|---|
 | `src/lib` files | 51 | 41 | 10 |
 | Business rules inside services/components | 37 | 30 | 7 |
-| Services | 54 | 34 | 20 |
-| Service capabilities | 225 | 154 | 71 |
-| Screens | 63 | 33 | 30 |
+| Services | 54 | 37 | 17 |
+| Service capabilities | 225 | 162 | 63 |
+| Screens | 63 | 39 | 24 |
 | Components | 20 | 14 | 6 |
 | Route handlers | 9 | 4 (+1 replaced) | 4 |
 | Models | 56 | 41 (+ `outbox`, `sessions` new) | 15 |
@@ -88,7 +88,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `appointments` | ✅ Ported | apps/api/src/modules/appointments (+ booking/cancel UI legacy lacked) |  |
 | `approvals` | ✅ Ported | apps/api/src/modules/cases/approvals.service.ts (partner step needs CASES at FULL; pending list row-scoped) |  |
 | `billing-usage` | ✅ Ported | apps/api/src/modules/billing (GET /billing/usage; live seats, cases, clients, documents) |  |
-| `case-profitability` | ⏳ Pending | M4 Finance |  |
+| `case-profitability` | ✅ Ported | apps/api/src/modules/finance/reports.service.ts profitability |  |
 | `cases` | ✅ Ported | apps/api/src/modules/cases (effectiveStage follows held hearings) |  |
 | `client-approvals` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts (client decides on the portal, M8) |  |
 | `clients` | ✅ Ported | apps/api/src/modules/crm (conflict re-scan on rename joins with cases, M2 slice 2) |  |
@@ -102,7 +102,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `expenses` | ✅ Ported | apps/api/src/modules/finance/expenses.service.ts + fees.service.ts (time entries) |  |
 | `fees` | ✅ Ported | apps/api/src/modules/finance/fees.service.ts (hourly time claimed atomically: billed once) |  |
 | `finance-bank` | ✅ Ported | apps/api/src/modules/finance/bank.service.ts |  |
-| `finance-dashboard` | ⏳ Pending | M4 Finance |  |
+| `finance-dashboard` | ✅ Ported | apps/api/src/modules/finance/reports.service.ts dashboard |  |
 | `finance-governance` | ✅ Ported | apps/api/src/modules/finance/governance.service.ts (approval queue added; approver must not be the recorder) |  |
 | `hearings` | ✅ Ported | apps/api/src/modules/cases/hearings.service.ts + hearings.controller.ts |  |
 | `hr/advances` | ⏳ Pending | M6 HR |  |
@@ -120,7 +120,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `invoices` | ✅ Ported | apps/api/src/modules/finance/invoices.service.ts (invoice row locked for payments/credit notes/write-offs) |  |
 | `journey` | ✅ Ported | apps/api/src/modules/overview (invoice and WhatsApp counts join with M4/M7) |  |
 | `leads` | ✅ Ported | apps/api/src/modules/crm (incl. convertLead) |  |
-| `ledger-reports` | ⏳ Pending | M4 Finance | normal-side balance ported (packages/rules ledger.ts) |
+| `ledger-reports` | ✅ Ported | apps/api/src/modules/finance/reports.service.ts (trial balance, VAT return, aging, statements, manual entry) |  |
 | `messages` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts (client side with the portal, M8) |  |
 | `notifications` | ✅ Ported | apps/api/src/modules/overview (+ GET /notifications/count for the bell; invoices join with M4) |  |
 | `office-settings` | ✅ Ported | apps/api/src/modules/offices (GET/PUT /offices/branding) |  |
@@ -165,14 +165,14 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/finance` | ✅ Ported | apps/web/src/app/(app)/finance (invoices + new-invoice form from the prototype) |  |
 | `/finance/[id]` | ✅ Ported | apps/web/src/app/(app)/finance/[id] |  |
 | `/finance/bank` | ✅ Ported | apps/web/src/app/(app)/finance/bank |  |
-| `/finance/coa` | ⏳ Pending | M4 Finance |  |
-| `/finance/dashboard` | ⏳ Pending | M4 Finance |  |
+| `/finance/coa` | ✅ Ported | apps/web/src/app/(app)/finance/coa |  |
+| `/finance/dashboard` | ✅ Ported | apps/web/src/app/(app)/finance/dashboard |  |
 | `/finance/expenses` | ✅ Ported | apps/web/src/app/(app)/finance/expenses (+ add-expense form from the prototype) |  |
 | `/finance/governance` | ✅ Ported | apps/web/src/app/(app)/finance/governance (+ approval queue) |  |
-| `/finance/journal` | ⏳ Pending | M4 Finance |  |
-| `/finance/ledger` | ⏳ Pending | M4 Finance |  |
-| `/finance/profitability` | ⏳ Pending | M4 Finance |  |
-| `/finance/statements` | ⏳ Pending | M4 Finance |  |
+| `/finance/journal` | ✅ Ported | apps/web/src/app/(app)/finance/journal (+ manual entry, full level) |  |
+| `/finance/ledger` | ✅ Ported | apps/web/src/app/(app)/finance/ledger |  |
+| `/finance/profitability` | ✅ Ported | apps/web/src/app/(app)/finance/profitability (+ office time log) |  |
+| `/finance/statements` | ✅ Ported | apps/web/src/app/(app)/finance/statements (+ client statement) |  |
 | `/finance/trust` | ✅ Ported | apps/web/src/app/(app)/finance/trust |  |
 | `/finance/trust/[clientId]` | ✅ Ported | apps/web/src/app/(app)/finance/trust/[clientId] |  |
 | `/hr` | ⏳ Pending | M6 HR |  |
@@ -396,7 +396,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **case-profitability** (M4 Finance)
 
-- [ ] `getCaseProfitability`
+- [x] `getCaseProfitability`
 
 **cases** (M2 Core ops)
 
@@ -505,7 +505,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **finance-dashboard** (M4 Finance)
 
-- [ ] `getFinanceDashboard`
+- [x] `getFinanceDashboard`
 
 **finance-governance** (M4 Finance)
 
@@ -625,14 +625,14 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **ledger-reports** (M4 Finance)
 
-- [ ] `trialBalance`
-- [ ] `agingReport`
-- [ ] `vatReturn`
+- [x] `trialBalance`
+- [x] `agingReport`
+- [x] `vatReturn`
 - [x] `listJournal`
-- [ ] `getFinancialStatements`
-- [ ] `getCashFlowStatement`
+- [x] `getFinancialStatements`
+- [x] `getCashFlowStatement`
 - [x] `listAccounts`
-- [ ] `createManualJournalEntry`
+- [x] `createManualJournalEntry`
 
 **messages** (M2 Core ops)
 
@@ -846,7 +846,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `documents/actions.ts` | ✅ Ported | apps/api /documents/generate, /documents/:id/share, DELETE /documents/:id, /cases/:id/documents/clear-opening |  |
 | `documents/upload-actions.ts` | ✅ Ported | apps/api POST /cases/:id/documents (raw bytes + query metadata) |  |
 | `emp-portal/actions.ts` | ⏳ Pending | M8 Portals |  |
-| `finance/actions.ts` | ⏳ Pending | M4 Finance |  |
+| `finance/actions.ts` | ✅ Ported | apps/api /finance/* endpoints |  |
 | `finance/trust/actions.ts` | ✅ Ported | apps/api POST /finance/trust/:clientId/movements |  |
 | `hr/actions.ts` | ⏳ Pending | M6 HR |  |
 | `hr/recruitment/actions.ts` | ⏳ Pending | M6 HR |  |
@@ -991,6 +991,9 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | Deleting an execution procedure left its follow-up reminder on the calendar | server/execution.ts | ✅ fixed: the linked reminder is removed with it |
 | The report-approved event said the report was sent to the client portal before any sending exists | lib/i18n event.hearingReportApproved | ✅ fixed: says approved only; "sent" waits for the portal (M8) |
 | Global search passed % and _ through as wildcards | server/search.ts | ✅ fixed: matched literally |
+| Cash flow counted a receipt paid from trust twice (as collected and as trust-to-fees), and unposted expenses as paid | server/ledger-reports.ts getCashFlowStatement | ✅ fixed: operating cash matches the 1000 ledger balance (e2e) |
+| Finance dashboard counted cancelled/written-off invoices as outstanding and revenue with VAT, by server-local month | server/finance-dashboard.ts | ✅ fixed: open invoices only, net revenue, Riyadh months |
+| Case profitability counted recoverable input VAT and unapproved expenses as cost | server/case-profitability.ts | ✅ fixed: posted expenses at net |
 | The require-approval switch marked payments/expenses unapproved but nothing could approve them | server/finance-governance.ts | ✅ fixed: approval queue (prototype approvePayment/approveExpense); approving an expense posts it once; the recorder cannot approve their own entry |
 | Unapproved (unposted) expenses counted as money out in the bank view | server/finance-bank.ts | ✅ fixed: only posted expenses |
 | Two receipts at once could both pass the remaining-amount check (overpaid invoice) | server/invoices.ts recordPayment | ✅ fixed: invoice row locked (e2e with concurrent payments) |

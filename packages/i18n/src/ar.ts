@@ -55,6 +55,9 @@ export const ar = {
   "errors.TRUST_INSUFFICIENT_BALANCE": "رصيد العهدة لا يكفي",
   "errors.EXPENSE_NOT_REIMBURSABLE": "المصروف غير قابل للاسترداد أو فُوتر مسبقاً",
   "errors.EXPENSE_NO_CLIENT": "اربط المصروف بعميل قبل استرداده",
+  "journal.manual": "{text}",
+  "errors.JOURNAL_UNBALANCED":
+    "القيد غير متوازن: يجب أن يتساوى المدين والدائن، وكل سطر في جهة واحدة",
   "journal.invoice": "إثبات فاتورة {number}",
   "journal.payment": "سند قبض {number} للفاتورة {invoice}",
   "journal.creditNote": "إشعار دائن {number} — إلغاء الفاتورة {invoice}",

@@ -256,6 +256,7 @@ export const billingParties = z
   .object({
     clients: z.array(z.object({ id: z.uuid(), name: z.string() })),
     cases: z.array(z.object({ id: z.uuid(), title: z.string(), clientId: z.uuid().nullable() })),
+    staff: z.array(z.object({ id: z.uuid(), name: z.string() })),
   })
   .meta({ id: "BillingParties" });
 
@@ -367,3 +368,105 @@ export const bankLineParams = z.object({ kind: z.enum(["PAYMENT", "EXPENSE"]), i
 export const requireApprovalBody = z
   .object({ value: z.boolean() })
   .meta({ id: "RequireApprovalBody" });
+
+// ── Reports (M4 slice 3) ──
+
+export const trialRow = z
+  .object({
+    code: z.string(),
+    name: z.string(),
+    type: z.enum(ACCOUNT_TYPES),
+    debit: z.number().int(),
+    credit: z.number().int(),
+  })
+  .meta({ id: "TrialRow" });
+const AGING = ["b0_30", "b31_60", "b61_90", "b90_plus"] as const;
+export const ledgerReport = z
+  .object({
+    trial: z.array(trialRow),
+    vat: z.object({
+      outputVat: z.number().int(),
+      inputVat: z.number().int(),
+      net: z.number().int(),
+      payable: z.boolean(),
+    }),
+    aging: z.object({
+      buckets: z.record(z.enum(AGING), z.number().int()),
+      total: z.number().int(),
+      rows: z.array(
+        z.object({
+          invoiceId: z.uuid(),
+          number: z.string(),
+          clientName: z.string(),
+          remaining: z.number().int(),
+          ageDays: z.number().int(),
+          bucket: z.enum(AGING),
+        }),
+      ),
+    }),
+  })
+  .meta({ id: "LedgerReport" });
+export const statements = z
+  .object({
+    revenue: z.number().int(),
+    expenses: z.number().int(),
+    netIncome: z.number().int(),
+    assets: z.number().int(),
+    liabilities: z.number().int(),
+    equity: z.number().int(),
+    cashFlow: z.object({
+      collected: z.number().int(),
+      trustToFees: z.number().int(),
+      expensePaid: z.number().int(),
+      operating: z.number().int(),
+      cashBank: z.number().int(),
+    }),
+  })
+  .meta({ id: "Statements" });
+export const financeDashboard = z
+  .object({
+    outstanding: z.number().int(),
+    overdueCount: z.number().int(),
+    monthRevenue: z.number().int(),
+    monthExpense: z.number().int(),
+    revenueByMonth: z.array(z.object({ month: z.string(), total: z.number().int() })),
+    recent: z.array(
+      z.object({
+        kind: z.enum(["payment", "expense"]),
+        id: z.uuid(),
+        /** Receipt number or expense vendor; an expense without a vendor shows its category. */
+        label: z.string().nullable(),
+        category: z.enum(EXPENSE_CATEGORIES).nullable(),
+        amount: z.number().int(),
+        date: z.iso.date(),
+      }),
+    ),
+  })
+  .meta({ id: "FinanceDashboard" });
+export const profitability = z
+  .array(
+    z.object({
+      caseId: z.uuid(),
+      caseTitle: z.string(),
+      fees: z.number().int(),
+      expenses: z.number().int(),
+      margin: z.number().int(),
+    }),
+  )
+  .meta({ id: "Profitability" });
+export const manualJournalBody = z
+  .object({
+    date: dateOnly,
+    description: z.string().trim().min(1).max(300),
+    lines: z
+      .array(
+        z.object({
+          code: z.string().regex(/^\d{4}$/),
+          debit: halalas.default(0),
+          credit: halalas.default(0),
+        }),
+      )
+      .min(2)
+      .max(10),
+  })
+  .meta({ id: "ManualJournalBody" });

@@ -6184,6 +6184,57 @@
             }
           }
         }
+      },
+      "post": {
+        "operationId": "financeManualEntry",
+        "tags": [
+          "Finance"
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CreatedNumber"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualJournalBody"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/finance/periods": {
@@ -6836,6 +6887,178 @@
                   ],
                   "properties": {
                     "data": {},
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/finance/reports/ledger": {
+      "get": {
+        "operationId": "financeLedgerReport",
+        "tags": [
+          "Finance"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LedgerReport"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/finance/reports/statements": {
+      "get": {
+        "operationId": "financeStatements",
+        "tags": [
+          "Finance"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Statements"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/finance/reports/dashboard": {
+      "get": {
+        "operationId": "financeDashboard",
+        "tags": [
+          "Finance"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FinanceDashboard"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/finance/reports/profitability": {
+      "get": {
+        "operationId": "financeProfitability",
+        "tags": [
+          "Finance"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Profitability"
+                    },
                     "error": {
                       "type": "null"
                     }
@@ -12556,11 +12779,33 @@
               ],
               "additionalProperties": false
             }
+          },
+          "staff": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
           "clients",
-          "cases"
+          "cases",
+          "staff"
         ],
         "additionalProperties": false
       },
@@ -14245,6 +14490,471 @@
           "ledger"
         ],
         "additionalProperties": false
+      },
+      "LedgerReport": {
+        "type": "object",
+        "properties": {
+          "trial": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrialRow"
+            }
+          },
+          "vat": {
+            "type": "object",
+            "properties": {
+              "outputVat": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "inputVat": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "net": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "payable": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "outputVat",
+              "inputVat",
+              "net",
+              "payable"
+            ],
+            "additionalProperties": false
+          },
+          "aging": {
+            "type": "object",
+            "properties": {
+              "buckets": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "enum": [
+                    "b0_30",
+                    "b31_60",
+                    "b61_90",
+                    "b90_plus"
+                  ]
+                },
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "required": [
+                  "b0_30",
+                  "b31_60",
+                  "b61_90",
+                  "b90_plus"
+                ]
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "invoiceId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "clientName": {
+                      "type": "string"
+                    },
+                    "remaining": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "ageDays": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "bucket": {
+                      "type": "string",
+                      "enum": [
+                        "b0_30",
+                        "b31_60",
+                        "b61_90",
+                        "b90_plus"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "invoiceId",
+                    "number",
+                    "clientName",
+                    "remaining",
+                    "ageDays",
+                    "bucket"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "buckets",
+              "total",
+              "rows"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "trial",
+          "vat",
+          "aging"
+        ],
+        "additionalProperties": false
+      },
+      "TrialRow": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "ASSET",
+              "LIABILITY",
+              "EQUITY",
+              "REVENUE",
+              "EXPENSE"
+            ]
+          },
+          "debit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "credit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "type",
+          "debit",
+          "credit"
+        ],
+        "additionalProperties": false
+      },
+      "Statements": {
+        "type": "object",
+        "properties": {
+          "revenue": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "expenses": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "netIncome": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "assets": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "liabilities": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "equity": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "cashFlow": {
+            "type": "object",
+            "properties": {
+              "collected": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "trustToFees": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "expensePaid": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "operating": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "cashBank": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "collected",
+              "trustToFees",
+              "expensePaid",
+              "operating",
+              "cashBank"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "revenue",
+          "expenses",
+          "netIncome",
+          "assets",
+          "liabilities",
+          "equity",
+          "cashFlow"
+        ],
+        "additionalProperties": false
+      },
+      "FinanceDashboard": {
+        "type": "object",
+        "properties": {
+          "outstanding": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "overdueCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "monthRevenue": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "monthExpense": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "revenueByMonth": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "month": {
+                  "type": "string"
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "month",
+                "total"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "payment",
+                    "expense"
+                  ]
+                },
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "category": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "SALARIES",
+                        "OFFICE_RENT",
+                        "MARKETING",
+                        "SUBSCRIPTIONS",
+                        "GOVERNMENT_FEES",
+                        "COURT_FEES",
+                        "EXPERT_FEES",
+                        "ADMIN_EXPENSES",
+                        "HOSPITALITY_TRANSPORT",
+                        "OTHER"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "amount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                }
+              },
+              "required": [
+                "kind",
+                "id",
+                "label",
+                "category",
+                "amount",
+                "date"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "outstanding",
+          "overdueCount",
+          "monthRevenue",
+          "monthExpense",
+          "revenueByMonth",
+          "recent"
+        ],
+        "additionalProperties": false
+      },
+      "Profitability": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "caseId": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "caseTitle": {
+              "type": "string"
+            },
+            "fees": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "expenses": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "margin": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "caseId",
+            "caseTitle",
+            "fees",
+            "expenses",
+            "margin"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "ManualJournalBody": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "lines": {
+            "minItems": 2,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "pattern": "^\\d{4}$"
+                },
+                "debit": {
+                  "default": 0,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                },
+                "credit": {
+                  "default": 0,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                }
+              },
+              "required": [
+                "code"
+              ]
+            }
+          }
+        },
+        "required": [
+          "date",
+          "description",
+          "lines"
+        ]
       },
       "Health": {
         "type": "object",

@@ -2882,4 +2882,72 @@ describe("finance: expenses, reimbursement, approvals (two people), bank reconci
     await as(accountant, "POST", `/api/v1/finance/bank/EXPENSE/${line.id}/toggle`);
     expect((await get("/api/v1/finance/bank?account=CASH")).ledger[0].cleared).toBe(true);
   });
+
+  it("derives trial balance, VAT return, aging, statements, dashboard and profitability from the books", async () => {
+    const report = await get("/api/v1/finance/reports/ledger");
+    const dr = report.trial.reduce((s: number, r: { debit: number }) => s + r.debit, 0);
+    const cr = report.trial.reduce((s: number, r: { credit: number }) => s + r.credit, 0);
+    expect(dr).toBe(cr);
+    // Output VAT: reimbursement 150 + invoice 15 = 165; input VAT: 150 + 30 = 180 → refundable 15.
+    expect(report.vat).toEqual({
+      outputVat: 165_00,
+      inputVat: 180_00,
+      net: -15_00,
+      payable: false,
+    });
+    expect(report.aging.total).toBe(1150_00 + 65_00);
+    expect(report.aging.buckets.b0_30).toBe(1215_00);
+
+    const st = await get("/api/v1/finance/reports/statements");
+    expect(st).toMatchObject({ revenue: 1100_00, expenses: 1200_00, netIncome: -100_00 });
+    expect(st.cashFlow).toMatchObject({
+      collected: 50_00,
+      trustToFees: 0,
+      expensePaid: 1380_00,
+      operating: -1330_00,
+      cashBank: -1330_00,
+    });
+
+    const dash = await get("/api/v1/finance/reports/dashboard");
+    expect(dash).toMatchObject({
+      outstanding: 1215_00,
+      overdueCount: 0,
+      monthRevenue: 1100_00,
+      monthExpense: 1380_00,
+    });
+    expect(dash.revenueByMonth).toHaveLength(6);
+
+    const manual = await as(partner, "POST", "/api/v1/finance/journal", {
+      date: dateInDays(0).toISOString().slice(0, 10),
+      description: "إيداع رأس مال",
+      lines: [
+        { code: "1000", debit: 10_000_00 },
+        { code: "3000", credit: 10_000_00 },
+      ],
+    });
+    expect(manual.statusCode).toBe(201);
+    const bad = await as(partner, "POST", "/api/v1/finance/journal", {
+      date: dateInDays(0).toISOString().slice(0, 10),
+      description: "x",
+      lines: [
+        { code: "1000", debit: 100 },
+        { code: "3000", credit: 99 },
+      ],
+    });
+    expect(bad.json().error.messageKey).toBe("errors.JOURNAL_UNBALANCED");
+    expect(
+      (
+        await as(accountant, "POST", "/api/v1/finance/journal", {
+          date: "2026-01-01",
+          description: "x",
+          lines: [
+            { code: "9999", debit: 1 },
+            { code: "1000", credit: 1 },
+          ],
+        })
+      ).json().error.details[0].path,
+    ).toBe("lines.0.code");
+    expect((await get("/api/v1/finance/reports/statements")).equity).toBe(10_000_00);
+    expect(await get("/api/v1/finance/reports/profitability")).toEqual([]);
+  });
 });

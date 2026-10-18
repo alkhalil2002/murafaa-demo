@@ -10,6 +10,7 @@ import {
   financeCreditNote,
   financeInvoiceFee,
   financeInvoiceTime,
+  financeManualEntry,
   financeRecordPayment,
   financeReimburse,
   financeSaveFeeAgreement,
@@ -777,5 +778,168 @@ export function ClearedToggle({
       label={cleared ? t("finBank.markUncleared") : t("finBank.markCleared")}
       call={() => financeToggleCleared({ client: c, path: { kind, id } })}
     />
+  );
+}
+
+/** "قيد يومية جديد": a manual balanced entry over up to four lines (legacy journal page, FINANCE full). */
+export function ManualJournalForm({
+  accounts,
+}: {
+  accounts: Array<{ code: string; name: string }>;
+}) {
+  const rows = [0, 1, 2, 3];
+  return (
+    <details className="panel">
+      <summary style={{ cursor: "pointer", fontWeight: 600 }}>{t("finJournal.newEntry")}</summary>
+      <ApiForm
+        style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}
+        call={(fd) =>
+          financeManualEntry({
+            client: c,
+            body: {
+              date: str(fd, "date") ?? "",
+              description: str(fd, "description") ?? "",
+              lines: rows
+                .map((i) => ({
+                  code: str(fd, `code${i}`) ?? "",
+                  debit: sar(fd, `debit${i}`) ?? 0,
+                  credit: sar(fd, `credit${i}`) ?? 0,
+                }))
+                .filter((l) => l.code),
+            },
+          })
+        }
+      >
+        {(pending) => (
+          <>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <div className="field" style={{ flex: 1, minWidth: 200 }}>
+                <label>{t("finJournal.form.description")}</label>
+                <input type="text" name="description" required />
+              </div>
+              <div className="field" style={{ minWidth: 160 }}>
+                <label>{t("finJournal.form.date")}</label>
+                <input type="date" name="date" required />
+              </div>
+            </div>
+            {rows.map((i) => (
+              <div key={i} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div className="field" style={{ flex: 1, minWidth: 160 }}>
+                  <label>{t("finJournal.form.account")}</label>
+                  <select name={`code${i}`} defaultValue="">
+                    <option value="" />
+                    {accounts.map((a) => (
+                      <option key={a.code} value={a.code}>
+                        {a.code} — {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field" style={{ width: 140 }}>
+                  <label>{t("finJournal.form.debit")}</label>
+                  <input type="number" name={`debit${i}`} min={0} step="0.01" />
+                </div>
+                <div className="field" style={{ width: 140 }}>
+                  <label>{t("finJournal.form.credit")}</label>
+                  <input type="number" name={`credit${i}`} min={0} step="0.01" />
+                </div>
+              </div>
+            ))}
+            <div>
+              <button type="submit" className="act b-add" disabled={pending}>
+                {t("finJournal.form.save")}
+              </button>
+            </div>
+          </>
+        )}
+      </ApiForm>
+    </details>
+  );
+}
+
+/** Log time on any case (legacy profitability page form; hours in, minutes stored). */
+export function OfficeTimeForm({
+  cases,
+  staff,
+}: {
+  cases: Array<{ id: string; title: string }>;
+  staff: Option[];
+}) {
+  return (
+    <div className="panel">
+      <h2 style={{ marginTop: 0 }}>{t("finProfit.newEntry")}</h2>
+      <ApiForm
+        className="three"
+        style={{ alignItems: "flex-end" }}
+        call={(fd) =>
+          financeAddTime({
+            client: c,
+            body: {
+              caseId: str(fd, "caseId") ?? "",
+              lawyerId: str(fd, "lawyerId") ?? "",
+              minutes: Math.round(Number(str(fd, "hours") ?? 0) * 60),
+              hourlyRate: sar(fd, "hourlyRate") ?? 0,
+              description: str(fd, "description"),
+              billable: fd.get("billable") === "on",
+              ...(str(fd, "workDate") ? { workDate: str(fd, "workDate")! } : {}),
+            },
+          })
+        }
+      >
+        {(pending) => (
+          <>
+            <div className="field">
+              <label>{t("finProfit.col.case")}</label>
+              <select name="caseId" defaultValue="" required>
+                <option value="" disabled>
+                  —
+                </option>
+                {cases.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>{t("finProfit.col.lawyer")}</label>
+              <select name="lawyerId" defaultValue="" required>
+                <option value="" disabled>
+                  —
+                </option>
+                {staff.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>{t("finProfit.col.date")}</label>
+              <input type="date" name="workDate" />
+            </div>
+            <div className="field">
+              <label>{t("finProfit.hoursInput")}</label>
+              <input type="number" name="hours" min="0.1" step="0.1" required />
+            </div>
+            <div className="field">
+              <label>{t("finProfit.hourlyRate")}</label>
+              <input type="number" name="hourlyRate" min="0.01" step="0.01" required />
+            </div>
+            <div className="field">
+              <label>{t("finProfit.description")}</label>
+              <input type="text" name="description" />
+            </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input type="checkbox" name="billable" defaultChecked />
+              {t("finProfit.billable")}
+            </label>
+            <button type="submit" className="act b-add" disabled={pending}>
+              {t("finProfit.addSubmit")}
+            </button>
+          </>
+        )}
+      </ApiForm>
+    </div>
   );
 }

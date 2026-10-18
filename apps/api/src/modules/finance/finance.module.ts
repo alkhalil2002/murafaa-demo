@@ -6,6 +6,7 @@ import { GovernanceService } from "./governance.service.js";
 import { FinanceController } from "./finance.controller.js";
 import { InvoicesService } from "./invoices.service.js";
 import { LedgerService } from "./ledger.service.js";
+import { ReportsService } from "./reports.service.js";
 import { TrustService } from "./trust.service.js";
 
 @Module({
@@ -17,6 +18,7 @@ import { TrustService } from "./trust.service.js";
     GovernanceService,
     InvoicesService,
     LedgerService,
+    ReportsService,
     TrustService,
   ],
   exports: [InvoicesService, TrustService],
