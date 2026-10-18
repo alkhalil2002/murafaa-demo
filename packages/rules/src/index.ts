@@ -14,3 +14,5 @@ export * from "./workflows.js";
 export * from "./performance.js";
 export * from "./ledger.js";
 export * from "./postings.js";
+export * from "./hearings.js";
+export * from "./reference/procedure-request-types.js";

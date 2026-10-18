@@ -17,6 +17,7 @@ import { OfficesModule } from "./modules/offices/offices.module.js";
 import { PermissionsModule } from "./modules/permissions/permissions.module.js";
 import { RecycleModule } from "./modules/recycle/recycle.module.js";
 import { SecurityModule } from "./modules/security/security.module.js";
+import { TasksModule } from "./modules/tasks/tasks.module.js";
 
 /** Log fields that may hold credentials or personal data (PDPL: minimize PII in logs). */
 const REDACT = [
@@ -54,6 +55,7 @@ export class AppModule {
         PermissionsModule,
         RecycleModule,
         SecurityModule,
+        TasksModule,
       ],
       providers: [
         { provide: ENV, useValue: env },

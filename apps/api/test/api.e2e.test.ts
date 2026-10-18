@@ -28,6 +28,7 @@ const OFFICE_D = "dddddddd-0000-4000-8000-00000000000d";
 const OFFICE_E = "eeeeeeee-0000-4000-8000-00000000000e";
 const OFFICE_F = "ffffffff-0000-4000-8000-00000000000f";
 const OFFICE_G = "99999999-0000-4000-8000-000000000009";
+const OFFICE_H = "88888888-0000-4000-8000-000000000008";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -55,6 +56,10 @@ const ACCOUNTANT_F = "0500000403";
 const PARTNER_G = "0500000501";
 const LAWYER_G1 = "0500000502";
 const LAWYER_G2 = "0500000503";
+
+const PARTNER_H = "0500000601";
+const LAWYER_H1 = "0500000602";
+const LAWYER_H2 = "0500000603";
 
 let app: NestFastifyApplication;
 
@@ -92,7 +97,7 @@ const cookieOf = (res: { headers: Record<string, unknown> }) =>
 beforeAll(async () => {
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -141,6 +146,16 @@ beforeAll(async () => {
       ],
     ],
     [
+      OFFICE_H,
+      "Office H",
+      [],
+      [
+        [PARTNER_H, "PARTNER"],
+        [LAWYER_H1, "LAWYER"],
+        [LAWYER_H2, "LAWYER"],
+      ],
+    ],
+    [
       OFFICE_F,
       "Office F",
       [],
@@ -183,6 +198,7 @@ beforeAll(async () => {
     OFFICE_E,
     OFFICE_F,
     OFFICE_G,
+    OFFICE_H,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -1127,5 +1143,261 @@ describe("cases, conflicts and row scope", () => {
         .json()
         .data.some((i: { id: string }) => i.id === lead.id),
     ).toBe(false);
+  });
+});
+
+describe("hearings, tasks and procedural requests", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let lawyer1 = "";
+  let lawyer2 = "";
+  const as = (
+    cookie: string,
+    method: "GET" | "PUT" | "POST" | "PATCH" | "DELETE",
+    url: string,
+    payload?: object,
+  ) => app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+  const detail = async (cookie: string, id: string) =>
+    (await as(cookie, "GET", `/api/v1/cases/${id}`)).json().data;
+  const newCase = async (cookie: string, title: string) =>
+    (await as(cookie, "POST", "/api/v1/cases", { number: "1447/9", title })).json().data
+      .id as string;
+  const board = async (cookie: string) =>
+    (await as(cookie, "GET", "/api/v1/tasks")).json().data as Array<{
+      id: string;
+      title: string;
+      origin: string;
+      priority: string;
+      dueAt: string | null;
+      caseId: string | null;
+      status: string;
+    }>;
+  const keys = (c: { events: Array<{ message: { messageKey: string } | null }> }) =>
+    c.events.map((e) => e.message?.messageKey);
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_H));
+    lawyer1 = cookieOf(await login(LAWYER_H1));
+    lawyer2 = cookieOf(await login(LAWYER_H2));
+  });
+
+  it("records a judgment: objection deadline (+30 days) and one urgent task due 5 days earlier", async () => {
+    const id = await newCase(lawyer1, "حكم ابتدائي");
+    const res = await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings`, {
+      hearingDate: "2026-03-01",
+      kind: "JUDGMENT_PRONOUNCEMENT",
+      stageIndex: 2,
+      result: "حكم لصالح موكلنا",
+    });
+    expect(res.statusCode).toBe(201);
+    const c = await detail(lawyer1, id);
+    expect(c.judgmentDate).toBe("2026-03-01T00:00:00.000Z");
+    expect(c.objectionDueAt).toBe("2026-03-31T00:00:00.000Z");
+    expect(c.effectiveStage).toBe("APPEAL");
+    expect(c.stage).toBe("FIRST_INSTANCE");
+    expect(c.hearings).toHaveLength(1);
+    expect(c.hearings[0]).toMatchObject({
+      sequenceNo: 1,
+      status: "HELD",
+      kind: "JUDGMENT_PRONOUNCEMENT",
+    });
+    expect(keys(c)).toEqual(
+      expect.arrayContaining(["event.hearingRecorded", "event.objectionDeadline"]),
+    );
+
+    // Recording a second judgment for the same deadline must not duplicate the task.
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings`, {
+      hearingDate: "2026-03-01",
+      kind: "JUDGMENT_PRONOUNCEMENT",
+    });
+    const auto = (await board(lawyer1)).filter(
+      (t) => t.caseId === id && t.origin === "AUTO_OBJECTION",
+    );
+    expect(auto).toHaveLength(1);
+    expect(auto[0]).toMatchObject({ priority: "URGENT", dueAt: "2026-03-26T00:00:00.000Z" });
+  });
+
+  it("keeps a single upcoming hearing with a prep task, and flags an assignee's clash", async () => {
+    const id = await newCase(lawyer1, "جلسات قادمة");
+    const other = await newCase(lawyer1, "قضية أخرى");
+    await as(lawyer1, "PUT", `/api/v1/cases/${other}/hearings/next`, { date: "2026-12-10" });
+    await as(lawyer1, "PUT", `/api/v1/cases/${id}/hearings/next`, { date: "2026-12-01" });
+    await as(lawyer1, "PUT", `/api/v1/cases/${id}/hearings/next`, { date: "2026-12-10" });
+    let c = await detail(lawyer1, id);
+    expect(c.upcomingHearing).toMatchObject({
+      status: "UPCOMING",
+      hearingDate: "2026-12-10T00:00:00.000Z",
+    });
+    expect(c.hearings).toEqual([]);
+    const clash = c.events.find(
+      (e: { message: { messageKey: string } | null }) =>
+        e.message?.messageKey === "event.hearingClashGeneric",
+    );
+    expect(clash.message.params).toEqual({ name: `user ${LAWYER_H1}`, count: 1 });
+    const prep = (await board(lawyer1)).filter(
+      (t) => t.caseId === id && t.origin === "AUTO_HEARING_PREP",
+    );
+    expect(prep).toHaveLength(2); // one per scheduled date
+
+    // Holding the hearing retires the upcoming one.
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings`, {
+      hearingDate: "2026-12-10",
+      minutes: "تأجيل",
+    });
+    c = await detail(lawyer1, id);
+    expect(c.upcomingHearing).toBeNull();
+    expect(c.hearings).toHaveLength(1);
+    expect(c.objectionDueAt).toBeNull();
+  });
+
+  it("captures follow-up actions and manages reminders and tasks on a hearing", async () => {
+    const id = await newCase(lawyer1, "متابعة");
+    const users = (await as(lawyer1, "GET", "/api/v1/cases/assignable-users")).json()
+      .data as Array<{ id: string; name: string }>;
+    const l1 = users.find((u) => u.name === `user ${LAWYER_H1}`)!;
+    const foreign = await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings`, {
+      hearingDate: "2026-04-01",
+      actionTaskTitle: "x",
+      actionTaskAssigneeId: OFFICE_A,
+    });
+    expect(foreign.statusCode).toBe(400);
+    expect(foreign.json().error.details[0].path).toBe("actionTaskAssigneeId");
+
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings`, {
+      hearingDate: "2026-04-01",
+      actionReminderText: "إحضار الأصل",
+      actionReminderDueOn: "2026-04-05",
+      actionTaskTitle: "مذكرة رد",
+      actionTaskAssigneeId: l1.id,
+      actionRequestParty: "OURS",
+      actionRequestType: null,
+      actionRequestText: "طلب إدخال طرف",
+    });
+    let h = (await detail(lawyer1, id)).hearings[0];
+    expect(h.actions.reminders).toMatchObject([
+      { text: "إحضار الأصل", dueOn: "2026-04-05T00:00:00.000Z" },
+    ]);
+    expect(h.actions.tasks).toMatchObject([
+      { title: "مذكرة رد", assigneeName: `user ${LAWYER_H1}`, done: false },
+    ]);
+
+    const base = `/api/v1/cases/${id}/hearings/${h.id}`;
+    await as(lawyer1, "POST", `${base}/reminders`, { text: "متابعة", dueOn: "2026-04-10" });
+    const rid = h.actions.reminders[0].id;
+    await as(lawyer1, "PATCH", `${base}/reminders/${rid}`, {
+      text: "إحضار الأصل والصورة",
+      dueOn: "2026-04-06",
+    });
+    expect(
+      (await as(lawyer1, "POST", `${base}/reminders/${rid}/escalate`, { assigneeId: l1.id }))
+        .statusCode,
+    ).toBe(200);
+    const tid = h.actions.tasks[0].id;
+    await as(lawyer1, "PATCH", `${base}/tasks/${tid}`, { title: "مذكرة رد", done: true });
+    await as(lawyer1, "POST", `${base}/tasks`, { title: "مراجعة" });
+    h = (await detail(lawyer1, id)).hearings[0];
+    expect(h.actions.reminders.map((r: { text: string }) => r.text)).toEqual([
+      "إحضار الأصل والصورة",
+      "متابعة",
+    ]);
+    expect(h.actions.reminders[0].isTaskLinked).toBe(true);
+    expect(h.actions.tasks.find((t: { id: string }) => t.id === tid).done).toBe(true);
+    await as(lawyer1, "DELETE", `${base}/reminders/${rid}`);
+    expect((await detail(lawyer1, id)).hearings[0].actions.reminders).toHaveLength(1);
+
+    // The request captured in the wizard, then cycled through its statuses.
+    let reqs = (await detail(lawyer1, id)).procedureRequests;
+    expect(reqs).toMatchObject([{ text: "طلب إدخال طرف", status: "SUBMITTED", hearingId: h.id }]);
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/procedure-requests/${reqs[0].id}/cycle`);
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/procedure-requests`, {
+      stageIndex: 1,
+      party: "OPPONENT",
+      text: "طلب الخصم",
+    });
+    reqs = (await detail(lawyer1, id)).procedureRequests;
+    expect(reqs.map((r: { status: string }) => r.status)).toEqual(["PENDING", "SUBMITTED"]);
+    expect(reqs[0].log[0].message).toEqual({
+      messageKey: "event.procedureRequestStatusChanged",
+      params: { type: "طلب إدخال طرف", status: "@procedureRequestStatus.PENDING" },
+    });
+    // Deleting a request needs the delete level (lawyers have edit).
+    expect(
+      (await as(lawyer1, "DELETE", `/api/v1/cases/${id}/procedure-requests/${reqs[0].id}`))
+        .statusCode,
+    ).toBe(403);
+    expect(
+      (await as(partner, "DELETE", `/api/v1/cases/${id}/procedure-requests/${reqs[0].id}`))
+        .statusCode,
+    ).toBe(200);
+    expect((await detail(lawyer1, id)).procedureRequests).toHaveLength(1);
+  });
+
+  it("routes the client report through approval; only the full level decides", async () => {
+    const id = await newCase(lawyer1, "تقرير العميل");
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings`, { hearingDate: "2026-05-01" });
+    let h = (await detail(lawyer1, id)).hearings[0];
+    const base = `/api/v1/cases/${id}/hearings/${h.id}`;
+    expect((await as(lawyer1, "POST", `${base}/report/request`)).json().error.messageKey).toBe(
+      "errors.HEARING_HAS_NO_REPORT",
+    );
+    await as(lawyer1, "PATCH", base, { clientReport: "تم تأجيل الجلسة للاطلاع" });
+    expect(
+      (await as(partner, "POST", `${base}/report/decide`, { approve: true })).json().error
+        .messageKey,
+    ).toBe("errors.REPORT_APPROVAL_NOT_REQUESTED");
+    await as(lawyer1, "POST", `${base}/report/request`);
+    expect((await as(lawyer1, "POST", `${base}/report/decide`, { approve: true })).statusCode).toBe(
+      403,
+    );
+    expect((await as(partner, "POST", `${base}/report/decide`, { approve: true })).statusCode).toBe(
+      200,
+    );
+    h = (await detail(lawyer1, id)).hearings[0];
+    expect(h).toMatchObject({
+      reportApproved: true,
+      reportApprovalRequested: false,
+      reportSentToClient: false,
+    });
+    expect((await as(lawyer1, "POST", `${base}/report/request`)).json().error.messageKey).toBe(
+      "errors.REPORT_ALREADY_APPROVED",
+    );
+    expect(keys(await detail(lawyer1, id))).toEqual(
+      expect.arrayContaining([
+        "event.hearingReportApprovalRequested",
+        "event.hearingReportApproved",
+      ]),
+    );
+  });
+
+  it("applies the case row scope to hearings and to the tasks board", async () => {
+    const id = await newCase(lawyer1, "سرية");
+    await as(lawyer1, "PUT", `/api/v1/cases/${id}/hearings/next`, { date: "2026-11-20" });
+    expect(
+      (await as(lawyer2, "POST", `/api/v1/cases/${id}/hearings`, { hearingDate: "2026-11-20" }))
+        .statusCode,
+    ).toBe(404);
+    expect((await board(lawyer2)).some((t) => t.caseId === id)).toBe(false);
+    expect((await board(partner)).some((t) => t.caseId === id)).toBe(true);
+  });
+
+  it("runs the tasks board: create, move (done stamps completion), delete needs full", async () => {
+    const created = await as(lawyer2, "POST", "/api/v1/tasks", {
+      title: "مهمة عامة",
+      priority: "URGENT",
+    });
+    expect(created.statusCode).toBe(201);
+    const tid = created.json().data.id as string;
+    expect(
+      (await as(lawyer2, "PUT", `/api/v1/tasks/${tid}/status`, { status: "DONE" })).statusCode,
+    ).toBe(200);
+    expect((await board(lawyer2)).find((t) => t.id === tid)?.status).toBe("DONE");
+    expect((await as(lawyer2, "DELETE", `/api/v1/tasks/${tid}`)).statusCode).toBe(403);
+    expect((await as(partner, "DELETE", `/api/v1/tasks/${tid}`)).statusCode).toBe(200);
+    expect((await board(partner)).some((t) => t.id === tid)).toBe(false);
+    const hidden = await as(lawyer2, "POST", "/api/v1/tasks", {
+      title: "x",
+      caseId: await newCase(lawyer1, "y"),
+    });
+    expect(hidden.statusCode).toBe(400);
   });
 });

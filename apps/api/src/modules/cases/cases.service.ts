@@ -4,15 +4,20 @@ import type { z } from "zod";
 import {
   caseAssignees,
   caseEvents,
+  caseReminders,
   cases,
   clients,
   conflictFlags,
+  hearings,
+  procedureRequests,
+  tasks,
   type Tx,
   users,
 } from "@murafaa/database";
 import {
   type CaseOutcome,
   clampSatisfaction,
+  effectiveStage,
   type ClosingChecklistKey,
   nextProcStage,
   prevProcStage,
@@ -23,11 +28,12 @@ import { ApiException } from "../../common/http/api.exception.js";
 import { PolicyService } from "../../common/permissions/policy.service.js";
 import type { Principal } from "../../common/tenancy/principal.js";
 import { TenantDb } from "../../database/tenant-db.service.js";
+import { CaseAccess, type CaseRow, type Meta } from "./case-access.service.js";
 import { logCaseEvent } from "./case-events.js";
 import { caseVisibility } from "./case-scope.js";
 import { ConflictsService } from "./conflicts.service.js";
 
-export type Meta = { ip: string; requestId: string };
+export type { Meta };
 
 /**
  * Cases (legacy server/cases.ts). Module CASES is checked by the guard;
@@ -42,48 +48,16 @@ export class CasesService {
     private readonly tenantDb: TenantDb,
     private readonly policies: PolicyService,
     private readonly conflicts: ConflictsService,
+    private readonly access: CaseAccess,
   ) {}
 
-  /**
-   * Run `fn` on a case the caller may see, or 404. An attempt on a case that
-   * exists but is outside the caller's scope is audited in its own
-   * transaction, so the 404 rollback doesn't erase it.
-   */
-  private async withCase<T>(
+  private withCase<T>(
     p: Principal,
     caseId: string,
     meta: Meta,
-    fn: (tx: Tx, c: typeof cases.$inferSelect) => Promise<T>,
-  ): Promise<T> {
-    const policy = await this.policies.forOffice(p.officeId);
-    const outcome = await this.tenantDb.run(async (tx) => {
-      const [c] = await tx
-        .select()
-        .from(cases)
-        .where(and(eq(cases.id, caseId), caseVisibility(tx, policy, p)));
-      if (!c) {
-        const [exists] = await tx
-          .select({ id: cases.id })
-          .from(cases)
-          .where(and(eq(cases.id, caseId), isNull(cases.deletedAt)));
-        return { found: false as const, outOfScope: Boolean(exists) };
-      }
-      return { found: true as const, value: await fn(tx, c) };
-    });
-    if (outcome.found) return outcome.value;
-    if (outcome.outOfScope) {
-      await this.tenantDb.run((tx) =>
-        writeAudit(tx, {
-          officeId: p.officeId,
-          actorId: p.userId,
-          action: "access.case.scope",
-          entity: "cases",
-          entityId: caseId,
-          ...meta,
-        }),
-      );
-    }
-    throw new ApiException(ErrorCode.NOT_FOUND);
+    fn: (tx: Tx, c: CaseRow) => Promise<T>,
+  ) {
+    return this.access.withCase(p, caseId, meta, fn);
   }
 
   async list(p: Principal) {
@@ -117,6 +91,114 @@ export class CasesService {
       .where(and(isNull(cases.deletedAt), isNotNull(cases.clientId)))
       .groupBy(cases.clientId);
     return new Map(rows.map((r) => [r.clientId!, r.n]));
+  }
+
+  /** Held hearings (newest first) and the single upcoming one, each with its follow-up reminders and tasks. */
+  private async hearingsOf(tx: Tx, caseId: string) {
+    const rows = await tx
+      .select()
+      .from(hearings)
+      .where(and(eq(hearings.caseId, caseId), isNull(hearings.deletedAt)))
+      .orderBy(desc(hearings.hearingDate));
+    const ids = rows.map((h) => h.id);
+    const reminders = ids.length
+      ? await tx
+          .select()
+          .from(caseReminders)
+          .where(and(inArray(caseReminders.hearingId, ids), isNull(caseReminders.deletedAt)))
+          .orderBy(asc(caseReminders.dueOn))
+      : [];
+    const hearingTasks = ids.length
+      ? await tx
+          .select({
+            id: tasks.id,
+            hearingId: tasks.hearingId,
+            title: tasks.title,
+            assigneeId: tasks.assigneeId,
+            assigneeName: users.name,
+            dueAt: tasks.dueAt,
+            status: tasks.status,
+          })
+          .from(tasks)
+          .leftJoin(users, eq(users.id, tasks.assigneeId))
+          .where(and(inArray(tasks.hearingId, ids), isNull(tasks.deletedAt)))
+          .orderBy(asc(tasks.createdAt))
+      : [];
+    const shaped = rows.map((h) => ({
+      id: h.id,
+      sequenceNo: h.sequenceNo,
+      hearingDate: h.hearingDate.toISOString(),
+      status: h.status,
+      stageIndex: h.stageIndex,
+      kind: h.kind,
+      minutes: h.minutes,
+      result: h.result,
+      clientReport: h.clientReport,
+      reportApprovalRequested: h.reportApprovalRequested,
+      reportApproved: h.reportApproved,
+      reportSentToClient: h.reportSentToClient,
+      isPending: h.isPending,
+      pendingItems: h.pendingItems ?? [],
+      reminderRecurDays: h.reminderRecurDays,
+      actions: {
+        reminders: reminders
+          .filter((r) => r.hearingId === h.id)
+          .map((r) => ({
+            id: r.id,
+            text: r.text,
+            dueOn: r.dueOn.toISOString(),
+            isTaskLinked: r.isTaskLinked,
+          })),
+        tasks: hearingTasks
+          .filter((tk) => tk.hearingId === h.id)
+          .map((tk) => ({
+            id: tk.id,
+            title: tk.title,
+            assigneeId: tk.assigneeId,
+            assigneeName: tk.assigneeName,
+            dueAt: tk.dueAt?.toISOString() ?? null,
+            done: tk.status === "DONE",
+          })),
+      },
+    }));
+    return {
+      held: shaped.filter((h) => h.status === "HELD"),
+      upcoming: shaped.find((h) => h.status === "UPCOMING"),
+    };
+  }
+
+  /** Procedural requests by stage order, each with its own timeline entries. */
+  private async requestsOf(tx: Tx, caseId: string) {
+    const rows = await tx
+      .select()
+      .from(procedureRequests)
+      .where(and(eq(procedureRequests.caseId, caseId), isNull(procedureRequests.deletedAt)))
+      .orderBy(asc(procedureRequests.stageIndex), asc(procedureRequests.createdAt));
+    const ids = rows.map((r) => r.id);
+    const logs = ids.length
+      ? await tx
+          .select()
+          .from(caseEvents)
+          .where(inArray(caseEvents.procedureRequestId, ids))
+          .orderBy(desc(caseEvents.occurredAt))
+      : [];
+    return rows.map((r) => ({
+      id: r.id,
+      hearingId: r.hearingId,
+      stageIndex: r.stageIndex,
+      party: r.party,
+      type: r.type,
+      text: r.text,
+      status: r.status,
+      log: logs
+        .filter((e) => e.procedureRequestId === r.id)
+        .map((e) => ({
+          id: e.id,
+          message: e.messageKey ? { messageKey: e.messageKey, params: e.params ?? {} } : null,
+          text: e.text,
+          occurredAt: e.occurredAt.toISOString(),
+        })),
+    }));
   }
 
   /** Active office staff for the assignee picker. */
@@ -161,6 +243,8 @@ export class CasesService {
         .where(eq(caseEvents.caseId, caseId))
         .orderBy(desc(caseEvents.occurredAt))
         .limit(200);
+      const { held, upcoming } = await this.hearingsOf(tx, caseId);
+      const requests = await this.requestsOf(tx, caseId);
 
       return {
         id: c.id,
@@ -175,8 +259,14 @@ export class CasesService {
         najizCaseType: c.najizCaseType,
         city: c.city,
         stage: c.stage,
-        // Held hearings move the effective stage (packages/rules effectiveStage); they arrive with the hearings slice.
-        effectiveStage: c.stage,
+        effectiveStage: effectiveStage(
+          c.stage,
+          held.map((h) => ({
+            status: h.status,
+            stageIndex: h.stageIndex,
+            hearingDate: new Date(h.hearingDate),
+          })),
+        ),
         status: c.status,
         outcome: c.outcome,
         judgmentDate: c.judgmentDate?.toISOString() ?? null,
@@ -188,6 +278,9 @@ export class CasesService {
         referralRequested: c.referralRequested,
         isArchived: c.isArchived,
         assignees,
+        upcomingHearing: upcoming ?? null,
+        hearings: held,
+        procedureRequests: requests,
         conflicts: await this.conflicts.render(
           tx,
           policy,
@@ -259,16 +352,14 @@ export class CasesService {
       })
       .returning({ id: cases.id });
     const caseId = created!.id;
-    await tx
-      .insert(caseAssignees)
-      .values(
-        assigneeIds.map((userId) => ({
-          officeId: p.officeId,
-          caseId,
-          userId,
-          createdBy: p.userId,
-        })),
-      );
+    await tx.insert(caseAssignees).values(
+      assigneeIds.map((userId) => ({
+        officeId: p.officeId,
+        caseId,
+        userId,
+        createdBy: p.userId,
+      })),
+    );
     await logCaseEvent(tx, {
       officeId: p.officeId,
       caseId,

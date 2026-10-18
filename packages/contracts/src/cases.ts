@@ -8,6 +8,7 @@ import {
   PROC_STAGES,
 } from "@murafaa/rules";
 import { z } from "zod";
+import { hearing, procedureRequest } from "./hearings.js";
 
 export const procStage = z.enum(PROC_STAGES);
 export const caseStatus = z.enum(CASE_STATUSES);
@@ -94,6 +95,10 @@ export const caseDetail = z
     referralRequested: z.boolean(),
     isArchived: z.boolean(),
     assignees: z.array(z.object({ userId: z.uuid(), name: z.string() })),
+    upcomingHearing: hearing.nullable(),
+    /** Held hearings, newest first. */
+    hearings: z.array(hearing),
+    procedureRequests: z.array(procedureRequest),
     conflicts: z.array(conflictFlag),
     events: z.array(caseEvent),
   })

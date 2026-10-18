@@ -4,18 +4,18 @@ Every file, screen, route and model in `legacy/` with where it went or which mil
 
 Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP login, TOTP 2FA, editable permissions (all three layers), office IP allowlist enforcement, and audit writers.
 
-## Summary (2026-10-18, M2 slice 2: cases and conflicts)
+## Summary (Migration tracker)
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
 | `src/lib` files | 51 | 33 | 18 |
-| Business rules inside services/components | 37 | 26 | 11 |
-| Services | 54 | 8 | 46 |
-| Service capabilities | 225 | 44 | 181 |
+| Business rules inside services/components | 37 | 28 | 9 |
+| Services | 54 | 11 | 43 |
+| Service capabilities | 225 | 68 | 157 |
 | Screens | 63 | 13 | 50 |
-| Components | 20 | 12 | 8 |
+| Components | 20 | 13 | 7 |
 | Route handlers | 9 | 2 (+1 replaced) | 6 |
-| Models | 56 | 13 (+ `outbox`, `sessions` new) | 43 |
+| Models | 56 | 17 (+ `outbox`, `sessions` new) | 39 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -89,7 +89,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `approvals` | ⏳ Pending | M2 Core ops | approval chain order ported (packages/rules workflows.ts) |
 | `billing-usage` | ✅ Ported | apps/api/src/modules/billing (GET /billing/usage; case/client/document counts join with their modules) |  |
 | `case-profitability` | ⏳ Pending | M4 Finance |  |
-| `cases` | ✅ Ported | apps/api/src/modules/cases (effectiveStage follows held hearings once hearings land) |  |
+| `cases` | ✅ Ported | apps/api/src/modules/cases (effectiveStage follows held hearings) |  |
 | `client-approvals` | ⏳ Pending | M8 Portals |  |
 | `clients` | ✅ Ported | apps/api/src/modules/crm (conflict re-scan on rename joins with cases, M2 slice 2) |  |
 | `communications` | ⏳ Pending | M2 Core ops |  |
@@ -104,7 +104,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `finance-bank` | ⏳ Pending | M4 Finance |  |
 | `finance-dashboard` | ⏳ Pending | M4 Finance |  |
 | `finance-governance` | ⏳ Pending | M4 Finance |  |
-| `hearings` | ⏳ Pending | M2 Core ops | incl. docs/06 §11 post-hearing automation (prep tasks, clash check, WhatsApp reminder) → outbox + Cloud Tasks |
+| `hearings` | ✅ Ported | apps/api/src/modules/cases/hearings.service.ts + hearings.controller.ts |  |
 | `hr/advances` | ⏳ Pending | M6 HR |  |
 | `hr/attendance` | ⏳ Pending | M6 HR |  |
 | `hr/employees` | ⏳ Pending | M6 HR |  |
@@ -126,13 +126,13 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `office-settings` | ✅ Ported | apps/api/src/modules/offices (GET/PUT /offices/branding) |  |
 | `permissions-admin` | ✅ Ported | apps/api/src/modules/permissions |  |
 | `portal` | ⏳ Pending | M8 Portals |  |
-| `procedure-requests` | ⏳ Pending | M2 Core ops | status cycle ported (packages/rules workflows.ts) |
+| `procedure-requests` | ✅ Ported | apps/api/src/modules/cases/procedure-requests.service.ts |  |
 | `pulse` | ⏳ Pending | M6 HR | points + override rule ported (packages/rules performance.ts); legacy sinceFor() used server-local time, use Riyadh time (dates.ts) |
 | `search` | ⏳ Pending | M2 Core ops |  |
 | `security` | ✅ Ported | apps/api/src/modules/security |  |
 | `security-audit` | ✅ Ported | apps/api/src/modules/permissions (GET /permissions/audit) |  |
 | `settings` | ⏳ Pending | M1 Foundation | recycle bin: GET /recycle exists (per-module view filter); kinds, restore and purge register with cases/leads (M2), documents (M3), employees (M6) |
-| `tasks` | ⏳ Pending | M2 Core ops |  |
+| `tasks` | ✅ Ported | apps/api/src/modules/tasks (board UI with M2 slice 4) |  |
 | `templates` | ⏳ Pending | M3 Documents |  |
 | `today` | ⏳ Pending | M2 Core ops | computeWinRate rule ported as winRate (packages/rules cases.ts) |
 | `trust` | ⏳ Pending | M4 Finance |  |
@@ -153,7 +153,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/appointments` | ⏳ Pending | M2 Core ops |  |
 | `/billing` | ✅ Ported | apps/web/src/app/(app)/billing |  |
 | `/cases` | ✅ Ported | apps/web/src/app/(app)/cases (list + filters) |  |
-| `/cases/[id]` | ✅ Ported | apps/web/src/app/(app)/cases/[id] — overview, parties, events, closing tabs; other tabs with their slices |  |
+| `/cases/[id]` | ✅ Ported | apps/web/src/app/(app)/cases/[id] — overview (+ procedural requests), hearings, parties, events, closing tabs; other tabs with their slices |  |
 | `/cases/new` | ✅ Ported | apps/web/src/app/(app)/cases/new |  |
 | `/clients` | ✅ Ported | apps/web/src/app/(app)/clients (+ CRM KPIs) |  |
 | `/dashboard` | ⏳ Pending | M2 Core ops |  |
@@ -237,11 +237,11 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `Case` | ✅ Ported | packages/database cases |  |
 | `CaseAssignee` | ✅ Ported | packages/database case_assignees (the only DELETE grant: join table) |  |
 | `AuditLog` | ✅ Ported | packages/database audit_log (append-only) |  |
-| `Hearing` | ⏳ Pending | M2 Core ops |  |
+| `Hearing` | ✅ Ported | packages/database hearings (one UPCOMING per case, partial unique index) |  |
 | `CaseEvent` | ✅ Ported | packages/database case_events (i18n key + params) |  |
-| `CaseReminder` | ⏳ Pending | M2 Core ops |  |
+| `CaseReminder` | ✅ Ported | packages/database case_reminders |  |
 | `Lead` | ✅ Ported | packages/database leads (expected_value bigint halalas) |  |
-| `Task` | ⏳ Pending | M2 Core ops |  |
+| `Task` | ✅ Ported | packages/database tasks (unique office_id + auto_signature) |  |
 | `Appointment` | ⏳ Pending | M2 Core ops |  |
 | `ConflictFlag` | ✅ Ported | packages/database conflict_flags (+ RESOLVED status) |  |
 | `NajizClassification` | ⏳ Pending | M2 Core ops |  |
@@ -277,7 +277,7 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `OfficePerformanceWeight` | ⏳ Pending | M6 HR |  |
 | `CaseApproval` | ⏳ Pending | M2 Core ops |  |
 | `ClientApprovalRequest` | ⏳ Pending | M8 Portals |  |
-| `ProcedureRequest` | ⏳ Pending | M2 Core ops |  |
+| `ProcedureRequest` | ✅ Ported | packages/database procedure_requests |  |
 | `ClientCommunication` | ⏳ Pending | M2 Core ops |  |
 | `CaseMessage` | ⏳ Pending | M2 Core ops |  |
 | `Contract` | ⏳ Pending | M3 Documents |  |
@@ -312,7 +312,7 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `auto-submit-select.tsx` | ✅ Ported | apps/web/src/components/auto-submit-select.tsx |  |
 | `cases/ai-draft-hearing-button.tsx` | ⏳ Pending | M2 Core ops |  |
 | `cases/case-list.tsx` | ✅ Ported | apps/web/src/components/cases/case-list.tsx |  |
-| `cases/hearing-wizard.tsx` | ⏳ Pending | M2 Core ops |  |
+| `cases/hearing-wizard.tsx` | ✅ Ported | apps/web/src/components/cases/hearings.tsx RecordHearingWizard |  |
 | `cases/najiz-picker.tsx` | ✅ Ported | apps/web/src/components/cases/case-form.tsx |  |
 | `cases/role-picker.tsx` | ✅ Ported | apps/web/src/components/cases/case-form.tsx |  |
 | `conflict-badge.tsx` | ✅ Ported | apps/web/src/components/cases/conflict-badge.tsx |  |
@@ -517,21 +517,21 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **hearings** (M2 Core ops)
 
-- [ ] `recordHearing`
-- [ ] `setNextHearing`
-- [ ] `updateHearing`
-- [ ] `deleteHearing`
-- [ ] `addHearingReminder`
-- [ ] `addHearingTask`
-- [ ] `requestReportApproval`
-- [ ] `cancelReportApprovalRequest`
-- [ ] `decideReportApproval`
-- [ ] `escalateHearingReminder`
-- [ ] `updateHearingReminder`
-- [ ] `deleteHearingReminder`
-- [ ] `updateHearingTask`
-- [ ] `deleteHearingTask`
-- [ ] `getHearingActions`
+- [x] `recordHearing`
+- [x] `setNextHearing`
+- [x] `updateHearing`
+- [x] `deleteHearing`
+- [x] `addHearingReminder`
+- [x] `addHearingTask`
+- [x] `requestReportApproval`
+- [x] `cancelReportApprovalRequest`
+- [x] `decideReportApproval`
+- [x] `escalateHearingReminder`
+- [x] `updateHearingReminder`
+- [x] `deleteHearingReminder`
+- [x] `updateHearingTask`
+- [x] `deleteHearingTask`
+- [x] `getHearingActions`
 
 **hr/advances** (M6 HR)
 
@@ -671,10 +671,10 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **procedure-requests** (M2 Core ops)
 
-- [ ] `addProcedureRequest`
-- [ ] `cycleProcedureRequestStatus`
-- [ ] `deleteProcedureRequest`
-- [ ] `listProcedureRequests`
+- [x] `addProcedureRequest`
+- [x] `cycleProcedureRequestStatus`
+- [x] `deleteProcedureRequest`
+- [x] `listProcedureRequests`
 
 **pulse** (M6 HR)
 
@@ -713,11 +713,11 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **tasks** (M2 Core ops)
 
-- [ ] `listTasks`
-- [ ] `createTask`
-- [ ] `moveTask`
-- [ ] `deleteTask`
-- [ ] `createAutoTask`
+- [x] `listTasks`
+- [x] `createTask`
+- [x] `moveTask`
+- [x] `deleteTask`
+- [x] `createAutoTask`
 
 **templates** (M3 Documents)
 
@@ -757,7 +757,7 @@ These lived in service files, not in `src/lib`, so a file-level port would miss 
 | `Normal debit/credit side, period keys` | ledger-reports.ts, finance/ledger.ts, hr/payroll.ts | packages/rules ledger.ts | ✅ Ported |
 | `Upload limits (25 MB staff, 20 MB portal) + MIME allowlist` | documents.ts, portal.ts | packages/documents uploads.ts | ✅ Ported |
 | `AI system prompts with the closed-KB citation rule` | server/ai.ts | apps/api/src/modules/ai/prompts.ts | ✅ Ported (verbatim) |
-| `Auto-task idempotency by autoSignature` | server/tasks.ts createAutoTask | M2 tasks module (unique index on office_id + auto_signature) | ⏳ Pending |
+| `Auto-task idempotency by autoSignature` | server/tasks.ts createAutoTask | apps/api tasks createAuto (unique index on office_id + auto_signature, ON CONFLICT DO NOTHING) | ✅ Ported (e2e) |
 | `Smart alert tiers (overdue → critical, ≤2 days → important, …), filtered by module permission` | server/alerts.ts | M2 alerts module | ⏳ Pending |
 | `Security-audit action prefixes (auth., portal.login, portal.otp, security., permission., access.)` | server/security-audit.ts | M1 security module | ⏳ Pending |
 | `Activity categories from action/resource` | server/activity.ts categorize | M2 activity module | ⏳ Pending |
@@ -774,8 +774,8 @@ These lived in service files, not in `src/lib`, so a file-level port would miss 
 | `Approving a leave request needs days + balance, then deducts it` | server/hr/requests.ts decideRequest | packages/rules leaveApprovalBlocker | ✅ Ported (rule); deduction in M6 |
 | `Saudization counts every non-terminated employee` | server/hr/saudization.ts | packages/rules countsForSaudization | ✅ Ported |
 | `A decided (approved/rejected) HR request is terminal` | server/hr/requests.ts | M6 requests module | ⏳ Pending |
-| `Conflict flags: a documented waiver survives re-scans; creating a client/lead re-scans existing cases` | lib/conflict/service.ts | M2 conflicts module | ⏳ Pending |
-| `Hearing reminders can recur (reminderRecurDays) and escalate to a task` | server/hearings.ts | M2 hearings module | ⏳ Pending |
+| `Conflict flags: a documented waiver survives re-scans; creating a client/lead re-scans existing cases` | lib/conflict/service.ts | apps/api cases/conflicts.service.ts | ✅ Ported (e2e) |
+| `Hearing reminders can recur (reminderRecurDays) and escalate to a task` | server/hearings.ts | apps/api hearings (escalate done; the recurring nudge is sent by the alerts job, M2 slice 4) | 🟡 Partial |
 | `Integrations start disconnected and are never shown as connected without a real connection` | server/hr/integrations.ts | M7 | ⏳ Pending (owner decision) |
 | `Screen → module map + free screens (docs/04 VIEW2MOD/FREE_VIEWS); legacy app-shell nav` | components/app-shell.tsx | packages/auth screens.ts (docs/04 wins on 4 deviations, see AUDIT table) | ✅ Ported |
 | `Global search: ≥2 chars, 8 per category, category gated by module, cases/documents/tasks row-scoped` | server/search.ts, shell-frame.tsx | packages/auth SEARCH_CATEGORY_MODULE + packages/contracts search.ts | ✅ Ported (rules); endpoint in M2 |
@@ -837,11 +837,11 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `cases/contract-actions.ts` | ⏳ Pending | M2 Core ops |  |
 | `cases/edit-actions.ts` | ⏳ Pending | M2 Core ops |  |
 | `cases/execution-actions.ts` | ⏳ Pending | M2 Core ops |  |
-| `cases/hearing-actions.ts` | ⏳ Pending | M2 Core ops |  |
+| `cases/hearing-actions.ts` | ✅ Ported | apps/api /cases/:id/hearings endpoints |  |
 | `cases/hearing-ai-actions.ts` | ⏳ Pending | M2 Core ops |  |
 | `cases/message-actions.ts` | ⏳ Pending | M2 Core ops |  |
 | `cases/proc-actions.ts` | ⏳ Pending | M2 Core ops |  |
-| `cases/procedure-request-actions.ts` | ⏳ Pending | M2 Core ops |  |
+| `cases/procedure-request-actions.ts` | ✅ Ported | apps/api /cases/:id/procedure-requests endpoints |  |
 | `clients/actions.ts` | ✅ Ported | apps/api /clients endpoints |  |
 | `documents/actions.ts` | ⏳ Pending | M3 Documents |  |
 | `documents/upload-actions.ts` | ⏳ Pending | M3 Documents |  |

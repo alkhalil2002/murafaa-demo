@@ -29,6 +29,10 @@ export const ar = {
   "errors.CLIENT_PHONE_TAKEN": "رقم الجوال مسجّل لعميل آخر في المكتب.",
   "errors.LEAD_NOT_CONTRACTED": "لا يمكن تحويل العميل المحتمل قبل مرحلة «متعاقد».",
   "errors.LEAD_ALREADY_CONVERTED": "تم تحويل هذا العميل المحتمل مسبقاً.",
+  "errors.HEARING_HAS_NO_REPORT": "لا يوجد تقرير للعميل في هذه الجلسة.",
+  "errors.REPORT_ALREADY_APPROVED": "اعتُمد هذا التقرير مسبقاً.",
+  "errors.REPORT_APPROVAL_NOT_REQUESTED": "لم يُطلب اعتماد هذا التقرير.",
+  "cases.hearings.reportApprovedNotSent": "اعتُمد التقرير (لم يُرسل للعميل بعد)",
   "errors.IP_LOCKOUT":
     "هذه القائمة لا تشمل عنوانك الحالي، وحفظها سيمنعك من الدخول. أضف عنوانك أولاً.",
   "security.ip.invalidEntry": "عنوان غير صالح. استخدم عنوان IP أو نطاق IPv4 مثل 203.0.113.0/24.",
@@ -287,6 +291,7 @@ export const ar = {
   "common.today": "اليوم",
   "common.loading": "جارٍ التحميل…",
   "common.save": "حفظ",
+  "common.listSep": "، ",
   "common.cancel": "إلغاء",
   "common.welcome": "أهلاً",
   "common.add": "إضافة",

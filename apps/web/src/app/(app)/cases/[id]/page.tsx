@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { authCurrent, casesAssignable, casesDetail, crmClients } from "@murafaa/sdk";
-import { opponentRole, PROC_STAGES } from "@murafaa/rules";
+import { daysLeft, opponentRole, PROC_STAGES } from "@murafaa/rules";
 import { t, tStored, type MessageKey } from "@murafaa/i18n";
 import {
   AssigneeManager,
@@ -13,6 +13,15 @@ import {
   WaiveConflictForm,
 } from "@/components/cases/case-actions";
 import { CaseForm } from "@/components/cases/case-form";
+import {
+  AddRequestForm,
+  HearingActions,
+  HearingEditor,
+  RecordHearingWizard,
+  ReportApproval,
+  RequestControls,
+  UpcomingHearing,
+} from "@/components/cases/hearings";
 import { serverApi } from "@/lib/api";
 import { fmtDate, relTime } from "@/lib/dates-ui";
 
@@ -32,7 +41,7 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number];
 /** Tabs rebuilt so far; the rest belong to later M2 slices and M3–M5 (docs/MIGRATION.md). */
-const BUILT: ReadonlySet<Tab> = new Set(["overview", "parties", "events", "closing"]);
+const BUILT: ReadonlySet<Tab> = new Set(["overview", "hearings", "parties", "events", "closing"]);
 
 const EVENT_ICON: Record<string, string> = {
   STAGE: "⚖",
@@ -101,6 +110,10 @@ export default async function CaseDetailPage({
   const level = me.modules.CASES;
   const canEdit = (level === "EDIT" || level === "FULL") && !me.user.previewRole;
   const canWaive = me.isPartner && !me.user.previewRole;
+  // Deleting hearings/requests and approving client reports need the case delete level (legacy).
+  const canDelete = level === "FULL" && !me.user.previewRole;
+  const upcoming = c.upcomingHearing;
+  const nextHearing = upcoming ? fmtDate(upcoming.hearingDate) : t("common.none");
   const activeFlags = c.conflicts.filter((f) => f.status === "ACTIVE");
   const waivedFlags = c.conflicts.filter((f) => f.status === "WAIVED");
   const anyHigh = activeFlags.some((f) => f.severity === "HIGH");
@@ -119,6 +132,9 @@ export default async function CaseDetailPage({
     const [clients, users] = canEdit
       ? await Promise.all([crmClients({ client: api }), casesAssignable({ client: api })])
       : [undefined, undefined];
+    const byStage = new Map<number, typeof c.procedureRequests>();
+    for (const r of c.procedureRequests)
+      byStage.set(r.stageIndex, [...(byStage.get(r.stageIndex) ?? []), r]);
     const available = (users?.data?.data ?? []).filter(
       (u) => !c.assignees.some((a) => a.userId === u.id),
     );
@@ -138,7 +154,7 @@ export default async function CaseDetailPage({
           />
           <Field label={t("cases.judgmentDate")} value={fmtDate(c.judgmentDate)} />
           <Field label={t("cases.objectionDue")} value={fmtDate(c.objectionDueAt)} />
-          <Field label={t("cases.nextHearing")} value={t("common.none")} />
+          <Field label={t("cases.nextHearing")} value={nextHearing} />
         </div>
         <Panel n={t("cases.tag.dates")} title={t("cases.proc.title")}>
           <div className="statusbar">
@@ -172,6 +188,57 @@ export default async function CaseDetailPage({
             />
           )}
         </Panel>
+        <Panel n={t("cases.tag.dates")} title={t("cases.procRequests.title")}>
+          {byStage.size === 0 ? (
+            <Empty>{t("common.none")}</Empty>
+          ) : (
+            [...byStage.entries()].map(([stIdx, reqs]) => (
+              <div key={stIdx} style={{ marginBottom: 14 }}>
+                <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                  {t("cases.procRequests.stageGroup", {
+                    stage: stageLabel(PROC_STAGES[stIdx] ?? "RECONCILIATION"),
+                  })}{" "}
+                  ({reqs.length.toLocaleString("ar-SA")})
+                </div>
+                {reqs.map((r) => (
+                  <div className="approve-row" key={r.id} style={{ flexWrap: "wrap" }}>
+                    <span className="chip">
+                      {r.party === "OURS"
+                        ? t("cases.procRequests.usParty")
+                        : t("cases.procRequests.opponentParty")}
+                    </span>
+                    <span className="at">
+                      {r.type ?? r.text}
+                      {r.type && r.text && r.text !== r.type && (
+                        <span className="chip"> {r.text}</span>
+                      )}
+                    </span>
+                    <span className="chip st">
+                      {t(`procedureRequestStatus.${r.status}` as MessageKey)}
+                    </span>
+                    {canEdit && (
+                      <RequestControls caseId={c.id} requestId={r.id} canDelete={canDelete} />
+                    )}
+                    {r.log.length > 0 && (
+                      <div style={{ width: "100%", fontSize: 14.375, color: "var(--ink-soft)" }}>
+                        {r.log.map((ev) => (
+                          <div key={ev.id}>
+                            ·{" "}
+                            {ev.message
+                              ? tStored(ev.message.messageKey, ev.message.params)
+                              : ev.text}{" "}
+                            ({relTime(ev.occurredAt)})
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+          {canEdit && <AddRequestForm caseId={c.id} stageIdx={stageIdx} />}
+        </Panel>
         {canEdit && (
           <div className="panel">
             <h2 style={{ marginTop: 0 }}>
@@ -197,6 +264,149 @@ export default async function CaseDetailPage({
             />
             <AssigneeManager id={c.id} assignees={c.assignees} available={available} />
           </div>
+        )}
+      </>
+    );
+  } else if (tab === "hearings") {
+    const users = canEdit ? ((await casesAssignable({ client: api })).data?.data ?? []) : [];
+    const requestsByHearing = new Map<string, typeof c.procedureRequests>();
+    for (const r of c.procedureRequests) {
+      if (r.hearingId)
+        requestsByHearing.set(r.hearingId, [...(requestsByHearing.get(r.hearingId) ?? []), r]);
+    }
+    body = (
+      <>
+        {canEdit && (
+          <div className="panel">
+            <h2 style={{ marginTop: 0 }}>
+              <span className="n">{t("cases.tag.dates")}</span>{" "}
+              {upcoming ? t("cases.nextHearing") : t("cases.hearings.schedule")}
+            </h2>
+            <UpcomingHearing
+              caseId={c.id}
+              upcoming={upcoming}
+              daysLeft={upcoming ? daysLeft(upcoming.hearingDate) : null}
+              canDelete={canDelete}
+            />
+          </div>
+        )}
+        {canEdit && (
+          <div className="panel" id="record-hearing-form">
+            <details open={Boolean(upcoming)}>
+              <summary style={{ cursor: "pointer", fontSize: 18.75, fontWeight: 700 }}>
+                <span className="n">{t("cases.tag.dates")}</span> {t("cases.hearings.record")}
+              </summary>
+              <div className="sub" style={{ marginTop: 8 }}>
+                {t("cases.hearings.recordIntro")}
+              </div>
+              <RecordHearingWizard
+                caseId={c.id}
+                defaultDate={upcoming ? fmtDate(upcoming.hearingDate) : null}
+                users={users}
+              />
+            </details>
+          </div>
+        )}
+        <div className="sub" style={{ fontWeight: 600, fontSize: 18.75, marginBottom: 8 }}>
+          {t("cases.hearings")} ({c.hearings.length.toLocaleString("ar-SA")})
+        </div>
+        {c.hearings.length === 0 ? (
+          <div className="panel">
+            <Empty>{t("common.none")}</Empty>
+          </div>
+        ) : (
+          c.hearings.map((h) => {
+            const gold = { color: "var(--gold)", borderColor: "var(--gold)" };
+            const linked = requestsByHearing.get(h.id) ?? [];
+            return (
+              <div className="panel" key={h.id}>
+                <details open>
+                  <summary className="hsummary">
+                    <span
+                      className="chip"
+                      style={{ color: "var(--bench)", borderColor: "var(--bench)" }}
+                    >
+                      {t("cases.hearings.sessionNo", {
+                        no: (h.sequenceNo ?? 0).toLocaleString("ar-SA"),
+                      })}
+                    </span>
+                    {h.kind && (
+                      <span className="chip" style={gold}>
+                        {t(`hearing.kind.${h.kind}` as MessageKey)}
+                      </span>
+                    )}
+                    <span className="chip">{fmtDate(h.hearingDate)}</span>
+                    {h.result && (
+                      <span className="chip" style={gold}>
+                        {h.result}
+                      </span>
+                    )}
+                    {h.isPending && (
+                      <span className="chip" style={gold}>
+                        {t("cases.hearings.pendingBadge")}
+                      </span>
+                    )}
+                  </summary>
+                  <div style={{ marginTop: 10 }}>
+                    {h.isPending && h.pendingItems.length > 0 && (
+                      <div className="docnote" style={{ marginBottom: 10 }}>
+                        ⏳ {t("cases.hearings.pendingItems.awaiting")}:{" "}
+                        {h.pendingItems
+                          .map((k) => t(`cases.hearings.pendingItems.${k}` as MessageKey))
+                          .join(t("common.listSep"))}
+                        {h.reminderRecurDays ? (
+                          <>
+                            {" "}
+                            — {t("cases.hearings.recurLabel")}{" "}
+                            {h.reminderRecurDays.toLocaleString("ar-SA")}{" "}
+                            {t("cases.hearings.recurUnit")}
+                          </>
+                        ) : null}
+                      </div>
+                    )}
+                    {h.minutes && (
+                      <div
+                        style={{
+                          fontSize: 16.875,
+                          lineHeight: 1.85,
+                          whiteSpace: "pre-wrap",
+                          marginBottom: 10,
+                        }}
+                      >
+                        {h.minutes}
+                      </div>
+                    )}
+                    {h.clientReport && (
+                      <div className="docnote">
+                        📄 {t("cases.hearings.clientReport")}: {h.clientReport}
+                        <ReportApproval
+                          caseId={c.id}
+                          h={h}
+                          canEdit={canEdit}
+                          canApprove={canDelete}
+                        />
+                      </div>
+                    )}
+                    {linked.length > 0 && (
+                      <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {linked.map((r) => (
+                          <span
+                            className="chip"
+                            key={r.id}
+                            title={t("cases.hearings.requestLinked")}
+                          >
+                            {t(`docParty.${r.party}` as MessageKey)} · {r.type ?? r.text}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <HearingActions caseId={c.id} h={h} users={users} canEdit={canEdit} />
+                    {canEdit && <HearingEditor caseId={c.id} h={h} canDelete={canDelete} />}
+                  </div>
+                </details>
+              </div>
+            );
+          })
         )}
       </>
     );
@@ -361,7 +571,7 @@ export default async function CaseDetailPage({
         <span className="chip st">{t(`case.status.${c.status}` as MessageKey)}</span>
         {c.procEnded && <span className="chip st done">{t("cases.proc.ended")}</span>}
         <span className="chip">
-          {t("cases.nextHearing")}: {t("common.none")}
+          {t("cases.nextHearing")}: {nextHearing}
         </span>
         <span className="chip">
           {t("cases.objectionDue")}: {fmtDate(c.objectionDueAt)}

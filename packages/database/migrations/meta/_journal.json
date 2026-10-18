@@ -78,6 +78,20 @@
       "when": 1792335970183,
       "tag": "0010_cases_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792336661227,
+      "tag": "0011_hearings_tasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792336661848,
+      "tag": "0012_hearings_tasks_hardening",
+      "breakpoints": true
     }
   ]
 }

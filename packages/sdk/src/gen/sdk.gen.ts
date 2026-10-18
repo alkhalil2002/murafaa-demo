@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, BillingUsageData, BillingUsageErrors, BillingUsageResponses, CasesArchiveData, CasesArchiveErrors, CasesArchiveResponses, CasesAssignableData, CasesAssignableErrors, CasesAssignableResponses, CasesAssignData, CasesAssignErrors, CasesAssignResponses, CasesChecklistData, CasesChecklistErrors, CasesChecklistResponses, CasesCreateData, CasesCreateErrors, CasesCreateResponses, CasesDetailData, CasesDetailErrors, CasesDetailResponses, CasesEndProcedureData, CasesEndProcedureErrors, CasesEndProcedureResponses, CasesListData, CasesListErrors, CasesListResponses, CasesOutcomeData, CasesOutcomeErrors, CasesOutcomeResponses, CasesPromoteData, CasesPromoteErrors, CasesPromoteResponses, CasesReferralData, CasesReferralErrors, CasesReferralResponses, CasesRemandData, CasesRemandErrors, CasesRemandResponses, CasesReopenProcedureData, CasesReopenProcedureErrors, CasesReopenProcedureResponses, CasesSatisfactionData, CasesSatisfactionErrors, CasesSatisfactionResponses, CasesUnassignData, CasesUnassignErrors, CasesUnassignResponses, CasesUpdateData, CasesUpdateErrors, CasesUpdateResponses, CasesWaiveData, CasesWaiveErrors, CasesWaiveResponses, CrmClientsData, CrmClientsErrors, CrmClientsResponses, CrmConvertData, CrmConvertErrors, CrmConvertResponses, CrmCreateClientData, CrmCreateClientErrors, CrmCreateClientResponses, CrmCreateLeadData, CrmCreateLeadErrors, CrmCreateLeadResponses, CrmDeleteLeadData, CrmDeleteLeadErrors, CrmDeleteLeadResponses, CrmKpisData, CrmKpisErrors, CrmKpisResponses, CrmLeadsData, CrmLeadsErrors, CrmLeadsResponses, CrmMoveLeadData, CrmMoveLeadErrors, CrmMoveLeadResponses, CrmUpdateClientData, CrmUpdateClientErrors, CrmUpdateClientResponses, CrmUpdateLeadData, CrmUpdateLeadErrors, CrmUpdateLeadResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesBrandingData, OfficesBrandingErrors, OfficesBrandingResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, OfficesUpdateBrandingData, OfficesUpdateBrandingErrors, OfficesUpdateBrandingResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses, RecycleListData, RecycleListErrors, RecycleListResponses, RecycleRestoreData, RecycleRestoreErrors, RecycleRestoreResponses, SecurityBeginData, SecurityBeginErrors, SecurityBeginResponses, SecurityConfirmData, SecurityConfirmErrors, SecurityConfirmResponses, SecurityDisableData, SecurityDisableErrors, SecurityDisableResponses, SecurityGetIpAllowlistData, SecurityGetIpAllowlistErrors, SecurityGetIpAllowlistResponses, SecuritySetIpAllowlistData, SecuritySetIpAllowlistErrors, SecuritySetIpAllowlistResponses, SecurityStatusData, SecurityStatusErrors, SecurityStatusResponses } from './types.gen.js';
+import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, BillingUsageData, BillingUsageErrors, BillingUsageResponses, CasesArchiveData, CasesArchiveErrors, CasesArchiveResponses, CasesAssignableData, CasesAssignableErrors, CasesAssignableResponses, CasesAssignData, CasesAssignErrors, CasesAssignResponses, CasesChecklistData, CasesChecklistErrors, CasesChecklistResponses, CasesCreateData, CasesCreateErrors, CasesCreateResponses, CasesDetailData, CasesDetailErrors, CasesDetailResponses, CasesEndProcedureData, CasesEndProcedureErrors, CasesEndProcedureResponses, CasesListData, CasesListErrors, CasesListResponses, CasesOutcomeData, CasesOutcomeErrors, CasesOutcomeResponses, CasesPromoteData, CasesPromoteErrors, CasesPromoteResponses, CasesReferralData, CasesReferralErrors, CasesReferralResponses, CasesRemandData, CasesRemandErrors, CasesRemandResponses, CasesReopenProcedureData, CasesReopenProcedureErrors, CasesReopenProcedureResponses, CasesSatisfactionData, CasesSatisfactionErrors, CasesSatisfactionResponses, CasesUnassignData, CasesUnassignErrors, CasesUnassignResponses, CasesUpdateData, CasesUpdateErrors, CasesUpdateResponses, CasesWaiveData, CasesWaiveErrors, CasesWaiveResponses, CrmClientsData, CrmClientsErrors, CrmClientsResponses, CrmConvertData, CrmConvertErrors, CrmConvertResponses, CrmCreateClientData, CrmCreateClientErrors, CrmCreateClientResponses, CrmCreateLeadData, CrmCreateLeadErrors, CrmCreateLeadResponses, CrmDeleteLeadData, CrmDeleteLeadErrors, CrmDeleteLeadResponses, CrmKpisData, CrmKpisErrors, CrmKpisResponses, CrmLeadsData, CrmLeadsErrors, CrmLeadsResponses, CrmMoveLeadData, CrmMoveLeadErrors, CrmMoveLeadResponses, CrmUpdateClientData, CrmUpdateClientErrors, CrmUpdateClientResponses, CrmUpdateLeadData, CrmUpdateLeadErrors, CrmUpdateLeadResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, HearingsAddReminderData, HearingsAddReminderErrors, HearingsAddReminderResponses, HearingsAddRequestData, HearingsAddRequestErrors, HearingsAddRequestResponses, HearingsAddTaskData, HearingsAddTaskErrors, HearingsAddTaskResponses, HearingsCancelReportData, HearingsCancelReportErrors, HearingsCancelReportResponses, HearingsCycleRequestData, HearingsCycleRequestErrors, HearingsCycleRequestResponses, HearingsDecideReportData, HearingsDecideReportErrors, HearingsDecideReportResponses, HearingsEscalateData, HearingsEscalateErrors, HearingsEscalateResponses, HearingsRecordData, HearingsRecordErrors, HearingsRecordResponses, HearingsRemoveData, HearingsRemoveErrors, HearingsRemoveReminderData, HearingsRemoveReminderErrors, HearingsRemoveReminderResponses, HearingsRemoveRequestData, HearingsRemoveRequestErrors, HearingsRemoveRequestResponses, HearingsRemoveResponses, HearingsRemoveTaskData, HearingsRemoveTaskErrors, HearingsRemoveTaskResponses, HearingsRequestReportData, HearingsRequestReportErrors, HearingsRequestReportResponses, HearingsSetNextData, HearingsSetNextErrors, HearingsSetNextResponses, HearingsUpdateData, HearingsUpdateErrors, HearingsUpdateReminderData, HearingsUpdateReminderErrors, HearingsUpdateReminderResponses, HearingsUpdateResponses, HearingsUpdateTaskData, HearingsUpdateTaskErrors, HearingsUpdateTaskResponses, OfficesBrandingData, OfficesBrandingErrors, OfficesBrandingResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, OfficesUpdateBrandingData, OfficesUpdateBrandingErrors, OfficesUpdateBrandingResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses, RecycleListData, RecycleListErrors, RecycleListResponses, RecycleRestoreData, RecycleRestoreErrors, RecycleRestoreResponses, SecurityBeginData, SecurityBeginErrors, SecurityBeginResponses, SecurityConfirmData, SecurityConfirmErrors, SecurityConfirmResponses, SecurityDisableData, SecurityDisableErrors, SecurityDisableResponses, SecurityGetIpAllowlistData, SecurityGetIpAllowlistErrors, SecurityGetIpAllowlistResponses, SecuritySetIpAllowlistData, SecuritySetIpAllowlistErrors, SecuritySetIpAllowlistResponses, SecurityStatusData, SecurityStatusErrors, SecurityStatusResponses, TasksCreateData, TasksCreateErrors, TasksCreateResponses, TasksListData, TasksListErrors, TasksListResponses, TasksMoveData, TasksMoveErrors, TasksMoveResponses, TasksRemoveData, TasksRemoveErrors, TasksRemoveResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -131,6 +131,110 @@ export const casesWaive = <ThrowOnError extends boolean = false>(options: Option
         ...options.headers
     }
 });
+
+export const hearingsRecord = <ThrowOnError extends boolean = false>(options: Options<HearingsRecordData, ThrowOnError>): RequestResult<HearingsRecordResponses, HearingsRecordErrors, ThrowOnError> => (options.client ?? client).post<HearingsRecordResponses, HearingsRecordErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/hearings',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const hearingsSetNext = <ThrowOnError extends boolean = false>(options: Options<HearingsSetNextData, ThrowOnError>): RequestResult<HearingsSetNextResponses, HearingsSetNextErrors, ThrowOnError> => (options.client ?? client).put<HearingsSetNextResponses, HearingsSetNextErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/hearings/next',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const hearingsRemove = <ThrowOnError extends boolean = false>(options: Options<HearingsRemoveData, ThrowOnError>): RequestResult<HearingsRemoveResponses, HearingsRemoveErrors, ThrowOnError> => (options.client ?? client).delete<HearingsRemoveResponses, HearingsRemoveErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/hearings/{hearingId}', ...options });
+
+export const hearingsUpdate = <ThrowOnError extends boolean = false>(options: Options<HearingsUpdateData, ThrowOnError>): RequestResult<HearingsUpdateResponses, HearingsUpdateErrors, ThrowOnError> => (options.client ?? client).patch<HearingsUpdateResponses, HearingsUpdateErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/hearings/{hearingId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const hearingsAddReminder = <ThrowOnError extends boolean = false>(options: Options<HearingsAddReminderData, ThrowOnError>): RequestResult<HearingsAddReminderResponses, HearingsAddReminderErrors, ThrowOnError> => (options.client ?? client).post<HearingsAddReminderResponses, HearingsAddReminderErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/reminders',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const hearingsRemoveReminder = <ThrowOnError extends boolean = false>(options: Options<HearingsRemoveReminderData, ThrowOnError>): RequestResult<HearingsRemoveReminderResponses, HearingsRemoveReminderErrors, ThrowOnError> => (options.client ?? client).delete<HearingsRemoveReminderResponses, HearingsRemoveReminderErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/hearings/{hearingId}/reminders/{itemId}', ...options });
+
+export const hearingsUpdateReminder = <ThrowOnError extends boolean = false>(options: Options<HearingsUpdateReminderData, ThrowOnError>): RequestResult<HearingsUpdateReminderResponses, HearingsUpdateReminderErrors, ThrowOnError> => (options.client ?? client).patch<HearingsUpdateReminderResponses, HearingsUpdateReminderErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/reminders/{itemId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const hearingsEscalate = <ThrowOnError extends boolean = false>(options: Options<HearingsEscalateData, ThrowOnError>): RequestResult<HearingsEscalateResponses, HearingsEscalateErrors, ThrowOnError> => (options.client ?? client).post<HearingsEscalateResponses, HearingsEscalateErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/reminders/{itemId}/escalate',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const hearingsAddTask = <ThrowOnError extends boolean = false>(options: Options<HearingsAddTaskData, ThrowOnError>): RequestResult<HearingsAddTaskResponses, HearingsAddTaskErrors, ThrowOnError> => (options.client ?? client).post<HearingsAddTaskResponses, HearingsAddTaskErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/tasks',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const hearingsRemoveTask = <ThrowOnError extends boolean = false>(options: Options<HearingsRemoveTaskData, ThrowOnError>): RequestResult<HearingsRemoveTaskResponses, HearingsRemoveTaskErrors, ThrowOnError> => (options.client ?? client).delete<HearingsRemoveTaskResponses, HearingsRemoveTaskErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/hearings/{hearingId}/tasks/{itemId}', ...options });
+
+export const hearingsUpdateTask = <ThrowOnError extends boolean = false>(options: Options<HearingsUpdateTaskData, ThrowOnError>): RequestResult<HearingsUpdateTaskResponses, HearingsUpdateTaskErrors, ThrowOnError> => (options.client ?? client).patch<HearingsUpdateTaskResponses, HearingsUpdateTaskErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/tasks/{itemId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const hearingsRequestReport = <ThrowOnError extends boolean = false>(options: Options<HearingsRequestReportData, ThrowOnError>): RequestResult<HearingsRequestReportResponses, HearingsRequestReportErrors, ThrowOnError> => (options.client ?? client).post<HearingsRequestReportResponses, HearingsRequestReportErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/hearings/{hearingId}/report/request', ...options });
+
+export const hearingsCancelReport = <ThrowOnError extends boolean = false>(options: Options<HearingsCancelReportData, ThrowOnError>): RequestResult<HearingsCancelReportResponses, HearingsCancelReportErrors, ThrowOnError> => (options.client ?? client).post<HearingsCancelReportResponses, HearingsCancelReportErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/hearings/{hearingId}/report/cancel', ...options });
+
+export const hearingsDecideReport = <ThrowOnError extends boolean = false>(options: Options<HearingsDecideReportData, ThrowOnError>): RequestResult<HearingsDecideReportResponses, HearingsDecideReportErrors, ThrowOnError> => (options.client ?? client).post<HearingsDecideReportResponses, HearingsDecideReportErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/report/decide',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const hearingsAddRequest = <ThrowOnError extends boolean = false>(options: Options<HearingsAddRequestData, ThrowOnError>): RequestResult<HearingsAddRequestResponses, HearingsAddRequestErrors, ThrowOnError> => (options.client ?? client).post<HearingsAddRequestResponses, HearingsAddRequestErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/procedure-requests',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const hearingsCycleRequest = <ThrowOnError extends boolean = false>(options: Options<HearingsCycleRequestData, ThrowOnError>): RequestResult<HearingsCycleRequestResponses, HearingsCycleRequestErrors, ThrowOnError> => (options.client ?? client).post<HearingsCycleRequestResponses, HearingsCycleRequestErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/procedure-requests/{requestId}/cycle', ...options });
+
+export const hearingsRemoveRequest = <ThrowOnError extends boolean = false>(options: Options<HearingsRemoveRequestData, ThrowOnError>): RequestResult<HearingsRemoveRequestResponses, HearingsRemoveRequestErrors, ThrowOnError> => (options.client ?? client).delete<HearingsRemoveRequestResponses, HearingsRemoveRequestErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/procedure-requests/{requestId}', ...options });
 
 export const crmClients = <ThrowOnError extends boolean = false>(options?: Options<CrmClientsData, ThrowOnError>): RequestResult<CrmClientsResponses, CrmClientsErrors, ThrowOnError> => (options?.client ?? client).get<CrmClientsResponses, CrmClientsErrors, ThrowOnError>({ url: '/api/v1/clients', ...options });
 
@@ -282,3 +386,25 @@ export const securitySetIpAllowlist = <ThrowOnError extends boolean = false>(opt
         ...options.headers
     }
 });
+
+export const tasksList = <ThrowOnError extends boolean = false>(options?: Options<TasksListData, ThrowOnError>): RequestResult<TasksListResponses, TasksListErrors, ThrowOnError> => (options?.client ?? client).get<TasksListResponses, TasksListErrors, ThrowOnError>({ url: '/api/v1/tasks', ...options });
+
+export const tasksCreate = <ThrowOnError extends boolean = false>(options: Options<TasksCreateData, ThrowOnError>): RequestResult<TasksCreateResponses, TasksCreateErrors, ThrowOnError> => (options.client ?? client).post<TasksCreateResponses, TasksCreateErrors, ThrowOnError>({
+    url: '/api/v1/tasks',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const tasksMove = <ThrowOnError extends boolean = false>(options: Options<TasksMoveData, ThrowOnError>): RequestResult<TasksMoveResponses, TasksMoveErrors, ThrowOnError> => (options.client ?? client).put<TasksMoveResponses, TasksMoveErrors, ThrowOnError>({
+    url: '/api/v1/tasks/{id}/status',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const tasksRemove = <ThrowOnError extends boolean = false>(options: Options<TasksRemoveData, ThrowOnError>): RequestResult<TasksRemoveResponses, TasksRemoveErrors, ThrowOnError> => (options.client ?? client).delete<TasksRemoveResponses, TasksRemoveErrors, ThrowOnError>({ url: '/api/v1/tasks/{id}', ...options });

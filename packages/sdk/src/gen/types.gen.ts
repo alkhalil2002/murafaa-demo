@@ -144,8 +144,66 @@ export type CaseDetail = {
         userId: string;
         name: string;
     }>;
+    upcomingHearing: Hearing | null;
+    hearings: Array<Hearing>;
+    procedureRequests: Array<ProcedureRequest>;
     conflicts: Array<ConflictFlag>;
     events: Array<CaseEvent>;
+};
+
+export type Hearing = {
+    id: string;
+    sequenceNo: number | null;
+    hearingDate: string;
+    status: 'UPCOMING' | 'HELD';
+    stageIndex: number | null;
+    kind: 'PRELIMINARY' | 'PLEADING' | 'MEMO_EXCHANGE' | 'PROCEDURAL_CONTROL' | 'WITNESS_HEARING' | 'EXPERT_EXAMINATION' | 'RESERVED_FOR_JUDGMENT' | 'JUDGMENT_PRONOUNCEMENT' | 'RECONCILIATION' | 'OTHER' | null;
+    minutes: string | null;
+    result: string | null;
+    clientReport: string | null;
+    reportApprovalRequested: boolean;
+    reportApproved: boolean;
+    reportSentToClient: boolean;
+    isPending: boolean;
+    pendingItems: Array<string>;
+    reminderRecurDays: number | null;
+    actions: {
+        reminders: Array<{
+            id: string;
+            text: string;
+            dueOn: string;
+            isTaskLinked: boolean;
+        }>;
+        tasks: Array<{
+            id: string;
+            title: string;
+            assigneeId: string | null;
+            assigneeName: string | null;
+            dueAt: string | null;
+            done: boolean;
+        }>;
+    };
+};
+
+export type ProcedureRequest = {
+    id: string;
+    hearingId: string | null;
+    stageIndex: number;
+    party: 'OURS' | 'OPPONENT' | 'COURT';
+    type: string | null;
+    text: string;
+    status: 'SUBMITTED' | 'PENDING' | 'ACCEPTED' | 'REJECTED';
+    log: Array<{
+        id: string;
+        message: {
+            messageKey: string;
+            params: {
+                [key: string]: string | number;
+            };
+        } | null;
+        text: string | null;
+        occurredAt: string;
+    }>;
 };
 
 export type ConflictFlag = {
@@ -212,6 +270,83 @@ export type SatisfactionBody = {
 
 export type WaiveConflictBody = {
     note: string;
+};
+
+export type RecordHearingBody = {
+    hearingDate: string;
+    kind?: 'PRELIMINARY' | 'PLEADING' | 'MEMO_EXCHANGE' | 'PROCEDURAL_CONTROL' | 'WITNESS_HEARING' | 'EXPERT_EXAMINATION' | 'RESERVED_FOR_JUDGMENT' | 'JUDGMENT_PRONOUNCEMENT' | 'RECONCILIATION' | 'OTHER' | null;
+    stageIndex?: number | null;
+    minutes?: string | null;
+    result?: string | null;
+    clientReport?: string | null;
+    nextHearingDate?: string | null;
+    isPending?: boolean;
+    pendingItems?: Array<'minutes' | 'nextHearing'>;
+    reminderRecurDays?: number | null;
+    actionReminderText?: string | null;
+    actionReminderDueOn?: string | null;
+    actionTaskTitle?: string | null;
+    actionTaskAssigneeId?: string | null;
+    actionTaskDueAt?: string | null;
+    actionRequestParty?: 'OURS' | 'OPPONENT' | 'COURT' | null;
+    actionRequestType?: 'طلب ندب خبير' | 'طلب إدخال طرف (ضامن/خصم)' | 'طلب وقف سير الدعوى' | 'التماس إعادة النظر' | 'طلب تأجيل الجلسة' | 'دفع بعدم الاختصاص' | 'طلب ضمّ قضية' | 'طلب سماع شهود' | 'طلب تمكين من مستندات' | 'اعتراض / استئناف' | 'طلب آخر' | null;
+    actionRequestText?: string | null;
+};
+
+export type NextHearingBody = {
+    date: string;
+};
+
+export type UpdateHearingBody = {
+    hearingDate?: string;
+    kind?: 'PRELIMINARY' | 'PLEADING' | 'MEMO_EXCHANGE' | 'PROCEDURAL_CONTROL' | 'WITNESS_HEARING' | 'EXPERT_EXAMINATION' | 'RESERVED_FOR_JUDGMENT' | 'JUDGMENT_PRONOUNCEMENT' | 'RECONCILIATION' | 'OTHER' | null;
+    stageIndex?: number | null;
+    minutes?: string | null;
+    result?: string | null;
+    clientReport?: string | null;
+    isPending?: boolean;
+    pendingItems?: Array<'minutes' | 'nextHearing'>;
+    reminderRecurDays?: number | null;
+};
+
+export type ReminderBody = {
+    text: string;
+    dueOn: string;
+    recurIntervalDays?: number | null;
+};
+
+export type UpdateReminderBody = {
+    text: string;
+    dueOn: string;
+};
+
+export type EscalateReminderBody = {
+    assigneeId?: string | null;
+};
+
+export type HearingTaskBody = {
+    title: string;
+    assigneeId?: string | null;
+    dueAt?: string | null;
+};
+
+export type UpdateHearingTaskBody = {
+    title: string;
+    assigneeId?: string | null;
+    dueAt?: string | null;
+    done?: boolean;
+};
+
+export type DecideReportBody = {
+    approve: boolean;
+};
+
+export type ProcedureRequestBody = {
+    stageIndex: number;
+    party: 'OURS' | 'OPPONENT' | 'COURT';
+    type?: 'طلب ندب خبير' | 'طلب إدخال طرف (ضامن/خصم)' | 'طلب وقف سير الدعوى' | 'التماس إعادة النظر' | 'طلب تأجيل الجلسة' | 'دفع بعدم الاختصاص' | 'طلب ضمّ قضية' | 'طلب سماع شهود' | 'طلب تمكين من مستندات' | 'اعتراض / استئناف' | 'طلب آخر' | null;
+    text: string;
+    hearingId?: string | null;
 };
 
 export type ClientList = Array<Client>;
@@ -384,6 +519,35 @@ export type TotpCodeBody = {
 
 export type IpAllowlist = {
     entries: Array<string>;
+};
+
+export type TaskList = Array<TaskItem>;
+
+export type TaskItem = {
+    id: string;
+    title: string;
+    assigneeId: string | null;
+    assigneeName: string | null;
+    priority: 'URGENT' | 'NORMAL';
+    dueAt: string | null;
+    category: 'CONTRACT_SIGNING' | 'MEMO_DRAFTING' | 'CONTRACT_DOC_REVIEW' | 'LEGAL_RESEARCH' | 'PROCEDURAL_FOLLOWUP' | 'CLIENT_CORRESPONDENCE' | 'GENERAL' | null;
+    status: 'NEW' | 'IN_PROGRESS' | 'DONE';
+    origin: string;
+    caseId: string | null;
+    caseTitle: string | null;
+};
+
+export type CreateTaskBody = {
+    title: string;
+    assigneeId?: string | null;
+    priority?: 'URGENT' | 'NORMAL';
+    dueAt?: string | null;
+    caseId?: string | null;
+    category?: 'CONTRACT_SIGNING' | 'MEMO_DRAFTING' | 'CONTRACT_DOC_REVIEW' | 'LEGAL_RESEARCH' | 'PROCEDURAL_FOLLOWUP' | 'CLIENT_CORRESPONDENCE' | 'GENERAL' | null;
+};
+
+export type MoveTaskBody = {
+    status: 'NEW' | 'IN_PROGRESS' | 'DONE';
 };
 
 export type AuthRequestOtpData = {
@@ -1031,6 +1195,535 @@ export type CasesWaiveResponses = {
 };
 
 export type CasesWaiveResponse = CasesWaiveResponses[keyof CasesWaiveResponses];
+
+export type HearingsRecordData = {
+    body: RecordHearingBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings';
+};
+
+export type HearingsRecordErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsRecordError = HearingsRecordErrors[keyof HearingsRecordErrors];
+
+export type HearingsRecordResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type HearingsRecordResponse = HearingsRecordResponses[keyof HearingsRecordResponses];
+
+export type HearingsSetNextData = {
+    body: NextHearingBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/next';
+};
+
+export type HearingsSetNextErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsSetNextError = HearingsSetNextErrors[keyof HearingsSetNextErrors];
+
+export type HearingsSetNextResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsSetNextResponse = HearingsSetNextResponses[keyof HearingsSetNextResponses];
+
+export type HearingsRemoveData = {
+    body?: never;
+    path: {
+        id: string;
+        hearingId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}';
+};
+
+export type HearingsRemoveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsRemoveError = HearingsRemoveErrors[keyof HearingsRemoveErrors];
+
+export type HearingsRemoveResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsRemoveResponse = HearingsRemoveResponses[keyof HearingsRemoveResponses];
+
+export type HearingsUpdateData = {
+    body: UpdateHearingBody;
+    path: {
+        id: string;
+        hearingId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}';
+};
+
+export type HearingsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsUpdateError = HearingsUpdateErrors[keyof HearingsUpdateErrors];
+
+export type HearingsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsUpdateResponse = HearingsUpdateResponses[keyof HearingsUpdateResponses];
+
+export type HearingsAddReminderData = {
+    body: ReminderBody;
+    path: {
+        id: string;
+        hearingId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/reminders';
+};
+
+export type HearingsAddReminderErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsAddReminderError = HearingsAddReminderErrors[keyof HearingsAddReminderErrors];
+
+export type HearingsAddReminderResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsAddReminderResponse = HearingsAddReminderResponses[keyof HearingsAddReminderResponses];
+
+export type HearingsRemoveReminderData = {
+    body?: never;
+    path: {
+        id: string;
+        hearingId: string;
+        itemId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/reminders/{itemId}';
+};
+
+export type HearingsRemoveReminderErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsRemoveReminderError = HearingsRemoveReminderErrors[keyof HearingsRemoveReminderErrors];
+
+export type HearingsRemoveReminderResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsRemoveReminderResponse = HearingsRemoveReminderResponses[keyof HearingsRemoveReminderResponses];
+
+export type HearingsUpdateReminderData = {
+    body: UpdateReminderBody;
+    path: {
+        id: string;
+        hearingId: string;
+        itemId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/reminders/{itemId}';
+};
+
+export type HearingsUpdateReminderErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsUpdateReminderError = HearingsUpdateReminderErrors[keyof HearingsUpdateReminderErrors];
+
+export type HearingsUpdateReminderResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsUpdateReminderResponse = HearingsUpdateReminderResponses[keyof HearingsUpdateReminderResponses];
+
+export type HearingsEscalateData = {
+    body: EscalateReminderBody;
+    path: {
+        id: string;
+        hearingId: string;
+        itemId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/reminders/{itemId}/escalate';
+};
+
+export type HearingsEscalateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsEscalateError = HearingsEscalateErrors[keyof HearingsEscalateErrors];
+
+export type HearingsEscalateResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsEscalateResponse = HearingsEscalateResponses[keyof HearingsEscalateResponses];
+
+export type HearingsAddTaskData = {
+    body: HearingTaskBody;
+    path: {
+        id: string;
+        hearingId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/tasks';
+};
+
+export type HearingsAddTaskErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsAddTaskError = HearingsAddTaskErrors[keyof HearingsAddTaskErrors];
+
+export type HearingsAddTaskResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsAddTaskResponse = HearingsAddTaskResponses[keyof HearingsAddTaskResponses];
+
+export type HearingsRemoveTaskData = {
+    body?: never;
+    path: {
+        id: string;
+        hearingId: string;
+        itemId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/tasks/{itemId}';
+};
+
+export type HearingsRemoveTaskErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsRemoveTaskError = HearingsRemoveTaskErrors[keyof HearingsRemoveTaskErrors];
+
+export type HearingsRemoveTaskResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsRemoveTaskResponse = HearingsRemoveTaskResponses[keyof HearingsRemoveTaskResponses];
+
+export type HearingsUpdateTaskData = {
+    body: UpdateHearingTaskBody;
+    path: {
+        id: string;
+        hearingId: string;
+        itemId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/tasks/{itemId}';
+};
+
+export type HearingsUpdateTaskErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsUpdateTaskError = HearingsUpdateTaskErrors[keyof HearingsUpdateTaskErrors];
+
+export type HearingsUpdateTaskResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsUpdateTaskResponse = HearingsUpdateTaskResponses[keyof HearingsUpdateTaskResponses];
+
+export type HearingsRequestReportData = {
+    body?: never;
+    path: {
+        id: string;
+        hearingId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/report/request';
+};
+
+export type HearingsRequestReportErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsRequestReportError = HearingsRequestReportErrors[keyof HearingsRequestReportErrors];
+
+export type HearingsRequestReportResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsRequestReportResponse = HearingsRequestReportResponses[keyof HearingsRequestReportResponses];
+
+export type HearingsCancelReportData = {
+    body?: never;
+    path: {
+        id: string;
+        hearingId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/report/cancel';
+};
+
+export type HearingsCancelReportErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsCancelReportError = HearingsCancelReportErrors[keyof HearingsCancelReportErrors];
+
+export type HearingsCancelReportResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsCancelReportResponse = HearingsCancelReportResponses[keyof HearingsCancelReportResponses];
+
+export type HearingsDecideReportData = {
+    body: DecideReportBody;
+    path: {
+        id: string;
+        hearingId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/report/decide';
+};
+
+export type HearingsDecideReportErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsDecideReportError = HearingsDecideReportErrors[keyof HearingsDecideReportErrors];
+
+export type HearingsDecideReportResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsDecideReportResponse = HearingsDecideReportResponses[keyof HearingsDecideReportResponses];
+
+export type HearingsAddRequestData = {
+    body: ProcedureRequestBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/procedure-requests';
+};
+
+export type HearingsAddRequestErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsAddRequestError = HearingsAddRequestErrors[keyof HearingsAddRequestErrors];
+
+export type HearingsAddRequestResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsAddRequestResponse = HearingsAddRequestResponses[keyof HearingsAddRequestResponses];
+
+export type HearingsCycleRequestData = {
+    body?: never;
+    path: {
+        id: string;
+        requestId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/procedure-requests/{requestId}/cycle';
+};
+
+export type HearingsCycleRequestErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsCycleRequestError = HearingsCycleRequestErrors[keyof HearingsCycleRequestErrors];
+
+export type HearingsCycleRequestResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsCycleRequestResponse = HearingsCycleRequestResponses[keyof HearingsCycleRequestResponses];
+
+export type HearingsRemoveRequestData = {
+    body?: never;
+    path: {
+        id: string;
+        requestId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/procedure-requests/{requestId}';
+};
+
+export type HearingsRemoveRequestErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HearingsRemoveRequestError = HearingsRemoveRequestErrors[keyof HearingsRemoveRequestErrors];
+
+export type HearingsRemoveRequestResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HearingsRemoveRequestResponse = HearingsRemoveRequestResponses[keyof HearingsRemoveRequestResponses];
 
 export type CrmClientsData = {
     body?: never;
@@ -1886,3 +2579,119 @@ export type SecuritySetIpAllowlistResponses = {
 };
 
 export type SecuritySetIpAllowlistResponse = SecuritySetIpAllowlistResponses[keyof SecuritySetIpAllowlistResponses];
+
+export type TasksListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/tasks';
+};
+
+export type TasksListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type TasksListError = TasksListErrors[keyof TasksListErrors];
+
+export type TasksListResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: TaskList;
+        error: null;
+    };
+};
+
+export type TasksListResponse = TasksListResponses[keyof TasksListResponses];
+
+export type TasksCreateData = {
+    body: CreateTaskBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/tasks';
+};
+
+export type TasksCreateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type TasksCreateError = TasksCreateErrors[keyof TasksCreateErrors];
+
+export type TasksCreateResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type TasksCreateResponse = TasksCreateResponses[keyof TasksCreateResponses];
+
+export type TasksMoveData = {
+    body: MoveTaskBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/tasks/{id}/status';
+};
+
+export type TasksMoveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type TasksMoveError = TasksMoveErrors[keyof TasksMoveErrors];
+
+export type TasksMoveResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type TasksMoveResponse = TasksMoveResponses[keyof TasksMoveResponses];
+
+export type TasksRemoveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/tasks/{id}';
+};
+
+export type TasksRemoveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type TasksRemoveError = TasksRemoveErrors[keyof TasksRemoveErrors];
+
+export type TasksRemoveResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type TasksRemoveResponse = TasksRemoveResponses[keyof TasksRemoveResponses];

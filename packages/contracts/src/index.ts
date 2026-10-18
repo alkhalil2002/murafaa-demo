@@ -8,3 +8,4 @@ export * from "./permissions.js";
 export * from "./settings.js";
 export * from "./crm.js";
 export * from "./cases.js";
+export * from "./hearings.js";
