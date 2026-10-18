@@ -24,6 +24,7 @@ import {
   IconUser,
   IconWhatsapp,
 } from "@/components/icons";
+import { EndPreviewButton } from "@/components/perms/preview-form";
 import { serverApi } from "@/lib/api";
 import { IdleLogout } from "./idle-logout";
 import { NAV, type NavIcon } from "./nav";
@@ -132,6 +133,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           <span className="sub" style={{ marginBottom: 0 }}>
             {t("rolePreview.banner", { role: roleLabel(me.user.previewRole) })}
           </span>
+          <EndPreviewButton />
         </div>
       )}
       {children}

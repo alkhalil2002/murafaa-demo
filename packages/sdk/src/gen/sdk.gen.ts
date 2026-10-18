@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses } from './types.gen.js';
+import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -43,3 +43,47 @@ export const authLogout = <ThrowOnError extends boolean = false>(options?: Optio
 export const healthCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthCheckData, ThrowOnError>): RequestResult<HealthCheckResponses, HealthCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthCheckResponses, HealthCheckErrors, ThrowOnError>({ url: '/api/v1/health', ...options });
 
 export const officesCurrent = <ThrowOnError extends boolean = false>(options?: Options<OfficesCurrentData, ThrowOnError>): RequestResult<OfficesCurrentResponses, OfficesCurrentErrors, ThrowOnError> => (options?.client ?? client).get<OfficesCurrentResponses, OfficesCurrentErrors, ThrowOnError>({ url: '/api/v1/offices/current', ...options });
+
+export const permissionsMatrix = <ThrowOnError extends boolean = false>(options?: Options<PermissionsMatrixData, ThrowOnError>): RequestResult<PermissionsMatrixResponses, PermissionsMatrixErrors, ThrowOnError> => (options?.client ?? client).get<PermissionsMatrixResponses, PermissionsMatrixErrors, ThrowOnError>({ url: '/api/v1/permissions/matrix', ...options });
+
+export const permissionsSetLevel = <ThrowOnError extends boolean = false>(options: Options<PermissionsSetLevelData, ThrowOnError>): RequestResult<PermissionsSetLevelResponses, PermissionsSetLevelErrors, ThrowOnError> => (options.client ?? client).put<PermissionsSetLevelResponses, PermissionsSetLevelErrors, ThrowOnError>({
+    url: '/api/v1/permissions/matrix/level',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const permissionsSetScope = <ThrowOnError extends boolean = false>(options: Options<PermissionsSetScopeData, ThrowOnError>): RequestResult<PermissionsSetScopeResponses, PermissionsSetScopeErrors, ThrowOnError> => (options.client ?? client).put<PermissionsSetScopeResponses, PermissionsSetScopeErrors, ThrowOnError>({
+    url: '/api/v1/permissions/matrix/scope',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const permissionsUsers = <ThrowOnError extends boolean = false>(options?: Options<PermissionsUsersData, ThrowOnError>): RequestResult<PermissionsUsersResponses, PermissionsUsersErrors, ThrowOnError> => (options?.client ?? client).get<PermissionsUsersResponses, PermissionsUsersErrors, ThrowOnError>({ url: '/api/v1/permissions/users', ...options });
+
+export const permissionsSetUserRole = <ThrowOnError extends boolean = false>(options: Options<PermissionsSetUserRoleData, ThrowOnError>): RequestResult<PermissionsSetUserRoleResponses, PermissionsSetUserRoleErrors, ThrowOnError> => (options.client ?? client).put<PermissionsSetUserRoleResponses, PermissionsSetUserRoleErrors, ThrowOnError>({
+    url: '/api/v1/permissions/users/{id}/role',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const permissionsAudit = <ThrowOnError extends boolean = false>(options?: Options<PermissionsAuditData, ThrowOnError>): RequestResult<PermissionsAuditResponses, PermissionsAuditErrors, ThrowOnError> => (options?.client ?? client).get<PermissionsAuditResponses, PermissionsAuditErrors, ThrowOnError>({ url: '/api/v1/permissions/audit', ...options });
+
+export const permissionsEndPreview = <ThrowOnError extends boolean = false>(options?: Options<PermissionsEndPreviewData, ThrowOnError>): RequestResult<PermissionsEndPreviewResponses, PermissionsEndPreviewErrors, ThrowOnError> => (options?.client ?? client).delete<PermissionsEndPreviewResponses, PermissionsEndPreviewErrors, ThrowOnError>({ url: '/api/v1/permissions/preview', ...options });
+
+export const permissionsStartPreview = <ThrowOnError extends boolean = false>(options: Options<PermissionsStartPreviewData, ThrowOnError>): RequestResult<PermissionsStartPreviewResponses, PermissionsStartPreviewErrors, ThrowOnError> => (options.client ?? client).post<PermissionsStartPreviewResponses, PermissionsStartPreviewErrors, ThrowOnError>({
+    url: '/api/v1/permissions/preview',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});

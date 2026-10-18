@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ar, dirOf, formatSar, messagesFor, roleLabel, t } from "../src/index.js";
+import { ar, dirOf, formatSar, formatWhen, messagesFor, roleLabel, t } from "../src/index.js";
 
 describe("i18n", () => {
   it("interpolates params and leaves unknown placeholders", () => {
@@ -27,5 +27,10 @@ describe("i18n", () => {
       expect(roleLabel(role), role).toBe(ar[`role.${role.toLowerCase()}` as keyof typeof ar]);
       expect(roleLabel(role)).toBeTruthy();
     }
+  });
+
+  it("formats audit times in Riyadh", () => {
+    // 21:30 UTC is 00:30 the next day in Riyadh (UTC+3).
+    expect(formatWhen("2026-01-01T21:30:00Z", "en")).toContain("Jan 2, 2026");
   });
 });

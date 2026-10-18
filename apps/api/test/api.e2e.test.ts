@@ -1,4 +1,4 @@
-import { runMigrations } from "@murafaa/database";
+import { createDb, runMigrations, seedOfficePolicy, withTenant } from "@murafaa/database";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -24,6 +24,7 @@ const TOTP_SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
 const OFFICE_A = "aaaaaaaa-0000-4000-8000-00000000000a";
 const OFFICE_B = "bbbbbbbb-0000-4000-8000-00000000000b";
 const OFFICE_LOCKED = "cccccccc-0000-4000-8000-00000000000c";
+const OFFICE_D = "dddddddd-0000-4000-8000-00000000000d";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -37,6 +38,9 @@ const RESEND = "0500000107";
 const FORGER_B = "0500000108";
 const ORIGIN_A = "0500000109";
 const LOGOUT_A = "0500000110";
+// Office D: one partner and one lawyer, for permissions administration.
+const PARTNER_D = "0500000201";
+const LAWYER_D = "0500000202";
 
 let app: NestFastifyApplication;
 
@@ -74,7 +78,7 @@ const cookieOf = (res: { headers: Record<string, unknown> }) =>
 beforeAll(async () => {
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -103,6 +107,15 @@ beforeAll(async () => {
       ],
     ],
     [OFFICE_LOCKED, "Locked office", ["10.0.0.0/8"], [[LOCKED_USER, "PARTNER"]]],
+    [
+      OFFICE_D,
+      "Office D",
+      [],
+      [
+        [PARTNER_D, "PARTNER"],
+        [LAWYER_D, "LAWYER"],
+      ],
+    ],
   ];
   for (const [office, name, allowlist, people] of seed) {
     await owner.begin(async (tx) => {
@@ -116,6 +129,13 @@ beforeAll(async () => {
     });
   }
   await owner.end();
+
+  // Every office starts from the docs/04 default policy, as a new office would.
+  const seeder = createDb(OWNER_URL, { max: 1 });
+  for (const office of [OFFICE_A, OFFICE_B, OFFICE_LOCKED, OFFICE_D]) {
+    await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
+  }
+  await seeder.close();
 
   const env = loadEnv({
     DATABASE_URL: APP_URL,
@@ -322,6 +342,127 @@ describe("OTP login", () => {
     await owner.end();
     expect([...actions]).toEqual(
       expect.arrayContaining(["auth.otp.sent", "auth.login", "auth.login.ipDenied", "auth.logout"]),
+    );
+  });
+});
+
+describe("permissions administration (partner only)", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let lawyer = "";
+
+  const as = (
+    cookie: string,
+    method: "GET" | "PUT" | "POST" | "DELETE",
+    url: string,
+    payload?: object,
+  ) => app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_D));
+    lawyer = cookieOf(await login(LAWYER_D));
+  });
+
+  it("refuses everyone but partners", async () => {
+    const res = await as(lawyer, "GET", "/api/v1/permissions/matrix");
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe("FORBIDDEN");
+  });
+
+  it("shows the office matrix seeded from docs/04", async () => {
+    const rows = (await as(partner, "GET", "/api/v1/permissions/matrix")).json().data;
+    expect(rows).toHaveLength(6);
+    const lawyerRow = rows.find((r: { role: string }) => r.role === "LAWYER");
+    expect(lawyerRow).toMatchObject({
+      caseScope: "ASSIGNED",
+      levels: { CASES: "EDIT", FINANCE: "NONE" },
+    });
+  });
+
+  it("applies a level change on the very next request (no cache)", async () => {
+    const res = await as(partner, "PUT", "/api/v1/permissions/matrix/level", {
+      role: "LAWYER",
+      module: "FINANCE",
+      level: "VIEW",
+    });
+    expect(res.statusCode).toBe(200);
+    const me = (await as(lawyer, "GET", "/api/v1/auth/me")).json().data;
+    expect(me.modules.FINANCE).toBe("VIEW");
+    expect(me.screens).toContain("finance");
+  });
+
+  it("changes a role's case scope", async () => {
+    const rows = (
+      await as(partner, "PUT", "/api/v1/permissions/matrix/scope", { role: "LAWYER", scope: "ALL" })
+    ).json().data;
+    expect(rows.find((r: { role: string }) => r.role === "LAWYER").caseScope).toBe("ALL");
+  });
+
+  it("never leaves the office without a partner", async () => {
+    const people = (await as(partner, "GET", "/api/v1/permissions/users")).json().data as Array<{
+      id: string;
+      role: string;
+    }>;
+    const self = people.find((u) => u.role === "PARTNER")!;
+    const res = await as(partner, "PUT", `/api/v1/permissions/users/${self.id}/role`, {
+      role: "LAWYER",
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toMatchObject({ code: "CONFLICT", messageKey: "errors.LAST_PARTNER" });
+  });
+
+  it("changes another user's role, effective immediately", async () => {
+    const people = (await as(partner, "GET", "/api/v1/permissions/users")).json().data as Array<{
+      id: string;
+      role: string;
+    }>;
+    const other = people.find((u) => u.role === "LAWYER")!;
+    const updated = (
+      await as(partner, "PUT", `/api/v1/permissions/users/${other.id}/role`, { role: "ASSISTANT" })
+    ).json().data;
+    expect(updated.find((u: { id: string }) => u.id === other.id).role).toBe("ASSISTANT");
+    expect((await as(lawyer, "GET", "/api/v1/auth/me")).json().data.user.role).toBe("ASSISTANT");
+  });
+
+  it("previews another role view-only, and can always end the preview", async () => {
+    expect(
+      (await as(partner, "POST", "/api/v1/permissions/preview", { role: "RECEPTION" })).statusCode,
+    ).toBe(200);
+    const me = (await as(partner, "GET", "/api/v1/auth/me")).json().data;
+    expect(me.user).toMatchObject({ role: "PARTNER", previewRole: "RECEPTION" });
+    expect(me.isPartner).toBe(true);
+    expect(me.screens).not.toContain("perms");
+    // Partner powers are gone while previewing, and writes are blocked outright.
+    expect((await as(partner, "GET", "/api/v1/permissions/matrix")).statusCode).toBe(403);
+    const write = await as(partner, "PUT", "/api/v1/permissions/matrix/level", {
+      role: "LAWYER",
+      module: "HR",
+      level: "FULL",
+    });
+    expect(write.statusCode).toBe(403);
+
+    expect((await as(partner, "DELETE", "/api/v1/permissions/preview")).statusCode).toBe(200);
+    expect((await as(partner, "GET", "/api/v1/auth/me")).json().data.user.previewRole).toBeNull();
+    expect((await as(partner, "GET", "/api/v1/permissions/matrix")).statusCode).toBe(200);
+  });
+
+  it("lists logins and permission changes in the security log", async () => {
+    const entries = (await as(partner, "GET", "/api/v1/permissions/audit")).json().data as Array<{
+      action: string;
+      detail: string | null;
+    }>;
+    const actions = entries.map((e) => e.action);
+    expect(actions).toEqual(
+      expect.arrayContaining([
+        "auth.login",
+        "permission.setLevel",
+        "permission.setCaseScope",
+        "permission.setUserRole",
+        "permission.preview.start",
+      ]),
+    );
+    expect(entries.find((e) => e.action === "permission.setLevel")?.detail).toBe(
+      "role=LAWYER · module=FINANCE · level=VIEW",
     );
   });
 });

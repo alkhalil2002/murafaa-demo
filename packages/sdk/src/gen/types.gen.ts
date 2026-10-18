@@ -73,6 +73,53 @@ export type Office = {
     createdAt: string;
 };
 
+export type RoleMatrix = Array<RoleMatrixRow>;
+
+export type RoleMatrixRow = {
+    role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+    levels: {
+        [key: string]: 'NONE' | 'VIEW' | 'EDIT' | 'FULL';
+    };
+    caseScope: 'ALL' | 'ASSIGNED';
+};
+
+export type SetModuleLevelBody = {
+    role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+    module: 'CASES' | 'AI' | 'CLIENTS' | 'DOCUMENTS' | 'FINANCE' | 'HR' | 'REPORTS' | 'PERMISSIONS' | 'WHATSAPP' | 'APPOINTMENTS' | 'TASKS' | 'ALERTS' | 'PULSE';
+    level: 'NONE' | 'VIEW' | 'EDIT' | 'FULL';
+};
+
+export type SetCaseScopeBody = {
+    role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+    scope: 'ALL' | 'ASSIGNED';
+};
+
+export type OfficeUsers = Array<OfficeUser>;
+
+export type OfficeUser = {
+    id: string;
+    name: string;
+    role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+};
+
+export type SetUserRoleBody = {
+    role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+};
+
+export type SecurityAudit = Array<SecurityAuditEntry>;
+
+export type SecurityAuditEntry = {
+    id: string;
+    action: string;
+    detail: string | null;
+    actorName: string | null;
+    createdAt: string;
+};
+
+export type StartPreviewBody = {
+    role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+};
+
 export type AuthRequestOtpData = {
     body: RequestOtpBody;
     path?: never;
@@ -240,3 +287,229 @@ export type OfficesCurrentResponses = {
 };
 
 export type OfficesCurrentResponse = OfficesCurrentResponses[keyof OfficesCurrentResponses];
+
+export type PermissionsMatrixData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/permissions/matrix';
+};
+
+export type PermissionsMatrixErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PermissionsMatrixError = PermissionsMatrixErrors[keyof PermissionsMatrixErrors];
+
+export type PermissionsMatrixResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: RoleMatrix;
+        error: null;
+    };
+};
+
+export type PermissionsMatrixResponse = PermissionsMatrixResponses[keyof PermissionsMatrixResponses];
+
+export type PermissionsSetLevelData = {
+    body: SetModuleLevelBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/permissions/matrix/level';
+};
+
+export type PermissionsSetLevelErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PermissionsSetLevelError = PermissionsSetLevelErrors[keyof PermissionsSetLevelErrors];
+
+export type PermissionsSetLevelResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: RoleMatrix;
+        error: null;
+    };
+};
+
+export type PermissionsSetLevelResponse = PermissionsSetLevelResponses[keyof PermissionsSetLevelResponses];
+
+export type PermissionsSetScopeData = {
+    body: SetCaseScopeBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/permissions/matrix/scope';
+};
+
+export type PermissionsSetScopeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PermissionsSetScopeError = PermissionsSetScopeErrors[keyof PermissionsSetScopeErrors];
+
+export type PermissionsSetScopeResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: RoleMatrix;
+        error: null;
+    };
+};
+
+export type PermissionsSetScopeResponse = PermissionsSetScopeResponses[keyof PermissionsSetScopeResponses];
+
+export type PermissionsUsersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/permissions/users';
+};
+
+export type PermissionsUsersErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PermissionsUsersError = PermissionsUsersErrors[keyof PermissionsUsersErrors];
+
+export type PermissionsUsersResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: OfficeUsers;
+        error: null;
+    };
+};
+
+export type PermissionsUsersResponse = PermissionsUsersResponses[keyof PermissionsUsersResponses];
+
+export type PermissionsSetUserRoleData = {
+    body: SetUserRoleBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/permissions/users/{id}/role';
+};
+
+export type PermissionsSetUserRoleErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PermissionsSetUserRoleError = PermissionsSetUserRoleErrors[keyof PermissionsSetUserRoleErrors];
+
+export type PermissionsSetUserRoleResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: OfficeUsers;
+        error: null;
+    };
+};
+
+export type PermissionsSetUserRoleResponse = PermissionsSetUserRoleResponses[keyof PermissionsSetUserRoleResponses];
+
+export type PermissionsAuditData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/permissions/audit';
+};
+
+export type PermissionsAuditErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PermissionsAuditError = PermissionsAuditErrors[keyof PermissionsAuditErrors];
+
+export type PermissionsAuditResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: SecurityAudit;
+        error: null;
+    };
+};
+
+export type PermissionsAuditResponse = PermissionsAuditResponses[keyof PermissionsAuditResponses];
+
+export type PermissionsEndPreviewData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/permissions/preview';
+};
+
+export type PermissionsEndPreviewErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PermissionsEndPreviewError = PermissionsEndPreviewErrors[keyof PermissionsEndPreviewErrors];
+
+export type PermissionsEndPreviewResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type PermissionsEndPreviewResponse = PermissionsEndPreviewResponses[keyof PermissionsEndPreviewResponses];
+
+export type PermissionsStartPreviewData = {
+    body: StartPreviewBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/permissions/preview';
+};
+
+export type PermissionsStartPreviewErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PermissionsStartPreviewError = PermissionsStartPreviewErrors[keyof PermissionsStartPreviewErrors];
+
+export type PermissionsStartPreviewResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type PermissionsStartPreviewResponse = PermissionsStartPreviewResponses[keyof PermissionsStartPreviewResponses];

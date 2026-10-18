@@ -29,6 +29,20 @@
       "when": 1792332495441,
       "tag": "0003_auth_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792333334948,
+      "tag": "0004_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792333335515,
+      "tag": "0005_permissions_hardening",
+      "breakpoints": true
     }
   ]
 }

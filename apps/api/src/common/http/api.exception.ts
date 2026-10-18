@@ -22,6 +22,8 @@ export class ApiException extends HttpException {
   constructor(
     readonly code: ErrorCode,
     readonly details?: ApiError["details"],
+    /** A more specific i18n message than errors.<code>, e.g. errors.LAST_PARTNER for a CONFLICT. */
+    readonly messageKey?: string,
   ) {
     super(code, STATUS[code]);
   }

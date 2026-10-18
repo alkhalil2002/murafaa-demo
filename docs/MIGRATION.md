@@ -4,18 +4,18 @@ Every file, screen, route and model in `legacy/` with where it went or which mil
 
 Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP login, TOTP 2FA, editable permissions (all three layers), office IP allowlist enforcement, and audit writers.
 
-## Summary (2026-10-18, after M1 slice 1: login)
+## Summary (2026-10-18, after M1 slice 2: permissions)
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 26 | 25 |
+| `src/lib` files | 51 | 29 | 22 |
 | Business rules inside services/components | 37 | 26 | 11 |
-| Service capabilities | 225 | 0 endpoints | 225 (checklist below) |
-| Server actions files | 29 | 0 | 29 |
-| Screens | 63 | 1 | 62 |
-| Components | 20 | 6 | 14 |
+| Services | 54 | 2 | 52 |
+| Service capabilities | 225 | 6 | 219 |
+| Screens | 63 | 5 | 58 |
+| Components | 20 | 8 | 12 |
 | Route handlers | 9 | 2 (+1 replaced) | 6 |
-| Models | 56 | 4 (+ `outbox`, `sessions` new) | 52 |
+| Models | 56 | 7 (+ `outbox`, `sessions` new) | 49 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -41,7 +41,7 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `auth/phone.ts` | ✅ Ported | packages/rules/src/phone.ts | 2 tests |
 | `auth/portal-otp.ts` | ⏳ Pending | M8 Portals | client-portal OTP |
 | `auth/portal-session.ts` | ⏳ Pending | M8 Portals |  |
-| `auth/role-preview.ts` | ⏳ Pending | M1 Foundation | preview stored on the session row (sessions.preview_role); start/end endpoints + perms screen in M1 slice 2 |
+| `auth/role-preview.ts` | ✅ Ported | sessions.preview_role + POST/DELETE /api/v1/permissions/preview | server-side, not a cookie; view-only enforced by the guard |
 | `auth/session.ts` | ✅ Ported | apps/api/src/modules/auth/session.service.ts | DB sessions: httpOnly cookie (web) or bearer (mobile); 20-min idle + 30-day limit enforced server-side |
 | `auth/totp.ts` | ✅ Ported | apps/api/src/modules/auth/totp.ts | RFC 6238 tests added; encrypt the secret at rest (legacy stored it in plaintext) |
 | `auth/types.ts` | ✅ Ported | apps/api/src/common/tenancy/principal.ts |  |
@@ -66,9 +66,9 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `pdf/render.ts` | ⏳ Pending | M3 Documents | headless Chrome (puppeteer) — owner-approved 2026-07-24 for correct Arabic shaping/RTL; run it in a separate Cloud Run service with Arabic fonts, not inside the API |
 | `performance.ts` | ⏳ Pending | M6 HR | PERFORMANCE_POINTS ported (packages/rules performance.ts); event log writer pending |
 | `permissions/engine.ts` | ✅ Ported | packages/auth/src/engine.ts | 20 tests |
-| `permissions/guard.ts` | 🔁 Rebuild | M1 Foundation | layer 1 done (PermissionsGuard, fail-closed, audited); layers 2–3 wired with cases |
+| `permissions/guard.ts` | ✅ Ported | apps/api PermissionsGuard | layer 1 + partner-only + view-only preview, audited; layers 2–3 apply in the cases module (M2) via PolicyService |
 | `permissions/matrix.ts` | ✅ Ported | packages/auth/src/matrix.ts + policy.ts (seedPolicy) |  |
-| `permissions/policy.ts` | 🔁 Rebuild | M1 Foundation | editable DB policy; no process-local cache (stale on multi-instance Cloud Run) |
+| `permissions/policy.ts` | ✅ Ported | apps/api PolicyService + packages/auth policyFromRows | read from the office's rows on every request; no stale cache |
 | `permissions/scope.ts` | ⏳ Pending | M2 Core ops | row scope (ALL/ASSIGNED) as a Drizzle where-clause |
 | `security/ip.ts` | ✅ Ported | apps/api/src/common/security/ip-allowlist.ts | enforced by the API on login and on every request (legacy enforced it only in the page shell) |
 | `storage/gcs.ts` | ⏳ Pending | M3 Documents | GCS me-central2 |
@@ -124,13 +124,13 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `messages` | ⏳ Pending | M2 Core ops |  |
 | `notifications` | ⏳ Pending | M2 Core ops |  |
 | `office-settings` | ⏳ Pending | M1 Foundation |  |
-| `permissions-admin` | ⏳ Pending | M1 Foundation | editable roles/permissions/field-deny/scope |
+| `permissions-admin` | ✅ Ported | apps/api/src/modules/permissions |  |
 | `portal` | ⏳ Pending | M8 Portals |  |
 | `procedure-requests` | ⏳ Pending | M2 Core ops | status cycle ported (packages/rules workflows.ts) |
 | `pulse` | ⏳ Pending | M6 HR | points + override rule ported (packages/rules performance.ts); legacy sinceFor() used server-local time, use Riyadh time (dates.ts) |
 | `search` | ⏳ Pending | M2 Core ops |  |
 | `security` | ⏳ Pending | M1 Foundation | TOTP enrol/disable + office IP allowlist |
-| `security-audit` | ⏳ Pending | M1 Foundation |  |
+| `security-audit` | ✅ Ported | apps/api/src/modules/permissions (GET /permissions/audit) |  |
 | `settings` | ⏳ Pending | M1 Foundation |  |
 | `tasks` | ⏳ Pending | M2 Core ops |  |
 | `templates` | ⏳ Pending | M3 Documents |  |
@@ -192,10 +192,10 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/leads` | ⏳ Pending | M2 Core ops |  |
 | `/login` | ✅ Ported | apps/web/src/app/login (+ components/auth/login-form.tsx) |  |
 | `/notifications` | ⏳ Pending | M2 Core ops |  |
-| `/perms` | ⏳ Pending | M1 Foundation |  |
-| `/perms/audit` | ⏳ Pending | M1 Foundation |  |
-| `/perms/security` | ⏳ Pending | M1 Foundation |  |
-| `/perms/users` | ⏳ Pending | M1 Foundation |  |
+| `/perms` | ✅ Ported | apps/web/src/app/(app)/perms (matrix + role preview) |  |
+| `/perms/audit` | ✅ Ported | apps/web/src/app/(app)/perms/audit |  |
+| `/perms/security` | ✅ Ported | apps/web/src/app/(app)/perms/security (links to /account/security, slice 3) |  |
+| `/perms/users` | ✅ Ported | apps/web/src/app/(app)/perms/users |  |
 | `/portal/(app)` | ⏳ Pending | M8 Portals |  |
 | `/portal/(app)/cases/[id]` | ⏳ Pending | M8 Portals |  |
 | `/portal/(app)/invoices` | ⏳ Pending | M8 Portals |  |
@@ -230,9 +230,9 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `Office` | ✅ Ported | packages/database offices (+ ip_allowlist) |  |
 | `User` | ✅ Ported | packages/database users (+ encrypted TOTP) |  |
 | `OtpChallenge` | ✅ Ported | packages/database otp_challenges |  |
-| `Permission` | ⏳ Pending | M1 Foundation |  |
-| `FieldPermission` | ⏳ Pending | M1 Foundation |  |
-| `RoleCaseScope` | ⏳ Pending | M1 Foundation |  |
+| `Permission` | ✅ Ported | packages/database permissions |  |
+| `FieldPermission` | ✅ Ported | packages/database field_permissions |  |
+| `RoleCaseScope` | ✅ Ported | packages/database role_case_scopes |  |
 | `Client` | ⏳ Pending | M2 Core ops |  |
 | `Case` | ⏳ Pending | M2 Core ops |  |
 | `CaseAssignee` | ⏳ Pending | M2 Core ops |  |
@@ -309,7 +309,7 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `ai-answer.tsx` | ⏳ Pending | M5 AI gate |  |
 | `app-shell.tsx` | ✅ Ported | apps/web/src/components/shell/app-shell.tsx + nav.ts (bell count waits for M2) |  |
 | `auth/login-form.tsx` | ✅ Ported | apps/web/src/components/auth/login-form.tsx |  |
-| `auto-submit-select.tsx` | ⏳ Pending | M1 Foundation |  |
+| `auto-submit-select.tsx` | ✅ Ported | apps/web/src/components/auto-submit-select.tsx |  |
 | `cases/ai-draft-hearing-button.tsx` | ⏳ Pending | M2 Core ops |  |
 | `cases/case-list.tsx` | ⏳ Pending | M2 Core ops |  |
 | `cases/hearing-wizard.tsx` | ⏳ Pending | M2 Core ops |  |
@@ -322,7 +322,7 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `hr-ui.tsx` | ⏳ Pending | M6 HR |  |
 | `icons.tsx` | ✅ Ported | apps/web/src/components/icons.tsx |  |
 | `idle-logout.tsx` | ✅ Ported | apps/web/src/components/shell/idle-logout.tsx |  |
-| `perms-tabs.tsx` | ⏳ Pending | M1 Foundation |  |
+| `perms-tabs.tsx` | ✅ Ported | apps/web/src/components/perms/perms-tabs.tsx |  |
 | `portal/portal-login-form.tsx` | ⏳ Pending | M8 Portals |  |
 | `shell-frame.tsx` | ✅ Ported | apps/web/src/components/shell/shell-frame.tsx (search waits for M2) |  |
 | `side-nav.tsx` | ✅ Ported | apps/web/src/components/shell/side-nav.tsx |  |
@@ -650,11 +650,11 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **permissions-admin** (M1 Foundation)
 
-- [ ] `getRoleMatrix`
-- [ ] `setModuleLevel`
-- [ ] `setRoleCaseScope`
-- [ ] `listUsersWithRoles`
-- [ ] `setUserRole`
+- [x] `getRoleMatrix`
+- [x] `setModuleLevel`
+- [x] `setRoleCaseScope`
+- [x] `listUsersWithRoles`
+- [x] `setUserRole`
 
 **portal** (M8 Portals)
 
@@ -703,7 +703,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **security-audit** (M1 Foundation)
 
-- [ ] `listSecurityAudit`
+- [x] `listSecurityAudit`
 
 **settings** (M1 Foundation)
 
@@ -962,7 +962,8 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 |---|---|---|
 | AI drafting called api.anthropic.com directly and skipped the citation gate | lib/ai/hearing-draft.ts | Vertex me-central2 + gate (M5) |
 | TOTP secret stored in plaintext | User.totpSecret | ✅ fixed: AES-256-GCM (users.totp_secret_enc) |
-| Permission policy cached per process (stale on other Cloud Run instances) | lib/permissions/policy.ts | load per request or shared invalidation (M1) |
+| Permission policy cached per process (stale on other Cloud Run instances) | lib/permissions/policy.ts | ✅ fixed: read per request |
+| Demoting the last partner threw an unhandled LAST_PARTNER error (page crash); two concurrent demotions could both pass the count | server/permissions-admin.ts | ✅ fixed: 409 with errors.LAST_PARTNER, partner rows locked during the check |
 | Hard-coded Arabic in 9 components/pages | idle-logout, ai-draft-hearing-button, dashboard, today, hr, payroll, cases/[id], emp-portal | i18n + lint rule (done) |
 | Pulse time windows used server-local time | server/pulse.ts sinceFor | Riyadh calendar (packages/rules dates.ts) |
 | Overdue invoices / reminders computed only on read | lib/finance/core.ts | outbox + Cloud Tasks jobs |

@@ -1,35 +1,38 @@
-import postgres from "postgres";
+import { createDb, withTenant } from "./client.js";
+import { offices, users } from "./schema/index.js";
+import { seedOfficePolicy } from "./seed-policy.js";
 
 /**
- * Development seed (legacy prisma/seed.ts): one demo office and one user per
- * role, phones 0500000001–0500000006. Idempotent. Runs as the table owner,
- * which is still subject to FORCE RLS, so it scopes itself to the office.
+ * Development seed (legacy prisma/seed.ts): one demo office with the docs/04
+ * default permissions and one user per role, phones 0500000001–0500000006.
+ * Idempotent. Runs as the app role through withTenant, exactly like a request,
+ * so it works under FORCE RLS on Cloud SQL too.
  */
-const url = process.env.MIGRATION_DATABASE_URL;
-if (!url) throw new Error("MIGRATION_DATABASE_URL is required");
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error("DATABASE_URL (the app role) is required");
 
 const OFFICE_ID = "0f1c0000-0000-4000-8000-000000000001";
 const OFFICE_NAME = "مكتب مُرافعة التجريبي";
-const USERS: Array<[name: string, phone: string, role: string]> = [
-  ["عبدالله الشريك", "+966500000001", "PARTNER"],
-  ["منال المحامية", "+966500000002", "LAWYER"],
-  ["سالم المساعد", "+966500000003", "ASSISTANT"],
-  ["هند المحاسبة", "+966500000004", "ACCOUNTANT"],
-  ["ماجد الإداري", "+966500000005", "ADMIN"],
-  ["نورة الاستقبال", "+966500000006", "RECEPTION"],
-];
+const USERS = [
+  { name: "عبدالله الشريك", phone: "+966500000001", role: "PARTNER" },
+  { name: "منال المحامية", phone: "+966500000002", role: "LAWYER" },
+  { name: "سالم المساعد", phone: "+966500000003", role: "ASSISTANT" },
+  { name: "هند المحاسبة", phone: "+966500000004", role: "ACCOUNTANT" },
+  { name: "ماجد الإداري", phone: "+966500000005", role: "ADMIN" },
+  { name: "نورة الاستقبال", phone: "+966500000006", role: "RECEPTION" },
+] as const;
 
-const sql = postgres(url, { max: 1 });
+const { db, close } = createDb(url, { max: 1 });
 try {
-  await sql.begin(async (tx) => {
-    await tx`select set_config('app.office_id', ${OFFICE_ID}, true)`;
-    await tx`insert into offices (id, name) values (${OFFICE_ID}, ${OFFICE_NAME}) on conflict (id) do nothing`;
-    for (const [name, phone, role] of USERS) {
-      await tx`insert into users (office_id, name, phone, role) values (${OFFICE_ID}, ${name}, ${phone}, ${role})
-               on conflict (office_id, phone) do nothing`;
-    }
+  await withTenant(db, OFFICE_ID, async (tx) => {
+    await tx.insert(offices).values({ id: OFFICE_ID, name: OFFICE_NAME }).onConflictDoNothing();
+    await seedOfficePolicy(tx, OFFICE_ID);
+    await tx
+      .insert(users)
+      .values(USERS.map((u) => ({ officeId: OFFICE_ID, ...u })))
+      .onConflictDoNothing();
   });
-  console.log(`seeded ${OFFICE_NAME} with ${USERS.length} users (0500000001–0500000006)`);
+  console.log(`seeded ${OFFICE_NAME}: permissions + ${USERS.length} users (0500000001–0500000006)`);
 } finally {
-  await sql.end();
+  await close();
 }

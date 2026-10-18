@@ -25,6 +25,7 @@ export const ar = {
   "errors.TOTP_INVALID": "رمز المصادقة الثنائية غير صحيح.",
   "errors.IP_NOT_ALLOWED": "الوصول مقيّد من هذا العنوان",
   "common.underConstruction": "هذه الشاشة قيد الإنشاء.",
+  "errors.LAST_PARTNER": "لا يمكن تغيير دور آخر شريك في المكتب.",
   "portal.login.tagline": "بوابة العميل",
   "empPortal.login.tagline": "بوابة الموظف",
   "empPortal.title": "بوابة الموظف",

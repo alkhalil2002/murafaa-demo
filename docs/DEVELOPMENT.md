@@ -26,7 +26,7 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
 
 # بيانات تجريبية: مكتب + 6 مستخدمين بالأدوار
-MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnpm db:seed
+DATABASE_URL=postgres://murafaa_api:murafaa_api@localhost:5440/murafaa_dev pnpm db:seed
 ```
 
 ## تسجيل الدخول (بيئة التطوير)

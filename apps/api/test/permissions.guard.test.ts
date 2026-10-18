@@ -1,6 +1,6 @@
 import type { ExecutionContext } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { PermModule, Role } from "@murafaa/auth";
+import { PermModule, Role, seedPolicy } from "@murafaa/auth";
 import type { Db } from "@murafaa/database";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -10,7 +10,7 @@ import {
   RequirePermission,
 } from "../src/common/permissions/permission.decorators.js";
 import { PermissionsGuard } from "../src/common/permissions/permissions.guard.js";
-import { PolicyService } from "../src/common/permissions/policy.service.js";
+import type { PolicyService } from "../src/common/permissions/policy.service.js";
 import type { Principal } from "../src/common/tenancy/principal.js";
 import { loadEnv } from "../src/config/env.js";
 
@@ -25,6 +25,8 @@ class Routes {
 }
 
 const OFFICE = "aaaaaaaa-0000-4000-8000-000000000001";
+/** The docs/04 seed, standing in for the DB-backed policy. */
+const seededPolicies = { forOffice: async () => seedPolicy() } as unknown as PolicyService;
 const principal = (role: Principal["role"], previewRole?: Principal["role"]): Principal => ({
   userId: OFFICE,
   officeId: OFFICE,
@@ -42,7 +44,7 @@ function setup(mode: "strict" | "permissive" = "strict") {
     ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"),
   });
   return {
-    guard: new PermissionsGuard(new Reflector(), new PolicyService(), env, db),
+    guard: new PermissionsGuard(new Reflector(), seededPolicies, env, db),
     transaction,
   };
 }

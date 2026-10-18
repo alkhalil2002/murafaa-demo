@@ -14,6 +14,7 @@ import {
   PROC_STAGES,
   PROCEDURE_REQUEST_STATUSES,
 } from "@murafaa/rules";
+import { PermLevel, PermModule } from "@murafaa/auth";
 import { DOC_KINDS, DocumentTemplateCategory } from "@murafaa/documents";
 import { describe, expect, it } from "vitest";
 import { ar } from "../src/index.js";
@@ -36,6 +37,8 @@ const LABELLED: Array<[prefix: string, values: readonly string[]]> = [
   ["performanceEventKind.", PERFORMANCE_EVENT_KINDS],
   ["accType.", ACCOUNT_TYPES],
   ["empStatus.", EMPLOYEE_STATUSES],
+  ["module.", Object.values(PermModule).map((m) => m.toLowerCase())],
+  ["permLevel.", Object.values(PermLevel)],
 ];
 
 describe("i18n coverage of rule enumerations", () => {

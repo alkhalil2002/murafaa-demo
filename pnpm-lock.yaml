@@ -397,6 +397,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@murafaa/auth':
+        specifier: workspace:*
+        version: link:../auth
       drizzle-orm:
         specifier: 0.45.4
         version: 0.45.4(postgres@3.4.9)
@@ -446,6 +449,9 @@ importers:
 
   packages/i18n:
     devDependencies:
+      '@murafaa/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@murafaa/config':
         specifier: workspace:*
         version: link:../config

@@ -283,6 +283,395 @@
           }
         }
       }
+    },
+    "/api/v1/permissions/matrix": {
+      "get": {
+        "operationId": "permissionsMatrix",
+        "tags": [
+          "Permissions"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RoleMatrix"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/permissions/matrix/level": {
+      "put": {
+        "operationId": "permissionsSetLevel",
+        "tags": [
+          "Permissions"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RoleMatrix"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetModuleLevelBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/permissions/matrix/scope": {
+      "put": {
+        "operationId": "permissionsSetScope",
+        "tags": [
+          "Permissions"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RoleMatrix"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCaseScopeBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/permissions/users": {
+      "get": {
+        "operationId": "permissionsUsers",
+        "tags": [
+          "Permissions"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OfficeUsers"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/permissions/users/{id}/role": {
+      "put": {
+        "operationId": "permissionsSetUserRole",
+        "tags": [
+          "Permissions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OfficeUsers"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetUserRoleBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/permissions/audit": {
+      "get": {
+        "operationId": "permissionsAudit",
+        "tags": [
+          "Permissions"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SecurityAudit"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/permissions/preview": {
+      "post": {
+        "operationId": "permissionsStartPreview",
+        "tags": [
+          "Permissions"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {},
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartPreviewBody"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "permissionsEndPreview",
+        "tags": [
+          "Permissions"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {},
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -654,6 +1043,279 @@
           "createdAt"
         ],
         "additionalProperties": false
+      },
+      "RoleMatrix": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/RoleMatrixRow"
+        }
+      },
+      "RoleMatrixRow": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "PARTNER",
+              "LAWYER",
+              "ASSISTANT",
+              "ACCOUNTANT",
+              "ADMIN",
+              "RECEPTION"
+            ]
+          },
+          "levels": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "CASES",
+                "AI",
+                "CLIENTS",
+                "DOCUMENTS",
+                "FINANCE",
+                "HR",
+                "REPORTS",
+                "PERMISSIONS",
+                "WHATSAPP",
+                "APPOINTMENTS",
+                "TASKS",
+                "ALERTS",
+                "PULSE"
+              ]
+            },
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "NONE",
+                "VIEW",
+                "EDIT",
+                "FULL"
+              ]
+            },
+            "required": [
+              "CASES",
+              "AI",
+              "CLIENTS",
+              "DOCUMENTS",
+              "FINANCE",
+              "HR",
+              "REPORTS",
+              "PERMISSIONS",
+              "WHATSAPP",
+              "APPOINTMENTS",
+              "TASKS",
+              "ALERTS",
+              "PULSE"
+            ]
+          },
+          "caseScope": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "ASSIGNED"
+            ]
+          }
+        },
+        "required": [
+          "role",
+          "levels",
+          "caseScope"
+        ],
+        "additionalProperties": false
+      },
+      "SetModuleLevelBody": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "PARTNER",
+              "LAWYER",
+              "ASSISTANT",
+              "ACCOUNTANT",
+              "ADMIN",
+              "RECEPTION"
+            ]
+          },
+          "module": {
+            "type": "string",
+            "enum": [
+              "CASES",
+              "AI",
+              "CLIENTS",
+              "DOCUMENTS",
+              "FINANCE",
+              "HR",
+              "REPORTS",
+              "PERMISSIONS",
+              "WHATSAPP",
+              "APPOINTMENTS",
+              "TASKS",
+              "ALERTS",
+              "PULSE"
+            ]
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "VIEW",
+              "EDIT",
+              "FULL"
+            ]
+          }
+        },
+        "required": [
+          "role",
+          "module",
+          "level"
+        ]
+      },
+      "SetCaseScopeBody": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "PARTNER",
+              "LAWYER",
+              "ASSISTANT",
+              "ACCOUNTANT",
+              "ADMIN",
+              "RECEPTION"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "ASSIGNED"
+            ]
+          }
+        },
+        "required": [
+          "role",
+          "scope"
+        ]
+      },
+      "OfficeUsers": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/OfficeUser"
+        }
+      },
+      "OfficeUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "PARTNER",
+              "LAWYER",
+              "ASSISTANT",
+              "ACCOUNTANT",
+              "ADMIN",
+              "RECEPTION"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "SetUserRoleBody": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "PARTNER",
+              "LAWYER",
+              "ASSISTANT",
+              "ACCOUNTANT",
+              "ADMIN",
+              "RECEPTION"
+            ]
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "SecurityAudit": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SecurityAuditEntry"
+        }
+      },
+      "SecurityAuditEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "action": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "actorName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "detail",
+          "actorName",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "StartPreviewBody": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "PARTNER",
+              "LAWYER",
+              "ASSISTANT",
+              "ACCOUNTANT",
+              "ADMIN",
+              "RECEPTION"
+            ]
+          }
+        },
+        "required": [
+          "role"
+        ]
       }
     }
   }

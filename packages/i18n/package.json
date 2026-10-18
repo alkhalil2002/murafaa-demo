@@ -17,6 +17,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@murafaa/auth": "workspace:*",
     "@murafaa/config": "workspace:*",
     "@murafaa/documents": "workspace:*",
     "@murafaa/rules": "workspace:*",

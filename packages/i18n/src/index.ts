@@ -48,3 +48,22 @@ export function formatSar(halalas: number, locale: Locale = defaultLocale): stri
 export function roleLabel(role: string, locale: Locale = defaultLocale): string {
   return t(`role.${role.toLowerCase()}` as MessageKey, undefined, locale);
 }
+
+/** Display name of a permission module (keys module.cases, module.finance, …). */
+export function moduleLabel(module: string, locale: Locale = defaultLocale): string {
+  return t(`module.${module.toLowerCase()}` as MessageKey, undefined, locale);
+}
+
+/** Display name of a permission level (keys permLevel.NONE … permLevel.FULL). */
+export function permLevelLabel(level: string, locale: Locale = defaultLocale): string {
+  return t(`permLevel.${level}` as MessageKey, undefined, locale);
+}
+
+/** Date and time in Riyadh, e.g. for audit entries (legacy formatWhen). */
+export function formatWhen(value: Date | string, locale: Locale = defaultLocale): string {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-SA", {
+    timeZone: "Asia/Riyadh",
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}

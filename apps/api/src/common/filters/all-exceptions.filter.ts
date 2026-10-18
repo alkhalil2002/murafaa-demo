@@ -33,7 +33,7 @@ export function toApiError(exception: unknown): { status: number; error: ApiErro
       status: statusOf(exception.code),
       error: {
         code: exception.code,
-        messageKey: `errors.${exception.code}`,
+        messageKey: exception.messageKey ?? `errors.${exception.code}`,
         details: exception.details,
       },
     };

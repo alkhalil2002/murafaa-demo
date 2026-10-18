@@ -11,6 +11,7 @@ import { DatabaseModule } from "./database/database.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { OfficesModule } from "./modules/offices/offices.module.js";
+import { PermissionsModule } from "./modules/permissions/permissions.module.js";
 
 /** Log fields that may hold credentials or personal data (PDPL: minimize PII in logs). */
 const REDACT = [
@@ -42,6 +43,7 @@ export class AppModule {
         AuthModule,
         HealthModule,
         OfficesModule,
+        PermissionsModule,
       ],
       providers: [
         { provide: ENV, useValue: env },
