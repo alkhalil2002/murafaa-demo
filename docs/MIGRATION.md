@@ -9,7 +9,7 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
 | `src/lib` files | 51 | 41 | 10 |
-| Business rules inside services/components | 37 | 30 | 7 |
+| Business rules inside services/components | 37 | 31 | 6 |
 | Services | 54 | 37 | 17 |
 | Service capabilities | 225 | 162 | 63 |
 | Screens | 63 | 39 | 24 |
@@ -761,7 +761,7 @@ These lived in service files, not in `src/lib`, so a file-level port would miss 
 | `Smart alert tiers (overdue → critical, ≤2 days → important, …), filtered by module permission` | server/alerts.ts | packages/rules overview.ts deadlineAlertTier + apps/api overview | ✅ Ported (e2e; scoped to the caller's cases) |
 | `Security-audit action prefixes (auth., portal.login, portal.otp, security., permission., access.)` | server/security-audit.ts | M1 security module | ⏳ Pending |
 | `Activity categories from action/resource` | server/activity.ts categorize | packages/rules overview.ts activityCategory | ✅ Ported |
-| `Fee basis labels + unbilled-time collection` | server/fees.ts | M4 fees module | ⏳ Pending |
+| `Fee basis labels + unbilled-time collection` | server/fees.ts | i18n invoice.basis.* + apps/api fees.service (unbilled time claimed atomically) | ✅ Ported (e2e) |
 | `Journal posting rules for invoice, payment, credit note, bad debt, expense, advance, payroll, trust (deposit/withdraw/transfer)` | invoices.ts, trust.ts, expenses.ts, hr/advances.ts, hr/payroll.ts | packages/rules postings.ts (every builder tested balanced) | ✅ Ported |
 | `Standard account codes (ACC) + default chart of accounts (14 accounts)` | lib/finance/ledger.ts, prisma/seed.ts | packages/rules postings.ts ACC, COA_SEED | ✅ Ported |
 | `Trust balance can never go negative` | trust.ts conditional decrement | packages/rules canDebitTrust + DB check in M4 | ✅ Ported (rule) |
