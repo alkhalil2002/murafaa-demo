@@ -5964,6 +5964,58 @@
         }
       }
     },
+    "/api/v1/finance/invoices/{id}/pdf": {
+      "get": {
+        "operationId": "financeInvoicePdf",
+        "tags": [
+          "Finance"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {},
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/finance/invoices/{id}/payments": {
       "post": {
         "operationId": "financeRecordPayment",
@@ -7793,6 +7845,100 @@
         }
       }
     },
+    "/api/v1/offices/tax-profile": {
+      "get": {
+        "operationId": "officesTaxProfile",
+        "tags": [
+          "Offices"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OfficeTaxProfile"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "officesUpdateTaxProfile",
+        "tags": [
+          "Offices"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OfficeTaxProfile"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfficeTaxProfile"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/hr/employees": {
       "get": {
         "operationId": "hrEmployees",
@@ -9146,6 +9292,49 @@
                   ],
                   "properties": {
                     "data": {},
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations": {
+      "get": {
+        "operationId": "integrationsList",
+        "tags": [
+          "Integrations"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/IntegrationList"
+                    },
                     "error": {
                       "type": "null"
                     }
@@ -10911,6 +11100,49 @@
                   ],
                   "properties": {
                     "data": {},
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/whatsapp/messages": {
+      "get": {
+        "operationId": "whatsappMessages",
+        "tags": [
+          "Whatsapp"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WhatsappLog"
+                    },
                     "error": {
                       "type": "null"
                     }
@@ -14631,6 +14863,12 @@
               "null"
             ]
           },
+          "vatNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "city": {
             "type": [
               "string",
@@ -14663,6 +14901,7 @@
           "id",
           "name",
           "phone",
+          "vatNumber",
           "city",
           "type",
           "status",
@@ -14687,6 +14926,12 @@
               {
                 "type": "null"
               }
+            ]
+          },
+          "vatNumber": {
+            "type": [
+              "string",
+              "null"
             ]
           },
           "city": {
@@ -14740,6 +14985,12 @@
               {
                 "type": "null"
               }
+            ]
+          },
+          "vatNumber": {
+            "type": [
+              "string",
+              "null"
             ]
           },
           "city": {
@@ -17695,6 +17946,34 @@
           "confidentialityNotice"
         ]
       },
+      "OfficeTaxProfile": {
+        "type": "object",
+        "properties": {
+          "vatNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "crNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "taxAddress": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
       "EmployeeList": {
         "type": "array",
         "items": {
@@ -19412,6 +19691,51 @@
         "required": [
           "direction"
         ]
+      },
+      "IntegrationList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "enum": [
+                "NAJIZ",
+                "NAFATH",
+                "ZATCA",
+                "MUDAD",
+                "GOSI",
+                "QIWA",
+                "ABSHER",
+                "MUQEEM"
+              ]
+            },
+            "group": {
+              "type": "string",
+              "enum": [
+                "LEGAL",
+                "FINANCE",
+                "HR"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "NOT_CONNECTED",
+                "CONNECTED"
+              ]
+            },
+            "phase1Ready": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "key",
+            "group",
+            "status"
+          ],
+          "additionalProperties": false
+        }
       },
       "TodaySummary": {
         "type": "object",
@@ -21296,6 +21620,57 @@
         "required": [
           "status"
         ]
+      },
+      "WhatsappLog": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "note": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            },
+            "caseId": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "caseTitle": {
+              "type": "string"
+            },
+            "clientName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "clientPhone": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "note",
+            "createdAt",
+            "caseId",
+            "caseTitle",
+            "clientName",
+            "clientPhone"
+          ],
+          "additionalProperties": false
+        }
       }
     }
   }

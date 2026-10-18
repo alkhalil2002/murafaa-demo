@@ -42,6 +42,7 @@ const OFFICE_M = "33333333-0000-4000-8000-000000000003";
 const OFFICE_N = "22222222-0000-4000-8000-000000000002";
 const OFFICE_O = "11111111-0000-4000-8000-000000000001";
 const OFFICE_P = "12121212-0000-4000-8000-000000000012";
+const OFFICE_Q = "13131313-0000-4000-8000-000000000013";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -100,6 +101,11 @@ const LAWYER_M = "0500001103";
 const PARTNER_N = "0500001201";
 const ACCOUNTANT_N = "0500001202";
 
+const PARTNER_Q = "0500001501";
+const ACCOUNTANT_Q = "0500001502";
+const LAWYER_Q1 = "0500001503";
+const LAWYER_Q2 = "0500001504";
+const RECEPTION_Q = "0500001505";
 const PARTNER_P = "0500001401";
 const ADMIN_P = "0500001402";
 const LAWYER_P = "0500001403";
@@ -224,6 +230,18 @@ beforeAll(async () => {
         [PARTNER_G, "PARTNER"],
         [LAWYER_G1, "LAWYER"],
         [LAWYER_G2, "LAWYER"],
+      ],
+    ],
+    [
+      OFFICE_Q,
+      "Office Q",
+      [],
+      [
+        [PARTNER_Q, "PARTNER"],
+        [ACCOUNTANT_Q, "ACCOUNTANT"],
+        [LAWYER_Q1, "LAWYER"],
+        [LAWYER_Q2, "LAWYER"],
+        [RECEPTION_Q, "RECEPTION"],
       ],
     ],
     [
@@ -371,6 +389,7 @@ beforeAll(async () => {
     OFFICE_N,
     OFFICE_O,
     OFFICE_P,
+    OFFICE_Q,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -3512,5 +3531,152 @@ describe("HR: employees, advances, leaves, requests, attendance, payroll, recrui
       points: 7,
       role: "LAWYER",
     });
+  });
+});
+
+describe("integrations: ZATCA tax invoice, platform status, WhatsApp log", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let accountant = "";
+  let lawyer1 = "";
+  let lawyer2 = "";
+  let reception = "";
+  let clientId = "";
+  let invoiceId = "";
+  const as = (
+    cookie: string,
+    method: "GET" | "POST" | "PUT" | "PATCH",
+    url: string,
+    payload?: object,
+  ) =>
+    app.inject({
+      method,
+      url: `/api/v1${url}`,
+      headers: { cookie, ...WEB },
+      ...(payload ? { payload } : {}),
+    });
+  const data = async (
+    cookie: string,
+    method: "GET" | "POST" | "PUT" | "PATCH",
+    url: string,
+    payload?: object,
+  ) => {
+    const res = await as(cookie, method, url, payload);
+    if (res.statusCode >= 400) throw new Error(`${method} ${url} → ${res.statusCode} ${res.body}`);
+    return res.json().data;
+  };
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_Q));
+    accountant = cookieOf(await login(ACCOUNTANT_Q));
+    lawyer1 = cookieOf(await login(LAWYER_Q1));
+    lawyer2 = cookieOf(await login(LAWYER_Q2));
+    reception = cookieOf(await login(RECEPTION_Q));
+    clientId = (await data(partner, "POST", "/clients", { name: "مؤسسة الأفراد" })).id;
+    invoiceId = (
+      await data(accountant, "POST", "/finance/invoices", {
+        clientId,
+        items: [{ description: "أتعاب استشارة", quantity: 2, unitPrice: 50_000 }],
+      })
+    ).id;
+  });
+
+  it("keeps the tax profile partner-only and validates VAT and CR numbers", async () => {
+    expect(
+      (await as(accountant, "PUT", "/offices/tax-profile", { vatNumber: "300000000000003" }))
+        .statusCode,
+    ).toBe(403);
+    const bad = await as(partner, "PUT", "/offices/tax-profile", {
+      vatNumber: "123",
+      crNumber: "99",
+    });
+    expect(bad.statusCode).toBe(400);
+    expect(
+      bad
+        .json()
+        .error.details.map((d: { message: string }) => d.message)
+        .sort(),
+    ).toEqual(["errors.CR_NUMBER_INVALID", "errors.VAT_NUMBER_INVALID"]);
+    const ints = await data(lawyer1, "GET", "/integrations");
+    expect(ints.every((i: { status: string }) => i.status === "NOT_CONNECTED")).toBe(true);
+    expect(ints.map((i: { key: string }) => i.key)).toEqual([
+      "NAJIZ",
+      "NAFATH",
+      "ZATCA",
+      "MUDAD",
+      "GOSI",
+      "QIWA",
+      "ABSHER",
+      "MUQEEM",
+    ]);
+    expect(ints.find((i: { key: string }) => i.key === "ZATCA").phase1Ready).toBe(false);
+  });
+
+  it("prints no tax invoice without the office VAT number", async () => {
+    const res = await as(accountant, "GET", `/finance/invoices/${invoiceId}/pdf`);
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.messageKey).toBe("errors.TAX_PROFILE_MISSING");
+  });
+
+  it("prints a simplified tax invoice with the VAT number and QR, and a full one for a VAT-registered buyer", async () => {
+    await data(partner, "PUT", "/offices/tax-profile", {
+      vatNumber: "310122393500003",
+      crNumber: "1010123456",
+      taxAddress: "الرياض، حي العليا",
+    });
+    expect(await data(accountant, "GET", "/offices/tax-profile")).toEqual({
+      vatNumber: "310122393500003",
+      crNumber: "1010123456",
+      taxAddress: "الرياض، حي العليا",
+    });
+    pdfStub.html.length = 0;
+    const res = await as(accountant, "GET", `/finance/invoices/${invoiceId}/pdf`);
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toContain("application/pdf");
+    const html = pdfStub.html[0]!;
+    expect(html).toContain("فاتورة ضريبية مبسطة");
+    expect(html).toContain("310122393500003");
+    expect(html).toContain("1010123456");
+    expect(html).toMatch(/<svg[^>]*viewBox/);
+    expect(
+      (await data(lawyer1, "GET", "/integrations")).find((i: { key: string }) => i.key === "ZATCA")
+        .phase1Ready,
+    ).toBe(true);
+
+    expect(
+      (await as(partner, "PATCH", `/clients/${clientId}`, { vatNumber: "12" })).statusCode,
+    ).toBe(400);
+    await data(partner, "PATCH", `/clients/${clientId}`, { vatNumber: "300000000000003" });
+    pdfStub.html.length = 0;
+    await as(accountant, "GET", `/finance/invoices/${invoiceId}/pdf`);
+    expect(pdfStub.html[0]).toContain("فاتورة ضريبية<");
+    expect(pdfStub.html[0]).toContain("300000000000003");
+    const [audit] = await (async () => {
+      const owner = postgres(OWNER_URL, { max: 1 });
+      try {
+        return await owner`select count(*)::int as n from audit_log where office_id = ${OFFICE_Q} and action = 'invoice.pdf'`;
+      } finally {
+        await owner.end();
+      }
+    })();
+    expect(audit!.n).toBe(2);
+  });
+
+  it("lists recorded WhatsApp contacts within case scope", async () => {
+    const mine = (
+      await data(lawyer1, "POST", "/cases", { number: "1447/5", title: "قضية الأفراد", clientId })
+    ).id;
+    await data(lawyer1, "POST", `/cases/${mine}/communications`, {
+      type: "MESSAGE",
+      note: "رسالة للموكل",
+    });
+    await data(lawyer1, "POST", `/cases/${mine}/communications`, { type: "CALL", note: "اتصال" });
+    expect((await as(accountant, "GET", "/whatsapp/messages")).statusCode).toBe(403);
+    expect(await data(reception, "GET", "/whatsapp/messages")).toMatchObject([
+      { note: "رسالة للموكل", caseTitle: "قضية الأفراد", clientName: "مؤسسة الأفراد" },
+    ]);
+    // A lawyer sees only the cases assigned to them.
+    expect(await data(lawyer2, "GET", "/whatsapp/messages")).toEqual([]);
+    expect(await data(lawyer1, "GET", "/whatsapp/messages")).toHaveLength(1);
   });
 });

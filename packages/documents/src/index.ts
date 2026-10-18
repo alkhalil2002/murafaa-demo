@@ -4,3 +4,4 @@ export * from "./render.js";
 export * from "./uploads.js";
 export * from "./branding.js";
 export * from "./letterhead.js";
+export * from "./tax-invoice.js";

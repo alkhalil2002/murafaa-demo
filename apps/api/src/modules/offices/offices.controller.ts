@@ -1,5 +1,11 @@
 import { Controller, Get, Put, Req } from "@nestjs/common";
-import { ErrorCode, type Office, office, officeBranding } from "@murafaa/contracts";
+import {
+  ErrorCode,
+  type Office,
+  office,
+  officeBranding,
+  officeTaxProfile,
+} from "@murafaa/contracts";
 import type { FastifyRequest } from "fastify";
 import type { z } from "zod";
 import { ApiException } from "../../common/http/api.exception.js";
@@ -35,6 +41,28 @@ export class OfficesController {
   ) {
     if (!req.principal) throw new ApiException(ErrorCode.UNAUTHENTICATED);
     return this.offices.updateBranding(req.principal, body, {
+      ip: req.ip,
+      requestId: String(req.id),
+    });
+  }
+
+  /** Everyone may read the tax profile (it is printed on invoices); only partners change it. */
+  @Authenticated()
+  @Get("tax-profile")
+  @ZodResponse(officeTaxProfile)
+  taxProfile() {
+    return this.offices.taxProfile();
+  }
+
+  @RequirePartner("office.tax.update")
+  @Put("tax-profile")
+  @ZodResponse(officeTaxProfile)
+  updateTaxProfile(
+    @ZodBody(officeTaxProfile) body: z.infer<typeof officeTaxProfile>,
+    @Req() req: FastifyRequest,
+  ) {
+    if (!req.principal) throw new ApiException(ErrorCode.UNAUTHENTICATED);
+    return this.offices.updateTaxProfile(req.principal, body, {
       ip: req.ip,
       requestId: String(req.id),
     });

@@ -204,7 +204,7 @@ export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 export const REQUEST_DECISIONS = ["IN_REVIEW", "APPROVED", "REJECTED"] as const;
 export const ATTENDANCE_STATUSES = ["PRESENT", "LATE", "ABSENT", "LEAVE"] as const;
 export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
-/** Government platforms an office may connect later (M7); none is connected yet. */
+/** The platforms on the HR integrations screen (legacy order). */
 export const HR_INTEGRATION_KEYS = ["GOSI", "QIWA", "MUDAD", "ZATCA", "ABSHER", "MUQEEM"] as const;
 
 /** Only annual leave draws down the balance (legacy hr/leaves.ts). */

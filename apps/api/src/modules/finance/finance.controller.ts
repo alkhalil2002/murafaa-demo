@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Post, Put, Req } from "@nestjs/common";
+import { Controller, Get, HttpCode, Post, Put, Req, StreamableFile } from "@nestjs/common";
 import { PermModule } from "@murafaa/auth";
 import {
   accountList,
@@ -59,6 +59,7 @@ import { ReportsService } from "./reports.service.js";
 import { InvoicesService } from "./invoices.service.js";
 import { LedgerService } from "./ledger.service.js";
 import { TrustService } from "./trust.service.js";
+import { InvoicePdfService } from "./invoice-pdf.service.js";
 
 function caller(req: FastifyRequest) {
   if (!req.principal) throw new ApiException(ErrorCode.UNAUTHENTICATED);
@@ -80,6 +81,7 @@ export class FinanceController {
     private readonly governance: GovernanceService,
     private readonly bank: BankService,
     private readonly reports: ReportsService,
+    private readonly invoicePdfs: InvoicePdfService,
   ) {}
 
   @RequirePermission(PermModule.FINANCE, "view")
@@ -112,6 +114,22 @@ export class FinanceController {
   @ZodResponse(invoiceDetail)
   invoiceDetail(@ZodParams(idParams) params: z.infer<typeof idParams>) {
     return this.invoices.detail(params.id);
+  }
+
+  /** The printable ZATCA tax invoice (PDF). */
+  @RequirePermission(PermModule.FINANCE, "view")
+  @Get("finance/invoices/:id/pdf")
+  async invoicePdf(
+    @ZodParams(idParams) params: z.infer<typeof idParams>,
+    @Req() req: FastifyRequest,
+  ) {
+    const { p, meta } = caller(req);
+    const file = await this.invoicePdfs.render(p, params.id, meta);
+    return new StreamableFile(file.bytes, {
+      type: "application/pdf",
+      disposition: `inline; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+      length: file.bytes.length,
+    });
   }
 
   @RequirePermission(PermModule.FINANCE, "edit")

@@ -1,38 +1,28 @@
-import { t, type MessageKey } from "@murafaa/i18n";
+import { integrationsList } from "@murafaa/sdk";
+import { t } from "@murafaa/i18n";
 import { HR_INTEGRATION_KEYS } from "@murafaa/rules";
+import { IntegrationList } from "@/components/settings/integration-list";
+import { serverApi } from "@/lib/api";
 import { HrHeader } from "../hr-header";
 
 /**
- * التكاملات (legacy /hr/integrations). No government platform is connected
- * yet (M7), so every one is shown not connected with no connect button:
- * legacy's connect/sync toggles simulated a link that did not exist, which
- * the owner decision on fabricated integrations rules out.
+ * التكاملات (legacy /hr/integrations): the HR-side platforms with their real
+ * status from the API. Legacy's connect/sync toggles simulated a link that did
+ * not exist, which the owner decision on fabricated integrations rules out.
  */
-export default function IntegrationsPage() {
+export default async function IntegrationsPage() {
+  const all = (await integrationsList({ client: await serverApi() })).data?.data ?? [];
+  const keys: readonly string[] = HR_INTEGRATION_KEYS;
+  const rows = HR_INTEGRATION_KEYS.flatMap((k) => all.filter((r) => r.key === k));
   return (
     <>
       <HrHeader />
       <div className="panel">
         <div className="sub" style={{ marginBottom: 0 }}>
-          {t("hr.integ.pending")}
+          {t("integration.hint")}
         </div>
       </div>
-      <div className="clist">
-        {HR_INTEGRATION_KEYS.map((key) => (
-          <div
-            key={key}
-            className="dcard"
-            style={{ display: "flex", alignItems: "center", gap: 12 }}
-          >
-            <span style={{ fontSize: 22.5, color: "var(--ink-soft)" }}>●</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600 }}>{t(`hr.integ.name.${key}` as MessageKey)}</div>
-              <div className="sub">{t(`hr.integ.desc.${key}` as MessageKey)}</div>
-              <div className="sub">{t("hr.integ.notConnected")}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <IntegrationList rows={rows.filter((r) => keys.includes(r.key))} />
     </>
   );
 }

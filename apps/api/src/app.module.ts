@@ -11,6 +11,8 @@ import { LLM, type LlmProvider, llmFor } from "./modules/ai/llm.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { AiModule } from "./modules/ai/ai.module.js";
 import { HrModule } from "./modules/hr/hr.module.js";
+import { WhatsappModule } from "./modules/whatsapp/whatsapp.module.js";
+import { IntegrationsModule } from "./modules/integrations/integrations.module.js";
 import { PulseModule } from "./modules/pulse/pulse.module.js";
 import { AppointmentsModule } from "./modules/appointments/appointments.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
@@ -66,12 +68,14 @@ export class AppModule {
         HealthModule,
         OfficesModule,
         HrModule,
+        IntegrationsModule,
         OverviewModule,
         PulseModule,
         PermissionsModule,
         RecycleModule,
         SecurityModule,
         TasksModule,
+        WhatsappModule,
       ],
       providers: [
         { provide: ENV, useValue: env },

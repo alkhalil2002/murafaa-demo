@@ -1,4 +1,7 @@
 import { Module } from "@nestjs/common";
+import { PdfClient } from "../../common/pdf/pdf.client.js";
+import { OfficesModule } from "../offices/offices.module.js";
+import { InvoicePdfService } from "./invoice-pdf.service.js";
 import { PerformanceModule } from "../performance/performance.module.js";
 import { BankService } from "./bank.service.js";
 import { ExpensesService } from "./expenses.service.js";
@@ -12,14 +15,16 @@ import { ReportsService } from "./reports.service.js";
 import { TrustService } from "./trust.service.js";
 
 @Module({
-  imports: [PerformanceModule],
+  imports: [OfficesModule, PerformanceModule],
   controllers: [FinanceController],
   providers: [
     BankService,
     ExpensesService,
     FeesService,
     GovernanceService,
+    InvoicePdfService,
     InvoicesService,
+    PdfClient,
     LedgerPoster,
     LedgerService,
     ReportsService,

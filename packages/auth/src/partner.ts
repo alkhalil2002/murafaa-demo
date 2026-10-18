@@ -14,6 +14,7 @@ export const PARTNER_ONLY_ACTIONS = [
   "recycleBin.purge",
   "billing.view",
   "office.branding.update",
+  "office.tax.update", // the ZATCA tax profile printed on every invoice
   "rolePreview.start",
   "conflict.waive", // documented consent to act despite a conflict (docs/06 §4)
 ] as const;

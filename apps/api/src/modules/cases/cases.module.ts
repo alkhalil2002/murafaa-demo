@@ -28,6 +28,13 @@ import { ProcedureRequestsService } from "./procedure-requests.service.js";
     HearingsService,
     ProcedureRequestsService,
   ],
-  exports: [ApprovalsService, CasesService, ConflictsService, CaseAccess, DeadlinesService],
+  exports: [
+    ApprovalsService,
+    CasesService,
+    CaseworkService,
+    ConflictsService,
+    CaseAccess,
+    DeadlinesService,
+  ],
 })
 export class CasesModule {}

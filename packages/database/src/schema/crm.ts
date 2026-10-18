@@ -1,4 +1,14 @@
-import { bigint, index, pgEnum, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  bigint,
+  check,
+  index,
+  pgEnum,
+  pgTable,
+  text,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { audit, id, tenantPolicy, timestamps } from "./_helpers.js";
 import { offices } from "./offices.js";
 
@@ -31,13 +41,22 @@ export const clients = pgTable(
     name: text("name").notNull(),
     /** E.164; also the client-portal login key, so unique per office when present. */
     phone: text("phone"),
+    /** The buyer's VAT number: when set, invoices are full tax invoices, else simplified (ZATCA). */
+    vatNumber: text("vat_number"),
     city: text("city"),
     type: clientTypeEnum("type").notNull().default("INDIVIDUAL"),
     status: clientStatusEnum("status").notNull().default("ACTIVE"),
     ...timestamps,
     ...audit,
   },
-  (t) => [uniqueIndex("clients_office_phone_key").on(t.officeId, t.phone), tenantPolicy()],
+  (t) => [
+    uniqueIndex("clients_office_phone_key").on(t.officeId, t.phone),
+    check(
+      "clients_vat_number_format",
+      sql`${t.vatNumber} is null or ${t.vatNumber} ~ '^3[0-9]{13}3$'`,
+    ),
+    tenantPolicy(),
+  ],
 ).enableRLS();
 
 export const leads = pgTable(

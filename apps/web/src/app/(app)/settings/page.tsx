@@ -1,16 +1,26 @@
 import { formatWhen, t, type MessageKey } from "@murafaa/i18n";
-import { authCurrent, officesBranding, recycleList } from "@murafaa/sdk";
+import {
+  authCurrent,
+  integrationsList,
+  officesBranding,
+  officesTaxProfile,
+  recycleList,
+} from "@murafaa/sdk";
 import { BrandingForm } from "@/components/settings/branding-form";
+import { IntegrationList } from "@/components/settings/integration-list";
+import { TaxProfileForm } from "@/components/settings/tax-profile-form";
 import { RestoreButton } from "@/components/settings/restore-button";
 import { SignOutButton } from "@/components/shell/sign-out-button";
 import { serverApi } from "@/lib/api";
 
 export default async function SettingsPage() {
   const api = await serverApi();
-  const [me, branding, recycle] = await Promise.all([
+  const [me, branding, recycle, tax, integrations] = await Promise.all([
     authCurrent({ client: api }),
     officesBranding({ client: api }),
     recycleList({ client: api }),
+    officesTaxProfile({ client: api }),
+    integrationsList({ client: api }),
   ]);
   const isPartner = me.data?.data.isPartner && !me.data.data.user.previewRole;
   const items = recycle.data?.data ?? [];
@@ -33,6 +43,28 @@ export default async function SettingsPage() {
             {t("settings.office.deniedNote")}
           </div>
         )}
+      </div>
+
+      <div className="panel">
+        <h2 style={{ marginTop: 0 }}>{t("settings.tax.title")}</h2>
+        <div className="sub" style={{ marginBottom: 12 }}>
+          {t("settings.tax.hint")}
+        </div>
+        {isPartner && tax.data ? (
+          <TaxProfileForm profile={tax.data.data} />
+        ) : (
+          <div className="sub" style={{ marginBottom: 0 }}>
+            {tax.data?.data.vatNumber ?? t("settings.tax.partnerOnly")}
+          </div>
+        )}
+      </div>
+
+      <div className="panel">
+        <h2 style={{ marginTop: 0 }}>{t("integration.title")}</h2>
+        <div className="sub" style={{ marginBottom: 12 }}>
+          {t("integration.hint")}
+        </div>
+        <IntegrationList rows={integrations.data?.data ?? []} />
       </div>
 
       <div className="panel">

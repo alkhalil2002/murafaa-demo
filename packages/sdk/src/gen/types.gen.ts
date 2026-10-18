@@ -615,6 +615,7 @@ export type Client = {
     id: string;
     name: string;
     phone: string | null;
+    vatNumber: string | null;
     city: string | null;
     type: 'INDIVIDUAL' | 'COMPANY' | 'ESTABLISHMENT';
     status: 'ACTIVE' | 'PROSPECT' | 'INACTIVE';
@@ -624,6 +625,7 @@ export type Client = {
 export type CreateClientBody = {
     name: string;
     phone?: string | null;
+    vatNumber?: string | null;
     city?: string | null;
     type?: 'INDIVIDUAL' | 'COMPANY' | 'ESTABLISHMENT';
     status?: 'ACTIVE' | 'PROSPECT' | 'INACTIVE';
@@ -632,6 +634,7 @@ export type CreateClientBody = {
 export type UpdateClientBody = {
     name?: string;
     phone?: string | null;
+    vatNumber?: string | null;
     city?: string | null;
     type?: 'INDIVIDUAL' | 'COMPANY' | 'ESTABLISHMENT';
     status?: 'ACTIVE' | 'PROSPECT' | 'INACTIVE';
@@ -1175,6 +1178,12 @@ export type OfficeBranding = {
     confidentialityNotice: string;
 };
 
+export type OfficeTaxProfile = {
+    vatNumber?: string | null;
+    crNumber?: string | null;
+    taxAddress?: string | null;
+};
+
 export type EmployeeList = Array<EmployeeRow>;
 
 export type EmployeeRow = {
@@ -1468,6 +1477,13 @@ export type CreateCandidateBody = {
 export type MoveCandidateBody = {
     direction: 1 | -1;
 };
+
+export type IntegrationList = Array<{
+    key: 'NAJIZ' | 'NAFATH' | 'ZATCA' | 'MUDAD' | 'GOSI' | 'QIWA' | 'ABSHER' | 'MUQEEM';
+    group: 'LEGAL' | 'FINANCE' | 'HR';
+    status: 'NOT_CONNECTED' | 'CONNECTED';
+    phase1Ready?: boolean;
+}>;
 
 export type TodaySummary = {
     employeeOfWeek: {
@@ -1815,6 +1831,16 @@ export type CreateTaskBody = {
 export type MoveTaskBody = {
     status: 'NEW' | 'IN_PROGRESS' | 'DONE';
 };
+
+export type WhatsappLog = Array<{
+    id: string;
+    note: string;
+    createdAt: string;
+    caseId: string;
+    caseTitle: string;
+    clientName: string | null;
+    clientPhone: string | null;
+}>;
 
 export type AiStatusData = {
     body?: never;
@@ -4844,6 +4870,36 @@ export type FinanceInvoiceDetailResponses = {
 
 export type FinanceInvoiceDetailResponse = FinanceInvoiceDetailResponses[keyof FinanceInvoiceDetailResponses];
 
+export type FinanceInvoicePdfData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/invoices/{id}/pdf';
+};
+
+export type FinanceInvoicePdfErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceInvoicePdfError = FinanceInvoicePdfErrors[keyof FinanceInvoicePdfErrors];
+
+export type FinanceInvoicePdfResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type FinanceInvoicePdfResponse = FinanceInvoicePdfResponses[keyof FinanceInvoicePdfResponses];
+
 export type FinanceRecordPaymentData = {
     body: PaymentBody;
     path: {
@@ -5887,6 +5943,62 @@ export type OfficesUpdateBrandingResponses = {
 
 export type OfficesUpdateBrandingResponse = OfficesUpdateBrandingResponses[keyof OfficesUpdateBrandingResponses];
 
+export type OfficesTaxProfileData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/offices/tax-profile';
+};
+
+export type OfficesTaxProfileErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OfficesTaxProfileError = OfficesTaxProfileErrors[keyof OfficesTaxProfileErrors];
+
+export type OfficesTaxProfileResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: OfficeTaxProfile;
+        error: null;
+    };
+};
+
+export type OfficesTaxProfileResponse = OfficesTaxProfileResponses[keyof OfficesTaxProfileResponses];
+
+export type OfficesUpdateTaxProfileData = {
+    body: OfficeTaxProfile;
+    path?: never;
+    query?: never;
+    url: '/api/v1/offices/tax-profile';
+};
+
+export type OfficesUpdateTaxProfileErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OfficesUpdateTaxProfileError = OfficesUpdateTaxProfileErrors[keyof OfficesUpdateTaxProfileErrors];
+
+export type OfficesUpdateTaxProfileResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: OfficeTaxProfile;
+        error: null;
+    };
+};
+
+export type OfficesUpdateTaxProfileResponse = OfficesUpdateTaxProfileResponses[keyof OfficesUpdateTaxProfileResponses];
+
 export type HrEmployeesData = {
     body?: never;
     path?: never;
@@ -6666,6 +6778,34 @@ export type HrRemoveCandidateResponses = {
 };
 
 export type HrRemoveCandidateResponse = HrRemoveCandidateResponses[keyof HrRemoveCandidateResponses];
+
+export type IntegrationsListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/integrations';
+};
+
+export type IntegrationsListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type IntegrationsListError = IntegrationsListErrors[keyof IntegrationsListErrors];
+
+export type IntegrationsListResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: IntegrationList;
+        error: null;
+    };
+};
+
+export type IntegrationsListResponse = IntegrationsListResponses[keyof IntegrationsListResponses];
 
 export type OverviewTodayData = {
     body?: never;
@@ -7672,3 +7812,31 @@ export type TasksRemoveResponses = {
 };
 
 export type TasksRemoveResponse = TasksRemoveResponses[keyof TasksRemoveResponses];
+
+export type WhatsappMessagesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/whatsapp/messages';
+};
+
+export type WhatsappMessagesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type WhatsappMessagesError = WhatsappMessagesErrors[keyof WhatsappMessagesErrors];
+
+export type WhatsappMessagesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: WhatsappLog;
+        error: null;
+    };
+};
+
+export type WhatsappMessagesResponse = WhatsappMessagesResponses[keyof WhatsappMessagesResponses];

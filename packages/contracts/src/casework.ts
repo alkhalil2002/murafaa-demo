@@ -188,3 +188,18 @@ export const caseExecution = z
 export const caseExecutionView = z
   .object({ execution: caseExecution.nullable() })
   .meta({ id: "CaseExecutionView" });
+
+/** واتساب: hand-recorded message contacts across the visible cases. */
+export const whatsappLog = z
+  .array(
+    z.object({
+      id: z.uuid(),
+      note: z.string(),
+      createdAt: z.iso.datetime(),
+      caseId: z.uuid(),
+      caseTitle: z.string(),
+      clientName: z.string().nullable(),
+      clientPhone: z.string().nullable(),
+    }),
+  )
+  .meta({ id: "WhatsappLog" });

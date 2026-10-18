@@ -16,6 +16,7 @@ export function ClientCreateForm() {
   const [form, setForm] = useState({
     name: "",
     phone: "",
+    vatNumber: "",
     city: "",
     type: "INDIVIDUAL" as ClientType,
   });
@@ -29,7 +30,7 @@ export function ClientCreateForm() {
           e.preventDefault();
           run(
             () => crmCreateClient({ client: browserApi, body: form }),
-            () => setForm({ name: "", phone: "", city: "", type: "INDIVIDUAL" }),
+            () => setForm({ name: "", phone: "", vatNumber: "", city: "", type: "INDIVIDUAL" }),
           );
         }}
       >
@@ -50,6 +51,16 @@ export function ClientCreateForm() {
             dir="ltr"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          />
+        </div>
+        <div className="field">
+          <label>{t("clients.vatNumber")}</label>
+          <input
+            type="text"
+            dir="ltr"
+            inputMode="numeric"
+            value={form.vatNumber}
+            onChange={(e) => setForm({ ...form, vatNumber: e.target.value })}
           />
         </div>
         <div className="field">
@@ -90,6 +101,7 @@ export function ClientEditForm({
     id: string;
     name: string;
     phone: string | null;
+    vatNumber: string | null;
     city: string | null;
     status: ClientStatus;
   };
@@ -98,6 +110,7 @@ export function ClientEditForm({
   const [form, setForm] = useState({
     name: client.name,
     phone: client.phone ?? "",
+    vatNumber: client.vatNumber ?? "",
     city: client.city ?? "",
     status: client.status,
   });
@@ -127,6 +140,14 @@ export function ClientEditForm({
           value={form.phone}
           onChange={(e) => setForm({ ...form, phone: e.target.value })}
           placeholder={t("clients.phone")}
+        />
+        <input
+          type="text"
+          dir="ltr"
+          inputMode="numeric"
+          value={form.vatNumber}
+          onChange={(e) => setForm({ ...form, vatNumber: e.target.value })}
+          placeholder={t("clients.vatNumber")}
         />
         <input
           type="text"

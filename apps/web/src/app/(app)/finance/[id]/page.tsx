@@ -5,6 +5,7 @@ import { DeniedPanel } from "@/components/denied-panel";
 import { UnderConstruction } from "@/components/under-construction";
 import { CancelControls, PaymentForm } from "@/components/finance/finance-forms";
 import { serverApi } from "@/lib/api";
+import { TaxInvoicePdfButton } from "@/components/finance/tax-invoice-button";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -44,6 +45,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         <span className="pill">
           {d.clientName} · {d.issueDate} · {t(`invStatus.${d.status}` as MessageKey)}
         </span>
+        <div style={{ marginInlineStart: "auto" }}>
+          <TaxInvoicePdfButton invoiceId={d.id} />
+        </div>
       </div>
       <div className="kpis">
         <Field label={t("inv.net")} value={formatSar(d.net)} />

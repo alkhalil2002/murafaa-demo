@@ -10,9 +10,9 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 |---|---|---|---|
 | `src/lib` files | 51 | 46 | 5 |
 | Business rules inside services/components | 37 | 34 | 3 |
-| Services | 54 | 50 | 4 |
-| Service capabilities | 225 | 206 | 19 |
-| Screens | 63 | 56 | 7 |
+| Services | 54 | 51 | 3 |
+| Service capabilities | 225 | 208 | 17 |
+| Screens | 63 | 57 | 6 |
 | Components | 20 | 18 | 2 |
 | Route handlers | 9 | 4 (+1 replaced) | 4 |
 | Models | 56 | 55 (+ `outbox`, `sessions` new) | 1 |
@@ -92,7 +92,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `cases` | ✅ Ported | apps/api/src/modules/cases (effectiveStage follows held hearings) |  |
 | `client-approvals` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts (client decides on the portal, M8) |  |
 | `clients` | ✅ Ported | apps/api/src/modules/crm (conflict re-scan on rename joins with cases, M2 slice 2) |  |
-| `communications` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts (WhatsApp log view joins with M7) |  |
+| `communications` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts (+ messageLog behind GET /whatsapp/messages, row-scoped) |  |
 | `contracts` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts |  |
 | `dashboard` | ✅ Ported | apps/api/src/modules/overview |  |
 | `deadlines` | ✅ Ported | apps/api/src/modules/cases/deadlines.service.ts (GET /deadlines) |  |
@@ -109,7 +109,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `hr/attendance` | ✅ Ported | apps/api/src/modules/hr/records.service.ts |  |
 | `hr/employees` | ✅ Ported | apps/api/src/modules/hr/employees.service.ts (grant account: only a partner may grant PARTNER; terminate disables the login) |  |
 | `hr/index` | ✅ Ported | apps/api/src/modules/hr/hr.module.ts |  |
-| `hr/integrations` | ⏳ Pending | M7 Integrations |  |
+| `hr/integrations` | ✅ Ported | apps/api/src/modules/integrations (one adapter interface; every platform NotConnected until a signed API contract exists: no connect/sync simulation) |  |
 | `hr/leaves` | ✅ Ported | apps/api/src/modules/hr/records.service.ts |  |
 | `hr/org-chart` | ✅ Ported | apps/api/src/modules/hr/employees.service.ts orgChart |  |
 | `hr/payroll` | ✅ Ported | apps/api/src/modules/hr/payroll.service.ts |  |
@@ -117,7 +117,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `hr/requests` | ✅ Ported | apps/api/src/modules/hr/records.service.ts |  |
 | `hr/saudization` | ✅ Ported | apps/api/src/modules/hr/employees.service.ts saudization |  |
 | `hr/wps` | ✅ Ported | apps/api/src/modules/hr/payroll.service.ts wps (IBANs masked, view audited) |  |
-| `invoices` | ✅ Ported | apps/api/src/modules/finance/invoices.service.ts (invoice row locked for payments/credit notes/write-offs) |  |
+| `invoices` | ✅ Ported | apps/api/src/modules/finance/invoices.service.ts (invoice row locked for payments/credit notes/write-offs); ZATCA phase-1 tax invoice PDF + QR in invoice-pdf.service.ts |  |
 | `journey` | ✅ Ported | apps/api/src/modules/overview (invoice and WhatsApp counts join with M4/M7) |  |
 | `leads` | ✅ Ported | apps/api/src/modules/crm (incl. convertLead) |  |
 | `ledger-reports` | ✅ Ported | apps/api/src/modules/finance/reports.service.ts (trial balance, VAT return, aging, statements, manual entry) |  |
@@ -179,7 +179,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/hr/[id]` | ✅ Ported | apps/web/src/app/(app)/hr/[id] |  |
 | `/hr/advances` | ✅ Ported | apps/web/src/app/(app)/hr/advances |  |
 | `/hr/attendance` | ✅ Ported | apps/web/src/app/(app)/hr/attendance |  |
-| `/hr/integrations` | ✅ Ported | apps/web/src/app/(app)/hr/integrations (all shown not connected, no connect buttons: owner decision) |  |
+| `/hr/integrations` | ✅ Ported | apps/web/src/app/(app)/hr/integrations (status from the API; no connect buttons: owner decision) + settings integrations panel |  |
 | `/hr/leaves` | ✅ Ported | apps/web/src/app/(app)/hr/leaves |  |
 | `/hr/org` | ✅ Ported | apps/web/src/app/(app)/hr/org |  |
 | `/hr/payroll` | ✅ Ported | apps/web/src/app/(app)/hr/payroll (defaults to the current month; legacy hard-coded July 2026) |  |
@@ -205,7 +205,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/settings` | ✅ Ported | apps/web/src/app/(app)/settings (branding, recycle bin, account) |  |
 | `/tasks` | ✅ Ported | apps/web/src/app/(app)/tasks (kanban) |  |
 | `/today` | ✅ Ported | apps/web/src/app/(app)/today |  |
-| `/whatsapp` | ⏳ Pending | M7 Integrations |  |
+| `/whatsapp` | ✅ Ported | apps/web/src/app/(app)/whatsapp (hand-recorded message log; no WhatsApp integration) |  |
 
 ## Route handlers (9)
 
@@ -267,7 +267,7 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `Employee` | ✅ Ported | packages/database employees (CHECKs: money and leave balance >= 0, score 0–100) |  |
 | `Advance` | ✅ Ported | packages/database advances (CHECK 0 <= paid <= amount) |  |
 | `Leave` | ✅ Ported | packages/database leaves |  |
-| `IntegrationConnection` | ⏳ Pending | M7 Integrations |  |
+| `IntegrationConnection` | ⛔ Not ported | — | it stored a simulated connected flag; status now comes from the platform adapter (apps/api/src/modules/integrations); a per-office credentials table arrives with the first real contract |
 | `Candidate` | ✅ Ported | packages/database candidates |  |
 | `Attendance` | ✅ Ported | packages/database attendance (unique office + employee + day) |  |
 | `EmployeeRequest` | ✅ Ported | packages/database employee_requests (decisions lock the row) |  |
@@ -434,7 +434,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 - [x] `addClientCommunication`
 - [x] `deleteClientCommunication`
 - [x] `listClientCommunications`
-- [ ] `listMessageCommunications`
+- [x] `listMessageCommunications`
 
 **contracts** (M3 Documents)
 
@@ -557,7 +557,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **hr/integrations** (M7 Integrations)
 
-- [ ] `listIntegrations`
+- [x] `listIntegrations`
 - [ ] `connectIntegration`
 - [ ] `disconnectIntegration`
 - [ ] `syncIntegrationNow`
@@ -928,6 +928,9 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | 1 | Multi-tenancy | `office_id` everywhere | Decided (2026-07-05); now enforced by RLS |
 | 2 | Claude on Vertex in me-central2 | stub LLM; dev fallback called api.anthropic.com | **Open** — M5 built provider-agnostic (AI shows not connected until a provider is set); choose the provider and confirm the model is served in-Kingdom, or approve another region in writing (PDPL) |
 | new | Embeddings for retrieval | 64-dim hash stub (not real vectors) | **Open** — full-text search now; pgvector needs an embedding provider (same residency rule) |
+| new | ZATCA phase 2 (signed UBL XML, cryptographic stamp, reporting/clearance) | none | **Decided 2026-10-18** — after phase 1, once the office's ZATCA wave and CSID are confirmed; phase 1 (tax invoice PDF + QR) done in M7 |
+| new | Credit notes as ZATCA tax documents (QR, reference to the original invoice) | none | **Open** — phase 1 covers invoices; credit-note PDF next |
+| new | Najiz / Nafath / Mudad / GOSI / Qiwa / Absher / Muqeem API contracts | simulated toggles | **Decided 2026-10-18** — adapter interface, shown not connected until a signed contract and credentials exist |
 | new | WPS bank / Mudad file format | on-screen records only | **Open** — the export file is built with the Mudad integration (M7); which bank format first? |
 | new | Knowledge base per office or shared | one global KB | **Open** — built per office under RLS (each office curates its own); a shared official corpus would need a reviewed global table |
 | 3 | users vs employees | employees link to an optional user (grantEmployeeAccount) | Implemented; confirm |

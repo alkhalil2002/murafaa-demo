@@ -20,3 +20,4 @@ export * from "./overview.js";
 export * from "./casework.js";
 export * from "./reference/exec-proc-types.js";
 export * from "./finance-enums.js";
+export * from "./zatca.js";

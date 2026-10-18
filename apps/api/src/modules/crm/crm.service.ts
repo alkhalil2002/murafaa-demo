@@ -52,6 +52,7 @@ export class CrmService {
         id: c.id,
         name: c.name,
         phone: c.phone,
+        vatNumber: c.vatNumber,
         city: c.city,
         type: c.type,
         status: c.status,

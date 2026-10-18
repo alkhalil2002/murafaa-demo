@@ -3,6 +3,7 @@ import {
   CLIENT_TYPES,
   LEAD_SOURCES,
   LEAD_STAGES,
+  isValidVatNumber,
   normalizeSaudiPhone,
 } from "@murafaa/rules";
 import { z } from "zod";
@@ -32,6 +33,14 @@ const optionalText = (max: number) =>
     .transform((v) => v || null);
 
 export const clientType = z.enum(CLIENT_TYPES);
+
+/** A Saudi VAT number (15 digits starting and ending with 3), or none. */
+export const optionalVatNumber = z
+  .string()
+  .trim()
+  .nullish()
+  .transform((v) => v || null)
+  .refine((v) => v == null || isValidVatNumber(v), { message: "errors.VAT_NUMBER_INVALID" });
 export const clientStatus = z.enum(CLIENT_STATUSES);
 export const leadSource = z.enum(LEAD_SOURCES);
 export const leadStage = z.enum(LEAD_STAGES);
@@ -43,6 +52,7 @@ export const client = z
     id: z.uuid(),
     name: z.string(),
     phone: z.string().nullable(),
+    vatNumber: z.string().nullable(),
     city: z.string().nullable(),
     type: clientType,
     status: clientStatus,
@@ -56,6 +66,7 @@ export const createClientBody = z
   .object({
     name: z.string().trim().min(1).max(200),
     phone: optionalSaudiPhone,
+    vatNumber: optionalVatNumber,
     city: optionalText(100),
     type: clientType.default("INDIVIDUAL"),
     status: clientStatus.default("ACTIVE"),
@@ -66,6 +77,7 @@ export const updateClientBody = z
   .object({
     name: z.string().trim().min(1).max(200).optional(),
     phone: optionalSaudiPhone.optional(),
+    vatNumber: optionalVatNumber.optional(),
     city: optionalText(100).optional(),
     type: clientType.optional(),
     status: clientStatus.optional(),

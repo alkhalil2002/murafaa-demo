@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { type clientApprovalBody, type communicationBody, ErrorCode } from "@murafaa/contracts";
 import {
   caseMessages,
+  cases,
+  clients,
   clientApprovalRequests,
   clientCommunications,
   contracts,
@@ -14,7 +16,10 @@ import type { z } from "zod";
 import { writeAudit } from "../../common/audit/audit.js";
 import { ApiException } from "../../common/http/api.exception.js";
 import type { Principal } from "../../common/tenancy/principal.js";
+import { PolicyService } from "../../common/permissions/policy.service.js";
+import { TenantDb } from "../../database/tenant-db.service.js";
 import { CaseAccess, type Meta } from "./case-access.service.js";
+import { caseVisibility } from "./case-scope.js";
 import { logCaseEvent } from "./case-events.js";
 
 /**
@@ -26,7 +31,44 @@ import { logCaseEvent } from "./case-events.js";
  */
 @Injectable()
 export class CaseworkService {
-  constructor(private readonly access: CaseAccess) {}
+  constructor(
+    private readonly access: CaseAccess,
+    private readonly policies: PolicyService,
+    private readonly tenantDb: TenantDb,
+  ) {}
+
+  /**
+   * واتساب (legacy listMessageCommunications): message-type contact log
+   * entries across the cases the caller may see. No WhatsApp integration
+   * exists, so this is what staff recorded by hand.
+   */
+  async messageLog(p: Principal) {
+    const policy = await this.policies.forOffice(p.officeId);
+    return this.tenantDb.run(async (tx) => {
+      const rows = await tx
+        .select({
+          id: clientCommunications.id,
+          note: clientCommunications.note,
+          createdAt: clientCommunications.createdAt,
+          caseId: cases.id,
+          caseTitle: cases.title,
+          clientName: clients.name,
+          clientPhone: clients.phone,
+        })
+        .from(clientCommunications)
+        .innerJoin(cases, eq(cases.id, clientCommunications.caseId))
+        .leftJoin(clients, eq(clients.id, cases.clientId))
+        .where(
+          and(
+            isNull(clientCommunications.deletedAt),
+            eq(clientCommunications.type, "MESSAGE"),
+            caseVisibility(tx, policy, p),
+          ),
+        )
+        .orderBy(desc(clientCommunications.createdAt));
+      return rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
+    });
+  }
 
   // ── Contracts ──
 

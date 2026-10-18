@@ -1,5 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import { ErrorCode, type Office, type OfficeBrandingDto } from "@murafaa/contracts";
+import {
+  ErrorCode,
+  type Office,
+  type OfficeBrandingDto,
+  type officeTaxProfile,
+} from "@murafaa/contracts";
+import type { z } from "zod";
 import { resolveBranding } from "@murafaa/documents";
 import { offices } from "@murafaa/database";
 import { eq, isNull } from "drizzle-orm";
@@ -59,5 +65,44 @@ export class OfficesService {
       });
     });
     return this.branding();
+  }
+
+  /** The ZATCA tax profile (VAT and CR numbers, national address). */
+  async taxProfile(): Promise<z.infer<typeof officeTaxProfile>> {
+    const [row] = await this.tenantDb.run((tx) =>
+      tx
+        .select({
+          vatNumber: offices.vatNumber,
+          crNumber: offices.crNumber,
+          taxAddress: offices.taxAddress,
+        })
+        .from(offices)
+        .limit(1),
+    );
+    if (!row) throw new ApiException(ErrorCode.NOT_FOUND);
+    return row;
+  }
+
+  async updateTaxProfile(
+    p: Principal,
+    input: z.infer<typeof officeTaxProfile>,
+    meta: { ip: string; requestId: string },
+  ) {
+    await this.tenantDb.run(async (tx) => {
+      await tx
+        .update(offices)
+        .set({ ...input, updatedBy: p.userId })
+        .where(eq(offices.id, p.officeId));
+      await writeAudit(tx, {
+        officeId: p.officeId,
+        actorId: p.userId,
+        action: "office.tax.update",
+        entity: "offices",
+        entityId: p.officeId,
+        after: input,
+        ...meta,
+      });
+    });
+    return this.taxProfile();
   }
 }
