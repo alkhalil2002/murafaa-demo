@@ -56,3 +56,35 @@ export const documentItem = z
   .meta({ id: "DocumentItem" });
 export const documentList = z.array(documentItem).meta({ id: "DocumentList" });
 export const clearedCount = z.object({ count: z.number().int() }).meta({ id: "ClearedCount" });
+
+// ── Templates and generated documents ──
+
+export const templateSummary = z
+  .object({ key: z.string(), title: z.string(), category: z.string() })
+  .meta({ id: "TemplateSummary" });
+export const templateList = z.array(templateSummary).meta({ id: "TemplateList" });
+export const templateKeyParams = z.object({ key: z.string().min(1).max(50) });
+export const templateFormQuery = z.object({ caseId: z.uuid().optional() });
+export const templateForm = z
+  .object({
+    template: z.object({ key: z.string(), title: z.string() }),
+    fields: z.array(
+      z.object({
+        id: z.string(),
+        label: z.string(),
+        type: z.enum(["input", "textarea", "select"]),
+        options: z.array(z.string()).optional(),
+      }),
+    ),
+    values: z.record(z.string(), z.string()),
+    caseId: z.uuid().nullable(),
+    caseTitle: z.string().nullable(),
+  })
+  .meta({ id: "TemplateForm" });
+export const generateDocumentBody = z
+  .object({
+    templateKey: z.string().min(1).max(50),
+    caseId: z.uuid().nullish(),
+    values: z.record(z.string().max(50), z.string().max(10_000)).default({}),
+  })
+  .meta({ id: "GenerateDocumentBody" });

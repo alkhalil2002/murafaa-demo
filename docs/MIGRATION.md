@@ -8,14 +8,14 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 38 | 13 |
+| `src/lib` files | 51 | 40 | 11 |
 | Business rules inside services/components | 37 | 30 | 7 |
-| Services | 54 | 27 | 27 |
-| Service capabilities | 225 | 115 | 110 |
-| Screens | 63 | 24 | 39 |
+| Services | 54 | 28 | 26 |
+| Service capabilities | 225 | 121 | 104 |
+| Screens | 63 | 26 | 37 |
 | Components | 20 | 13 | 7 |
 | Route handlers | 9 | 4 (+1 replaced) | 4 |
-| Models | 56 | 27 (+ `outbox`, `sessions` new) | 29 |
+| Models | 56 | 28 (+ `outbox`, `sessions` new) | 28 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -62,8 +62,8 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `labels.ts` | ✅ Ported | packages/i18n (label keys per enum) | packages/i18n/test/coverage.test.ts checks every enum value has a label |
 | `money.ts` | ✅ Ported | packages/rules/src/money.ts | 3 tests; formatSar moved to i18n |
 | `najiz.ts` | ✅ Ported | packages/rules/src/reference/najiz.ts | tests added |
-| `pdf/letterhead.ts` | ⏳ Pending | M3 Documents | escapeHtml + branding (resolveBranding, DEFAULT_BRANDING) ported to packages/documents; letterhead HTML with the PDF service |
-| `pdf/render.ts` | ⏳ Pending | M3 Documents | headless Chrome (puppeteer) — owner-approved 2026-07-24 for correct Arabic shaping/RTL; run it in a separate Cloud Run service with Arabic fonts, not inside the API |
+| `pdf/letterhead.ts` | ✅ Ported | packages/documents/src/letterhead.ts | labels from i18n; CSP forbids any fetch; tested escaping |
+| `pdf/render.ts` | ✅ Ported | apps/pdf (separate service: puppeteer, Arabic fonts in the image, token auth, no JS and no network while rendering) + apps/api common/pdf/pdf.client.ts |  |
 | `performance.ts` | ⏳ Pending | M6 HR | PERFORMANCE_POINTS ported (packages/rules performance.ts); event log writer pending |
 | `permissions/engine.ts` | ✅ Ported | packages/auth/src/engine.ts | 20 tests |
 | `permissions/guard.ts` | ✅ Ported | apps/api PermissionsGuard | layer 1 + partner-only + view-only preview, audited; layers 2–3 apply in the cases module (M2) via PolicyService |
@@ -96,7 +96,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `contracts` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts |  |
 | `dashboard` | ✅ Ported | apps/api/src/modules/overview |  |
 | `deadlines` | ✅ Ported | apps/api/src/modules/cases/deadlines.service.ts (GET /deadlines) |  |
-| `documents` | ✅ Ported | apps/api/src/modules/documents (uploads checked against file content; generate + hearing report PDF with M3 slice 2) |  |
+| `documents` | ✅ Ported | apps/api/src/modules/documents (uploads checked against file content; template generation; hearing report PDF) |  |
 | `emp-portal` | ⏳ Pending | M8 Portals |  |
 | `execution` | ✅ Ported | apps/api/src/modules/cases/execution.service.ts (row-locked collections; office-checked follow-up assignee) |  |
 | `expenses` | ⏳ Pending | M4 Finance |  |
@@ -133,7 +133,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `security-audit` | ✅ Ported | apps/api/src/modules/permissions (GET /permissions/audit) |  |
 | `settings` | ⏳ Pending | M1 Foundation | recycle bin: GET /recycle exists (per-module view filter); kinds, restore and purge register with cases/leads (M2), documents (M3), employees (M6) |
 | `tasks` | ✅ Ported | apps/api/src/modules/tasks |  |
-| `templates` | ⏳ Pending | M3 Documents |  |
+| `templates` | ✅ Ported | apps/api/src/modules/documents (system templates are code: packages/documents TEMPLATE_DEFS) |  |
 | `today` | ✅ Ported | apps/api/src/modules/overview (HR requests and employee of the week join with M6) |  |
 | `trust` | ⏳ Pending | M4 Finance |  |
 
@@ -158,8 +158,8 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/clients` | ✅ Ported | apps/web/src/app/(app)/clients (+ CRM KPIs) |  |
 | `/dashboard` | ✅ Ported | apps/web/src/app/(app)/dashboard |  |
 | `/deadlines` | ✅ Ported | apps/web/src/app/(app)/deadlines |  |
-| `/documents` | ⏳ Pending | M3 Documents |  |
-| `/documents/new/[key]` | ⏳ Pending | M3 Documents |  |
+| `/documents` | ✅ Ported | apps/web/src/app/(app)/documents (template list) |  |
+| `/documents/new/[key]` | ✅ Ported | apps/web/src/app/(app)/documents/new/[key] (prefilled from the case, fee fields hidden for denied roles) |  |
 | `/emp-portal/(app)` | ⏳ Pending | M8 Portals |  |
 | `/emp-portal/login` | ⏳ Pending | M8 Portals |  |
 | `/finance` | ⏳ Pending | M4 Finance |  |
@@ -245,7 +245,7 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `Appointment` | ✅ Ported | packages/database appointments |  |
 | `ConflictFlag` | ✅ Ported | packages/database conflict_flags (+ RESOLVED status) |  |
 | `NajizClassification` | ✅ Ported | packages/rules reference/najiz.ts (static reference data, not a table) |  |
-| `DocumentTemplate` | ⏳ Pending | M3 Documents |  |
+| `DocumentTemplate` | ✅ Ported | packages/documents TEMPLATE_DEFS (system templates as code; office-owned templates would need a table: owner question) |  |
 | `Document` | ✅ Ported | packages/database documents (+ sha256; template key instead of a template row) |  |
 | `CaseFeeAgreement` | ⏳ Pending | M4 Finance |  |
 | `Invoice` | ⏳ Pending | M4 Finance |  |
@@ -453,15 +453,15 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **documents** (M3 Documents)
 
-- [ ] `prepareGenerateForm`
-- [ ] `generateFromTemplate`
+- [x] `prepareGenerateForm`
+- [x] `generateFromTemplate`
 - [x] `uploadDocument`
 - [x] `listDocuments`
 - [x] `getDocumentForDownload`
 - [x] `toggleShare`
 - [x] `softDeleteDocument`
 - [x] `clearOpeningPackage`
-- [ ] `generateHearingReportPdf`
+- [x] `generateHearingReportPdf`
 
 **emp-portal** (M8 Portals)
 
@@ -721,9 +721,9 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **templates** (M3 Documents)
 
-- [ ] `listTemplates`
-- [ ] `getTemplateByKey`
-- [ ] `templateFields`
+- [x] `listTemplates`
+- [x] `getTemplateByKey`
+- [x] `templateFields`
 
 **today** (M2 Core ops)
 
@@ -843,7 +843,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `cases/proc-actions.ts` | ✅ Ported | apps/api /cases/:id/stage/promote|remand, /procedure/end|reopen |  |
 | `cases/procedure-request-actions.ts` | ✅ Ported | apps/api /cases/:id/procedure-requests endpoints |  |
 | `clients/actions.ts` | ✅ Ported | apps/api /clients endpoints |  |
-| `documents/actions.ts` | ⏳ Pending | M3 Documents |  |
+| `documents/actions.ts` | ✅ Ported | apps/api /documents/generate, /documents/:id/share, DELETE /documents/:id, /cases/:id/documents/clear-opening |  |
 | `documents/upload-actions.ts` | ✅ Ported | apps/api POST /cases/:id/documents (raw bytes + query metadata) |  |
 | `emp-portal/actions.ts` | ⏳ Pending | M8 Portals |  |
 | `finance/actions.ts` | ⏳ Pending | M4 Finance |  |

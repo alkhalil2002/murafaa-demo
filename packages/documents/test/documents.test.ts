@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { prepareFields, renderBody, formatHijri } from "../src/render.js";
 import { TEMPLATE_DEFS } from "../src/templates.js";
+import { resolveBranding } from "../src/branding.js";
+import { letterheadHtml, textToBodyHtml } from "../src/letterhead.js";
 
 const engage = TEMPLATE_DEFS.find((t) => t.key === "engage")!;
 const claim = TEMPLATE_DEFS.find((t) => t.key === "claim")!;
@@ -69,5 +71,25 @@ describe("formatHijri (docs BR-DOC-DATE-LOCALE)", () => {
     expect(s.length).toBeGreaterThan(0);
     // Hijri year for mid-2026 is ~1447/1448 — Arabic-indic digits present.
     expect(s).toMatch(/[٠-٩]/);
+  });
+});
+
+describe("letterhead", () => {
+  it("escapes every text and keeps only hex colours in the CSS", () => {
+    const html = letterheadHtml({
+      branding: resolveBranding({
+        name: "<script>x</script>",
+        primaryColor: "red;}</style><img src=x>",
+      }),
+      title: "عنوان <b>",
+      bodyHtml: textToBodyHtml("سطر <i>\nثانٍ\n\nفقرة"),
+      labels: { date: "التاريخ: ١", onBehalfOf: "عن مكتب", signature: "التوقيع" },
+    });
+    expect(html).not.toContain("<script>x");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).not.toContain("red;}");
+    expect(html).toContain("عنوان &lt;b&gt;");
+    expect(html).toContain("<p>سطر &lt;i&gt;<br/>ثانٍ</p><p>فقرة</p>");
+    expect(html).toContain("default-src 'none'");
   });
 });

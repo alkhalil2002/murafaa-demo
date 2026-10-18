@@ -5,14 +5,26 @@ import {
   documentItem,
   documentList,
   ErrorCode,
+  generateDocumentBody,
+  hearingParams,
   idParams,
+  templateForm,
+  templateFormQuery,
+  templateKeyParams,
+  templateList,
   uploadDocumentQuery,
 } from "@murafaa/contracts";
 import type { FastifyRequest } from "fastify";
 import type { z } from "zod";
 import { ApiException } from "../../common/http/api.exception.js";
 import { RequirePermission } from "../../common/permissions/permission.decorators.js";
-import { BinaryBody, ZodParams, ZodQuery, ZodResponse } from "../../common/zod/zod.decorators.js";
+import {
+  BinaryBody,
+  ZodBody,
+  ZodParams,
+  ZodQuery,
+  ZodResponse,
+} from "../../common/zod/zod.decorators.js";
 import { DocumentsService } from "./documents.service.js";
 
 type Id = z.infer<typeof idParams>;
@@ -55,6 +67,47 @@ export class DocumentsController {
   clearOpening(@ZodParams(idParams) params: Id, @Req() req: FastifyRequest) {
     const { p, meta } = caller(req);
     return this.docs.clearOpening(p, params.id, meta);
+  }
+
+  @RequirePermission(PermModule.DOCUMENTS, "view")
+  @Get("documents/templates")
+  @ZodResponse(templateList)
+  templates() {
+    return this.docs.listTemplates();
+  }
+
+  @RequirePermission(PermModule.DOCUMENTS, "edit")
+  @Get("documents/templates/:key/form")
+  @ZodResponse(templateForm)
+  templateForm(
+    @ZodParams(templateKeyParams) params: z.infer<typeof templateKeyParams>,
+    @ZodQuery(templateFormQuery) query: z.infer<typeof templateFormQuery>,
+    @Req() req: FastifyRequest,
+  ) {
+    const { p, meta } = caller(req);
+    return this.docs.templateForm(p, params.key, query.caseId, meta);
+  }
+
+  @RequirePermission(PermModule.DOCUMENTS, "edit")
+  @Post("documents/generate")
+  @ZodResponse(documentItem)
+  generate(
+    @ZodBody(generateDocumentBody) body: z.infer<typeof generateDocumentBody>,
+    @Req() req: FastifyRequest,
+  ) {
+    const { p, meta } = caller(req);
+    return this.docs.generate(p, body, meta);
+  }
+
+  @RequirePermission(PermModule.DOCUMENTS, "edit")
+  @Post("cases/:id/hearings/:hearingId/report-pdf")
+  @ZodResponse(documentItem)
+  hearingReportPdf(
+    @ZodParams(hearingParams) params: z.infer<typeof hearingParams>,
+    @Req() req: FastifyRequest,
+  ) {
+    const { p, meta } = caller(req);
+    return this.docs.hearingReportPdf(p, params.id, params.hearingId, meta);
   }
 
   /** Streams the bytes (no public bucket URL); RFC 5987 file name for Arabic. */

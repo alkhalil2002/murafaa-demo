@@ -1,6 +1,7 @@
 import { createDb, runMigrations, seedOfficePolicy, withTenant } from "@murafaa/database";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { mkdtempSync } from "node:fs";
+import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import postgres from "postgres";
@@ -36,6 +37,7 @@ const OFFICE_H = "88888888-0000-4000-8000-000000000008";
 const OFFICE_I = "77777777-0000-4000-8000-000000000007";
 const OFFICE_J = "66666666-0000-4000-8000-000000000006";
 const OFFICE_K = "55555555-0000-4000-8000-000000000005";
+const OFFICE_L = "44444444-0000-4000-8000-000000000004";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -82,7 +84,21 @@ const LAWYER_K1 = "0500000902";
 const LAWYER_K2 = "0500000903";
 const RECEPTION_K = "0500000904";
 
+const PARTNER_L = "0500001001";
+const LAWYER_L1 = "0500001002";
+const LAWYER_L2 = "0500001003";
+const ASSISTANT_L = "0500001004";
+
 let app: NestFastifyApplication;
+
+/**
+ * Stand-in for the PDF service (apps/pdf has its own test against real
+ * Chrome): checks the token, records the HTML, answers a tiny PDF, or fails
+ * on demand.
+ */
+const PDF_TOKEN = "e2e-pdf-token-0123456789-0123456789-abcd";
+const pdfStub = { html: [] as string[], fail: false, server: null as Server | null };
+const STUB_PDF = Buffer.from("%PDF-1.4\n%stub\n%%EOF\n");
 
 const e164 = (local: string) => `+966${local.slice(1)}`;
 
@@ -116,6 +132,18 @@ const cookieOf = (res: { headers: Record<string, unknown> }) =>
   String(res.headers["set-cookie"]).split(";")[0] ?? "";
 
 beforeAll(async () => {
+  pdfStub.server = createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      if (req.headers.authorization !== `Bearer ${PDF_TOKEN}`) return void res.writeHead(401).end();
+      if (pdfStub.fail) return void res.writeHead(500).end();
+      pdfStub.html.push((JSON.parse(body) as { html: string }).html);
+      res.writeHead(200, { "content-type": "application/pdf" }).end(STUB_PDF);
+    });
+  });
+  await new Promise<void>((r) => pdfStub.server!.listen(0, "127.0.0.1", r));
+  const pdfPort = (pdfStub.server.address() as { port: number }).port;
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
   await owner`truncate documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
@@ -164,6 +192,17 @@ beforeAll(async () => {
         [PARTNER_G, "PARTNER"],
         [LAWYER_G1, "LAWYER"],
         [LAWYER_G2, "LAWYER"],
+      ],
+    ],
+    [
+      OFFICE_L,
+      "Office L",
+      [],
+      [
+        [PARTNER_L, "PARTNER"],
+        [LAWYER_L1, "LAWYER"],
+        [LAWYER_L2, "LAWYER"],
+        [ASSISTANT_L, "ASSISTANT"],
       ],
     ],
     [
@@ -255,6 +294,7 @@ beforeAll(async () => {
     OFFICE_I,
     OFFICE_J,
     OFFICE_K,
+    OFFICE_L,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -270,6 +310,8 @@ beforeAll(async () => {
     ENCRYPTION_KEY,
     OTP_PROVIDER: "console",
     STORAGE_DRIVER: "local",
+    PDF_SERVICE_URL: `http://127.0.0.1:${pdfPort}`,
+    PDF_SERVICE_TOKEN: PDF_TOKEN,
     STORAGE_LOCAL_DIR: mkdtempSync(join(tmpdir(), "murafaa-e2e-storage-")),
   });
   app = await createApp(env);
@@ -280,6 +322,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app?.close();
+  pdfStub.server?.close();
 });
 
 describe("API basics", () => {
@@ -2179,5 +2222,165 @@ describe("documents: upload, download, share, delete, recycle", () => {
     const usage = (await as(partner, "GET", "/api/v1/billing/usage")).json().data;
     expect(usage).toMatchObject({ cases: 1 });
     expect(usage.documents).toBe(((await list(lawyer1)) as unknown[]).length);
+  });
+});
+
+describe("generated documents: templates, letterhead PDFs, hearing reports", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let lawyer1 = "";
+  let lawyer2 = "";
+  let assistant = "";
+  let id = "";
+  const as = (cookie: string, method: "GET" | "POST" | "PATCH", url: string, payload?: object) =>
+    app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+  const docs = async () =>
+    (await as(lawyer1, "GET", `/api/v1/cases/${id}/documents`)).json().data as Array<{
+      id: string;
+      source: string;
+    }>;
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_L));
+    lawyer1 = cookieOf(await login(LAWYER_L1));
+    lawyer2 = cookieOf(await login(LAWYER_L2));
+    assistant = cookieOf(await login(ASSISTANT_L));
+    const client = (
+      await as(partner, "POST", "/api/v1/clients", { name: "شركة الإمداد", city: "الرياض" })
+    ).json().data;
+    id = (
+      await as(lawyer1, "POST", "/api/v1/cases", {
+        number: "1447/80",
+        title: "قضية القوالب",
+        clientId: client.id,
+        opposingParty: "مؤسسة الصقر",
+        city: "الرياض",
+      })
+    ).json().data.id;
+    const users = (await as(lawyer1, "GET", "/api/v1/cases/assignable-users")).json()
+      .data as Array<{ id: string; name: string }>;
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/assignees`, {
+      userId: users.find((u) => u.name === `user ${ASSISTANT_L}`)!.id,
+    });
+  });
+
+  it("lists the system templates and prefills the form from the case", async () => {
+    const list = (await as(lawyer1, "GET", "/api/v1/documents/templates")).json().data as Array<{
+      key: string;
+    }>;
+    expect(list.map((x) => x.key)).toEqual(
+      expect.arrayContaining(["claim", "engage", "poa", "warn"]),
+    );
+    const form = (
+      await as(lawyer1, "GET", `/api/v1/documents/templates/claim/form?caseId=${id}`)
+    ).json().data;
+    expect(form).toMatchObject({ caseId: id, caseTitle: "قضية القوالب" });
+    expect(form.values).toMatchObject({
+      plaintiff: "شركة الإمداد",
+      defendant: "مؤسسة الصقر",
+      court: "المحكمة المختصة بمدينة الرياض",
+    });
+    expect(
+      (await as(lawyer2, "GET", `/api/v1/documents/templates/claim/form?caseId=${id}`)).statusCode,
+    ).toBe(404);
+    expect(
+      (await as(lawyer1, "GET", "/api/v1/documents/templates/nope/form")).json().error.messageKey,
+    ).toBe("errors.TEMPLATE_NOT_FOUND");
+  });
+
+  it("generates an escaped letterhead PDF into the case and serves it", async () => {
+    pdfStub.html.length = 0;
+    const res = await as(lawyer1, "POST", "/api/v1/documents/generate", {
+      templateKey: "claim",
+      caseId: id,
+      values: { amount: "50000", facts: "وقائع <script>alert(1)</script>" },
+    });
+    expect(res.statusCode).toBe(201);
+    const doc = res.json().data;
+    expect(doc).toMatchObject({
+      source: "TEMPLATE",
+      kind: "LETTER",
+      templateKey: "claim",
+      mimeType: "application/pdf",
+    });
+    const html = pdfStub.html[0]!;
+    expect(html).toContain("شركة الإمداد");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).not.toContain("<script>alert");
+    expect(html).toContain("التاريخ:");
+    const dl = await as(lawyer1, "GET", `/api/v1/documents/${doc.id}/download`);
+    expect(dl.rawPayload.equals(STUB_PDF)).toBe(true);
+    const c = (await as(lawyer1, "GET", `/api/v1/cases/${id}`)).json().data;
+    expect(
+      c.events.some(
+        (e: { message: { messageKey: string } | null }) =>
+          e.message?.messageKey === "event.docGenerated",
+      ),
+    ).toBe(true);
+  });
+
+  it("drops fee fields for a role denied the fees field, even when submitted", async () => {
+    const form = (
+      await as(assistant, "GET", `/api/v1/documents/templates/engage/form?caseId=${id}`)
+    ).json().data;
+    expect(form.fields.some((f: { id: string }) => f.id === "feeValue")).toBe(false);
+    pdfStub.html.length = 0;
+    await as(assistant, "POST", "/api/v1/documents/generate", {
+      templateKey: "engage",
+      caseId: id,
+      values: { feeValue: "٢٥٪ سرّي" },
+    });
+    expect(pdfStub.html[0]).not.toContain("٢٥٪ سرّي");
+    pdfStub.html.length = 0;
+    await as(lawyer1, "POST", "/api/v1/documents/generate", {
+      templateKey: "engage",
+      caseId: id,
+      values: { feeValue: "٢٥٪" },
+    });
+    expect(pdfStub.html[0]).toContain("٢٥٪");
+  });
+
+  it("generates outside a case, and says unavailable (with no document) when the PDF service fails", async () => {
+    const free = (
+      await as(lawyer1, "POST", "/api/v1/documents/generate", { templateKey: "warn", values: {} })
+    ).json().data;
+    expect(free.id).toBeDefined();
+    expect((await as(lawyer1, "GET", `/api/v1/documents/${free.id}/download`)).statusCode).toBe(
+      200,
+    );
+
+    const before = (await docs()).length;
+    pdfStub.fail = true;
+    const res = await as(lawyer1, "POST", "/api/v1/documents/generate", {
+      templateKey: "claim",
+      caseId: id,
+      values: {},
+    });
+    pdfStub.fail = false;
+    expect(res.statusCode).toBe(503);
+    expect(res.json().error).toMatchObject({
+      code: "UNAVAILABLE",
+      messageKey: "errors.PDF_UNAVAILABLE",
+    });
+    expect((await docs()).length).toBe(before);
+  });
+
+  it("renders a hearing's client report on the letterhead as a hearing document", async () => {
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings`, { hearingDate: "2026-06-01" });
+    const h = (await as(lawyer1, "GET", `/api/v1/cases/${id}`)).json().data.hearings[0];
+    const none = await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings/${h.id}/report-pdf`);
+    expect(none.json().error.messageKey).toBe("errors.HEARING_HAS_NO_REPORT");
+    await as(lawyer1, "PATCH", `/api/v1/cases/${id}/hearings/${h.id}`, {
+      clientReport: "تأجيلت الجلسة\nللاطلاع على المذكرة",
+    });
+    pdfStub.html.length = 0;
+    const doc = (
+      await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings/${h.id}/report-pdf`)
+    ).json().data;
+    expect(doc).toMatchObject({ source: "HEARING", hearingId: h.id, kind: "LETTER" });
+    expect(pdfStub.html[0]).toContain("تأجيلت الجلسة<br/>للاطلاع على المذكرة");
+    expect(
+      (await as(lawyer2, "POST", `/api/v1/cases/${id}/hearings/${h.id}/report-pdf`)).statusCode,
+    ).toBe(404);
   });
 });

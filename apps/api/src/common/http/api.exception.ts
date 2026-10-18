@@ -15,6 +15,7 @@ const STATUS: Record<ErrorCode, number> = {
   TOTP_INVALID: 401,
   IP_NOT_ALLOWED: 403,
   INTERNAL: 500,
+  UNAVAILABLE: 503,
 };
 
 /** An error that already knows its envelope code. The exception filter renders it as-is. */

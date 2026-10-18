@@ -1,0 +1,27 @@
+{
+  "name": "@murafaa/pdf",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Internal HTML → PDF service (headless Chrome via puppeteer, Arabic fonts). Called only by the API.",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/src/main.js",
+    "start": "node dist/src/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fastify": "5.12.5",
+    "puppeteer": "25.12.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@murafaa/config": "workspace:*",
+    "@types/node": "24.19.2",
+    "eslint": "10.13.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

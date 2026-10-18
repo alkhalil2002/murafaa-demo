@@ -6,6 +6,8 @@ packages:
 allowBuilds:
   esbuild: true
   "@swc/core": true
+  # Downloads the headless Chrome the PDF service renders with.
+  puppeteer: true
   # Install-time telemetry from swagger-ui-dist; not needed.
   "@scarf/scarf": false
   # Prebuilt binaries ship as optional deps; the fallback script is not needed.

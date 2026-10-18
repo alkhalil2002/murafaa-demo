@@ -47,6 +47,7 @@ import {
 import {
   ClearOpeningButton,
   DocumentControls,
+  HearingReportPdfButton,
   OpeningUploadForm,
   UploadForm,
 } from "@/components/documents/document-controls";
@@ -562,6 +563,7 @@ export default async function CaseDetailPage({
                           canEdit={canEdit}
                           canApprove={canDelete}
                         />
+                        {canEditDocs && <HearingReportPdfButton caseId={c.id} hearingId={h.id} />}
                       </div>
                     )}
                     {linked.length > 0 && (

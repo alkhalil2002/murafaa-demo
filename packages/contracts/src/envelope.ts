@@ -19,6 +19,8 @@ export const ErrorCode = {
   TOTP_INVALID: "TOTP_INVALID",
   IP_NOT_ALLOWED: "IP_NOT_ALLOWED",
   INTERNAL: "INTERNAL",
+  /** A backing service (e.g. PDF rendering) is not connected or did not answer. */
+  UNAVAILABLE: "UNAVAILABLE",
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 

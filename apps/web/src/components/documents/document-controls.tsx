@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   documentsClearOpening,
+  documentsHearingReportPdf,
   documentsRemove,
   documentsShare,
   documentsUpload,
@@ -278,5 +279,38 @@ export function ClearOpeningButton({ caseId }: { caseId: string }) {
       </button>
       <ErrorLine error={error} />
     </>
+  );
+}
+
+/** The hearing's client report as a letterhead PDF, saved to the case documents (legacy "⬇ معاينة PDF بالديباجة"). */
+export function HearingReportPdfButton({
+  caseId,
+  hearingId,
+}: {
+  caseId: string;
+  hearingId: string;
+}) {
+  const { run, pending, error } = useApiAction();
+  return (
+    <div style={{ marginTop: 6 }}>
+      <button
+        type="button"
+        className="tinybtn"
+        disabled={pending}
+        onClick={() =>
+          run(async () => {
+            const res = await documentsHearingReportPdf({
+              client: browserApi,
+              path: { id: caseId, hearingId },
+            });
+            if (res.data) window.open(`/api/v1/documents/${res.data.data.id}/download`, "_blank");
+            return res;
+          })
+        }
+      >
+        {t("cases.hearings.previewReportPdf")}
+      </button>
+      <ErrorLine error={error} />
+    </div>
   );
 }

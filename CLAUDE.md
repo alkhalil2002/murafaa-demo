@@ -44,6 +44,7 @@ Decided 2026-10-18 (ADR-0001). Versions are pinned in each `package.json`.
   apps/api      NestJS 12 (Fastify) — the ONLY backend. REST /api/v1 + OpenAPI.
   apps/web      Next.js 16 (App Router) — UI only, no business logic, calls the API via @murafaa/sdk.
   apps/mobile   Expo — later; same API/SDK/packages.
+  apps/pdf      internal HTML → PDF service (puppeteer, Arabic fonts); only the API calls it.
   packages/rules      pure business rules (docs/06) + tests
   packages/auth       roles/modules/levels, seed matrix, pure permission engine (docs/04)
   packages/contracts  Zod 4 request/response schemas — the single source for validation, OpenAPI and the SDK
@@ -72,7 +73,7 @@ pnpm db:up               # local Postgres 17 + pgvector on :5440 (Docker)
 MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnpm db:migrate
 DATABASE_URL=postgres://murafaa_api:murafaa_api@localhost:5440/murafaa_dev pnpm db:seed   # demo office, users 0500000001–6 (runs as the app role)
 pnpm db:seed:demo        # optional demo cases through the real API (skips if the office has cases)
-pnpm dev                 # api :4000, web :3000
+pnpm dev                 # api :4000, web :3000, pdf :4100 (apps/pdf, headless Chrome)
 pnpm build
 pnpm lint                # lint (incl. i18n rule)
 pnpm typecheck

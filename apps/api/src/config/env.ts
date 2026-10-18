@@ -29,6 +29,9 @@ const envSchema = z
     STORAGE_DRIVER: z.enum(["local", "gcs"]).default("local"),
     STORAGE_LOCAL_DIR: z.string().default(".storage"),
     GCS_BUCKET: z.string().optional(),
+    /** The internal PDF service (apps/pdf). Unset: generating PDFs answers UNAVAILABLE, nothing is faked. */
+    PDF_SERVICE_URL: z.url().optional(),
+    PDF_SERVICE_TOKEN: z.string().min(32).optional(),
   })
   .refine((e) => e.NODE_ENV !== "production" || e.RBAC_ENFORCEMENT === "strict", {
     message: "RBAC_ENFORCEMENT must be 'strict' in production",
@@ -37,6 +40,10 @@ const envSchema = z
   .refine((e) => e.NODE_ENV !== "production" || e.STORAGE_DRIVER === "gcs", {
     message: "documents must be stored in GCS (Dammam) in production, not on local disk",
     path: ["STORAGE_DRIVER"],
+  })
+  .refine((e) => Boolean(e.PDF_SERVICE_URL) === Boolean(e.PDF_SERVICE_TOKEN), {
+    message: "PDF_SERVICE_URL and PDF_SERVICE_TOKEN go together",
+    path: ["PDF_SERVICE_TOKEN"],
   })
   .refine((e) => e.STORAGE_DRIVER !== "gcs" || Boolean(e.GCS_BUCKET), {
     message: "GCS_BUCKET is required when STORAGE_DRIVER=gcs",

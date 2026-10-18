@@ -24,6 +24,7 @@ MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnp
 # المتغيّرات (لا تلتزم .env أبداً)
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
+cp apps/pdf/.env.example apps/pdf/.env   # خدمة PDF الداخلية (نفس PDF_SERVICE_TOKEN في apps/api/.env)
 
 # بيانات تجريبية: مكتب + 6 مستخدمين بالأدوار
 DATABASE_URL=postgres://murafaa_api:murafaa_api@localhost:5440/murafaa_dev pnpm db:seed
@@ -52,7 +53,7 @@ pnpm db:seed:demo
 
 ## الأوامر
 ```bash
-pnpm dev            # الـ API على :4000 والموقع على :3000
+pnpm dev            # الـ API على :4000 والموقع على :3000 وخدمة PDF على :4100
 pnpm build          # بناء كل الحزم والتطبيقات
 pnpm lint           # ESLint، ويرفض أي نص عربي مكتوب مباشرة في الواجهة
 pnpm typecheck
@@ -72,3 +73,9 @@ MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnp
 - **أي جدول جديد** يحتاج `tenantPolicy()` و`.enableRLS()`، وسطر `FORCE ROW LEVEL SECURITY` وصلاحيات في migration مخصّصة. اختبار `rls.e2e` يفشل لو نسيت.
 - **أي route جديد** يحتاج `@Public()` أو `@Authenticated()` أو `@RequirePermission(module, action)`. بدونها يُرفض الطلب.
 - **الـ SDK** في `packages/sdk/src/gen` مولَّد آلياً، فلا تعدّله يدوياً.
+
+## المستندات وملفات PDF
+- الملفات المرفوعة تُحفظ محلياً في `apps/api/.storage` (STORAGE_DRIVER=local)، وفي الإنتاج في GCS بالدمام (STORAGE_DRIVER=gcs + GCS_BUCKET). الإنتاج يرفض التخزين المحلي.
+- إنشاء PDF يمر عبر خدمة منفصلة `apps/pdf` (Chrome بدون واجهة، puppeteer). أول `pnpm install` ينزّل Chrome.
+  لو الخدمة مش شغالة أو PDF_SERVICE_URL فاضي، الـ API يرد `UNAVAILABLE` ولا يُنشئ ملفاً بديلاً.
+- صورة الإنتاج `apps/pdf/Dockerfile` فيها الخطوط العربية (Noto Naskh/Kufi Arabic وAmiri)؛ تُنشر كخدمة Cloud Run داخلية فقط.

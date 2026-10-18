@@ -10,7 +10,7 @@ export type ErrorEnvelope = {
 };
 
 export type ApiError = {
-    code: 'VALIDATION_FAILED' | 'UNAUTHENTICATED' | 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'RATE_LIMITED' | 'OTP_EXPIRED' | 'OTP_INVALID' | 'OTP_TOO_MANY_ATTEMPTS' | 'TOTP_REQUIRED' | 'TOTP_INVALID' | 'IP_NOT_ALLOWED' | 'INTERNAL';
+    code: 'VALIDATION_FAILED' | 'UNAUTHENTICATED' | 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'RATE_LIMITED' | 'OTP_EXPIRED' | 'OTP_INVALID' | 'OTP_TOO_MANY_ATTEMPTS' | 'TOTP_REQUIRED' | 'TOTP_INVALID' | 'IP_NOT_ALLOWED' | 'INTERNAL' | 'UNAVAILABLE';
     messageKey: string;
     details?: Array<{
         path: string;
@@ -628,6 +628,40 @@ export type DocumentItem = {
 
 export type ClearedCount = {
     count: number;
+};
+
+export type TemplateList = Array<TemplateSummary>;
+
+export type TemplateSummary = {
+    key: string;
+    title: string;
+    category: string;
+};
+
+export type TemplateForm = {
+    template: {
+        key: string;
+        title: string;
+    };
+    fields: Array<{
+        id: string;
+        label: string;
+        type: 'input' | 'textarea' | 'select';
+        options?: Array<string>;
+    }>;
+    values: {
+        [key: string]: string;
+    };
+    caseId: string | null;
+    caseTitle: string | null;
+};
+
+export type GenerateDocumentBody = {
+    templateKey: string;
+    caseId?: string | null;
+    values?: {
+        [key: string]: string;
+    };
 };
 
 export type Health = {
@@ -3364,6 +3398,125 @@ export type DocumentsClearOpeningResponses = {
 };
 
 export type DocumentsClearOpeningResponse = DocumentsClearOpeningResponses[keyof DocumentsClearOpeningResponses];
+
+export type DocumentsTemplatesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/documents/templates';
+};
+
+export type DocumentsTemplatesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type DocumentsTemplatesError = DocumentsTemplatesErrors[keyof DocumentsTemplatesErrors];
+
+export type DocumentsTemplatesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: TemplateList;
+        error: null;
+    };
+};
+
+export type DocumentsTemplatesResponse = DocumentsTemplatesResponses[keyof DocumentsTemplatesResponses];
+
+export type DocumentsTemplateFormData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: {
+        caseId?: string;
+    };
+    url: '/api/v1/documents/templates/{key}/form';
+};
+
+export type DocumentsTemplateFormErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type DocumentsTemplateFormError = DocumentsTemplateFormErrors[keyof DocumentsTemplateFormErrors];
+
+export type DocumentsTemplateFormResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: TemplateForm;
+        error: null;
+    };
+};
+
+export type DocumentsTemplateFormResponse = DocumentsTemplateFormResponses[keyof DocumentsTemplateFormResponses];
+
+export type DocumentsGenerateData = {
+    body: GenerateDocumentBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/documents/generate';
+};
+
+export type DocumentsGenerateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type DocumentsGenerateError = DocumentsGenerateErrors[keyof DocumentsGenerateErrors];
+
+export type DocumentsGenerateResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: DocumentItem;
+        error: null;
+    };
+};
+
+export type DocumentsGenerateResponse = DocumentsGenerateResponses[keyof DocumentsGenerateResponses];
+
+export type DocumentsHearingReportPdfData = {
+    body?: never;
+    path: {
+        id: string;
+        hearingId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/hearings/{hearingId}/report-pdf';
+};
+
+export type DocumentsHearingReportPdfErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type DocumentsHearingReportPdfError = DocumentsHearingReportPdfErrors[keyof DocumentsHearingReportPdfErrors];
+
+export type DocumentsHearingReportPdfResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: DocumentItem;
+        error: null;
+    };
+};
+
+export type DocumentsHearingReportPdfResponse = DocumentsHearingReportPdfResponses[keyof DocumentsHearingReportPdfResponses];
 
 export type DocumentsDownloadData = {
     body?: never;
