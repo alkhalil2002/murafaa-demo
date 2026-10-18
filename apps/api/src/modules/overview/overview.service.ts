@@ -29,6 +29,7 @@ import { CasesService } from "../cases/cases.service.js";
 import { type DeadlineItem, DeadlinesService } from "../cases/deadlines.service.js";
 import { CrmService } from "../crm/crm.service.js";
 import { DocumentsService } from "../documents/documents.service.js";
+import { InvoicesService } from "../finance/invoices.service.js";
 import { TasksService } from "../tasks/tasks.service.js";
 
 type Message = { messageKey: string; params: Record<string, string | number> };
@@ -47,7 +48,7 @@ const ACTIVITY_COUNT_WINDOW = 2000;
  * omitted when the caller's role lacks that module (checked without
  * throwing, so a shared landing page does not log expected denials).
  *
- * Sources whose modules are not rebuilt yet (invoices, HR requests,
+ * Sources whose modules are not rebuilt yet (HR requests,
  * employees, Team Pulse, WhatsApp) contribute nothing
  * until they land; nothing is fabricated in their place.
  */
@@ -63,6 +64,7 @@ export class OverviewService {
     private readonly deadlines: DeadlinesService,
     private readonly approvals: ApprovalsService,
     private readonly documents: DocumentsService,
+    private readonly invoices: InvoicesService,
   ) {}
 
   private can(policy: OfficePolicy, p: Principal, module: PermModule, action: PermAction = "view") {
@@ -195,6 +197,9 @@ export class OverviewService {
     const deadlines = await this.deadlinesFor(policy, p);
     const notifications = await this.notifications(p);
     const pendingApprovals = canCases ? (await this.approvals.pending(p)).length : 0;
+    const openInvoices = this.can(policy, p, PermModule.FINANCE)
+      ? await this.tenantDb.run((tx) => this.invoices.open(tx))
+      : [];
     return {
       firstContact,
       inboundChats: 0, // WhatsApp (M7)
@@ -205,8 +210,8 @@ export class OverviewService {
       contracted: leadsByStage.CONTRACTED,
       activeCases: caseStats?.activeCases ?? 0,
       pendingApprovals,
-      invoicesDue: 0, // invoices (M4)
-      uncollected: 0,
+      invoicesDue: openInvoices.length,
+      uncollected: openInvoices.reduce((s, i) => s + i.remaining, 0),
       archivedCases: caseStats?.archivedCases ?? 0,
       deadlinesWithin7: deadlines.filter((d) => d.daysLeft >= 0 && d.daysLeft <= 7).length,
       unreadNotifications: notifications.length,
@@ -253,7 +258,17 @@ export class OverviewService {
         });
       }
     }
-    // Overdue invoices join with the finance module (M4).
+    if (this.can(policy, p, PermModule.FINANCE)) {
+      for (const inv of await this.tenantDb.run((tx) => this.invoices.open(tx))) {
+        if (inv.status !== "OVERDUE") continue;
+        items.push({
+          id: `invoice:${inv.id}`,
+          tier: "important",
+          message: msg("alerts.invoiceOverdue", { number: inv.number }),
+          href: `/finance/${inv.id}`,
+        });
+      }
+    }
     return sortByTier(items);
   }
 
@@ -295,7 +310,17 @@ export class OverviewService {
         });
       }
     }
-    // Overdue invoices join here with M4.
+    if (this.can(policy, p, PermModule.FINANCE)) {
+      for (const inv of await this.tenantDb.run((tx) => this.invoices.open(tx))) {
+        if (inv.status !== "OVERDUE") continue;
+        items.push({
+          id: `invoice:${inv.id}`,
+          message: msg("notif.invoiceOverdue", { number: inv.number }),
+          href: `/finance/${inv.id}`,
+          at: new Date(`${inv.issueDate}T00:00:00.000Z`).toISOString(),
+        });
+      }
+    }
     return items.sort((a, b) => b.at.localeCompare(a.at));
   }
 
@@ -311,6 +336,7 @@ export class OverviewService {
         ? await this.crm.search(tx, q, take)
         : { clients: [], leads: [] };
       const tasks = allowed("tasks") ? await this.tasks.search(tx, policy, p, q, take) : [];
+      const invs = allowed("invoices") ? await this.invoices.search(tx, q, take) : [];
       const docs = allowed("documents") ? await this.documents.search(tx, policy, p, q, take) : [];
       return {
         cases: found.map((c) => ({
@@ -332,7 +358,12 @@ export class OverviewService {
           sub: null,
           href: d.caseId ? `/cases/${d.caseId}?tab=documents` : "/documents",
         })),
-        invoices: [], // M4
+        invoices: invs.map((i) => ({
+          id: i.id,
+          label: i.number,
+          sub: i.clientName,
+          href: `/finance/${i.id}`,
+        })),
         tasks: tasks.map((tk) => ({ id: tk.id, label: tk.title, sub: null, href: "/tasks" })),
         employees: [], // M6
       };

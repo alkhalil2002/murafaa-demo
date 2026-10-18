@@ -12,6 +12,9 @@ import {
   caseworkListMessages,
   crmClients,
   documentsList,
+  financeFeeAgreement,
+  financeListInvoices,
+  financeListTime,
 } from "@murafaa/sdk";
 import { DOC_PARTIES, daysLeft, opponentRole, PROC_STAGES } from "@murafaa/rules";
 import { DOC_SOURCES } from "@murafaa/documents";
@@ -52,6 +55,12 @@ import {
   UploadForm,
 } from "@/components/documents/document-controls";
 import {
+  FeeAgreementForm,
+  InvoiceFeeButton,
+  InvoiceTimeButton,
+  TimeEntryForm,
+} from "@/components/finance/finance-forms";
+import {
   AddRequestForm,
   HearingActions,
   HearingEditor,
@@ -85,6 +94,7 @@ const BUILT: ReadonlySet<Tab> = new Set([
   "parties",
   "chat",
   "contracts",
+  "finance",
   "approvals",
   "execution",
   "documents",
@@ -1066,6 +1076,111 @@ export default async function CaseDetailPage({
             ) : (
               shown.map(row)
             )}
+          </Panel>
+        </>
+      );
+    }
+  } else if (tab === "finance") {
+    const finLevel = me.modules.FINANCE;
+    if (finLevel === "NONE") {
+      body = <DeniedPanel />;
+    } else {
+      const canEditFin = (finLevel === "EDIT" || finLevel === "FULL") && !me.user.previewRole;
+      const [feeRes, invRes, timeRes, usersRes] = await Promise.all([
+        financeFeeAgreement({ client: api, path: { id } }),
+        financeListInvoices({ client: api, query: { caseId: id } }),
+        financeListTime({ client: api, query: { caseId: id } }),
+        canEditFin ? casesAssignable({ client: api }) : Promise.resolve(undefined),
+      ]);
+      const fee = feeRes.data?.data;
+      const caseInvoices = invRes.data?.data ?? [];
+      const time = timeRes.data?.data ?? [];
+      const remainingAgreed = fee?.agreed != null ? Math.max(0, fee.agreed - fee.collected) : null;
+      body = !fee ? (
+        <DeniedPanel />
+      ) : (
+        <>
+          <Panel n={t("cases.tag.finance")} title={t("cases.finance.feeAgreement")}>
+            {(fee.agreed !== null || fee.collected > 0) && (
+              <div className="kpis" style={{ marginBottom: 12 }}>
+                <Field
+                  label={t("cases.finance.agreed")}
+                  value={
+                    fee.agreed !== null ? formatSar(fee.agreed) : t("cases.finance.undetermined")
+                  }
+                />
+                <Field label={t("cases.finance.collected")} value={formatSar(fee.collected)} />
+                <Field
+                  label={t("cases.finance.remaining")}
+                  value={
+                    remainingAgreed !== null
+                      ? formatSar(remainingAgreed)
+                      : t("cases.finance.undetermined")
+                  }
+                />
+              </div>
+            )}
+            {!fee.agreement ? (
+              <Empty>{t("cases.finance.noFee")}</Empty>
+            ) : (
+              <div className="approve-row" style={{ flexWrap: "wrap" }}>
+                <span className="ndot" style={{ background: "var(--bench)" }} />
+                <span className="at">{t(`feeType.${fee.agreement.type}` as MessageKey)}</span>
+                {canEditFin && <InvoiceFeeButton caseId={c.id} />}
+                <div style={{ width: "100%", fontSize: 15.625, color: "var(--ink-soft)" }}>
+                  {t("cases.finance.invoicePreview", { amount: formatSar(fee.previewNet) })}
+                </div>
+              </div>
+            )}
+            {canEditFin && <FeeAgreementForm caseId={c.id} fee={fee.agreement} />}
+          </Panel>
+          <Panel n={t("cases.tag.finance")} title={t("cases.finance.invoices")}>
+            {caseInvoices.length === 0 ? (
+              <Empty>{t("cases.finance.noInvoices")}</Empty>
+            ) : (
+              caseInvoices.map((inv) => (
+                <Link
+                  href={`/finance/${inv.id}`}
+                  className="approve-row"
+                  style={{ cursor: "pointer" }}
+                  key={inv.id}
+                >
+                  <span className="ndot" style={{ background: "var(--bench)" }} />
+                  <span className="at">
+                    {inv.number}
+                    <span className="chip"> {formatSar(inv.remaining)}</span>
+                  </span>
+                  <span className="chip">{t(`invStatus.${inv.status}` as MessageKey)}</span>
+                </Link>
+              ))
+            )}
+          </Panel>
+          <Panel n={t("cases.tag.finance")} title={t("cases.finance.timeEntries")}>
+            {time.length === 0 ? (
+              <Empty>{t("cases.finance.noTimeEntries")}</Empty>
+            ) : (
+              time.map((te) => (
+                <div className="approve-row" key={te.id}>
+                  <span className="ndot" style={{ background: "var(--ink-soft)" }} />
+                  <span className="at">
+                    {te.lawyerName}
+                    {te.description && <span className="chip"> {te.description}</span>}
+                  </span>
+                  <span className="chip">
+                    {t("time.hours", {
+                      n: (Math.round(te.minutes / 6) / 10).toLocaleString("ar-SA"),
+                    })}
+                  </span>
+                  <span className="chip">{formatSar(te.value)}</span>
+                  {te.invoiced ? (
+                    <span className="chip st done">{t("time.invoiced")}</span>
+                  ) : te.billable && canEditFin ? (
+                    <InvoiceTimeButton id={te.id} />
+                  ) : null}
+                </div>
+              ))
+            )}
+            {canEditFin && <TimeEntryForm caseId={c.id} lawyers={usersRes?.data?.data ?? []} />}
           </Panel>
         </>
       );

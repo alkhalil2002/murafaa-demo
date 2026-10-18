@@ -8,14 +8,14 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 40 | 11 |
+| `src/lib` files | 51 | 41 | 10 |
 | Business rules inside services/components | 37 | 30 | 7 |
-| Services | 54 | 28 | 26 |
-| Service capabilities | 225 | 121 | 104 |
-| Screens | 63 | 26 | 37 |
-| Components | 20 | 13 | 7 |
+| Services | 54 | 31 | 23 |
+| Service capabilities | 225 | 145 | 80 |
+| Screens | 63 | 30 | 33 |
+| Components | 20 | 14 | 6 |
 | Route handlers | 9 | 4 (+1 replaced) | 4 |
-| Models | 56 | 28 (+ `outbox`, `sessions` new) | 28 |
+| Models | 56 | 41 (+ `outbox`, `sessions` new) | 15 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -54,7 +54,7 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `documents/render.ts` | ✅ Ported | packages/documents/src/render.ts | 7 tests (with templates) |
 | `documents/template-defs.ts` | ✅ Ported | packages/documents/src/templates.ts |  |
 | `finance/core.ts` | ✅ Ported | packages/rules/src/finance.ts | 19 tests |
-| `finance/ledger.ts` | ⏳ Pending | M4 Finance | periodKeyOf ported (packages/rules ledger.ts); period lock, numbering with retry, postJournal are DB-bound |
+| `finance/ledger.ts` | ✅ Ported | apps/api/src/modules/finance/ledger.ts | atomic per-office counters (gapless) instead of scan + retry; descriptions as i18n keys |
 | `format.ts` | ✅ Ported | packages/rules/src/pii.ts (maskIban) | tests added |
 | `hr/core.ts` | ✅ Ported | packages/rules/src/hr.ts | 24 tests; band labels moved to i18n nitaqat.* |
 | `i18n/ar.ts` | ✅ Ported | packages/i18n/src/ar.ts | + health/errors/currency keys |
@@ -100,7 +100,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `emp-portal` | ⏳ Pending | M8 Portals |  |
 | `execution` | ✅ Ported | apps/api/src/modules/cases/execution.service.ts (row-locked collections; office-checked follow-up assignee) |  |
 | `expenses` | ⏳ Pending | M4 Finance |  |
-| `fees` | ⏳ Pending | M4 Finance |  |
+| `fees` | ✅ Ported | apps/api/src/modules/finance/fees.service.ts (hourly time claimed atomically: billed once) |  |
 | `finance-bank` | ⏳ Pending | M4 Finance |  |
 | `finance-dashboard` | ⏳ Pending | M4 Finance |  |
 | `finance-governance` | ⏳ Pending | M4 Finance |  |
@@ -117,7 +117,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `hr/requests` | ⏳ Pending | M6 HR |  |
 | `hr/saudization` | ⏳ Pending | M6 HR |  |
 | `hr/wps` | ⏳ Pending | M6 HR | WPS file generation |
-| `invoices` | ⏳ Pending | M4 Finance | ZATCA e-invoicing still missing (M7) |
+| `invoices` | ✅ Ported | apps/api/src/modules/finance/invoices.service.ts (invoice row locked for payments/credit notes/write-offs) |  |
 | `journey` | ✅ Ported | apps/api/src/modules/overview (invoice and WhatsApp counts join with M4/M7) |  |
 | `leads` | ✅ Ported | apps/api/src/modules/crm (incl. convertLead) |  |
 | `ledger-reports` | ⏳ Pending | M4 Finance | normal-side balance ported (packages/rules ledger.ts) |
@@ -135,7 +135,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `tasks` | ✅ Ported | apps/api/src/modules/tasks |  |
 | `templates` | ✅ Ported | apps/api/src/modules/documents (system templates are code: packages/documents TEMPLATE_DEFS) |  |
 | `today` | ✅ Ported | apps/api/src/modules/overview (HR requests and employee of the week join with M6) |  |
-| `trust` | ⏳ Pending | M4 Finance |  |
+| `trust` | ✅ Ported | apps/api/src/modules/finance/trust.service.ts (append-only movements; DB CHECK keeps balance >= 0) |  |
 
 ## Screens (63 pages)
 
@@ -162,8 +162,8 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/documents/new/[key]` | ✅ Ported | apps/web/src/app/(app)/documents/new/[key] (prefilled from the case, fee fields hidden for denied roles) |  |
 | `/emp-portal/(app)` | ⏳ Pending | M8 Portals |  |
 | `/emp-portal/login` | ⏳ Pending | M8 Portals |  |
-| `/finance` | ⏳ Pending | M4 Finance |  |
-| `/finance/[id]` | ⏳ Pending | M4 Finance |  |
+| `/finance` | ✅ Ported | apps/web/src/app/(app)/finance (invoices + new-invoice form from the prototype) |  |
+| `/finance/[id]` | ✅ Ported | apps/web/src/app/(app)/finance/[id] |  |
 | `/finance/bank` | ⏳ Pending | M4 Finance |  |
 | `/finance/coa` | ⏳ Pending | M4 Finance |  |
 | `/finance/dashboard` | ⏳ Pending | M4 Finance |  |
@@ -173,8 +173,8 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/finance/ledger` | ⏳ Pending | M4 Finance |  |
 | `/finance/profitability` | ⏳ Pending | M4 Finance |  |
 | `/finance/statements` | ⏳ Pending | M4 Finance |  |
-| `/finance/trust` | ⏳ Pending | M4 Finance |  |
-| `/finance/trust/[clientId]` | ⏳ Pending | M4 Finance |  |
+| `/finance/trust` | ✅ Ported | apps/web/src/app/(app)/finance/trust |  |
+| `/finance/trust/[clientId]` | ✅ Ported | apps/web/src/app/(app)/finance/trust/[clientId] |  |
 | `/hr` | ⏳ Pending | M6 HR |  |
 | `/hr/[id]` | ⏳ Pending | M6 HR |  |
 | `/hr/advances` | ⏳ Pending | M6 HR |  |
@@ -247,19 +247,19 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `NajizClassification` | ✅ Ported | packages/rules reference/najiz.ts (static reference data, not a table) |  |
 | `DocumentTemplate` | ✅ Ported | packages/documents TEMPLATE_DEFS (system templates as code; office-owned templates would need a table: owner question) |  |
 | `Document` | ✅ Ported | packages/database documents (+ sha256; template key instead of a template row) |  |
-| `CaseFeeAgreement` | ⏳ Pending | M4 Finance |  |
-| `Invoice` | ⏳ Pending | M4 Finance |  |
-| `InvoiceItem` | ⏳ Pending | M4 Finance |  |
-| `Payment` | ⏳ Pending | M4 Finance |  |
-| `CreditNote` | ⏳ Pending | M4 Finance |  |
-| `Expense` | ⏳ Pending | M4 Finance |  |
-| `TimeEntry` | ⏳ Pending | M4 Finance |  |
-| `TrustAccount` | ⏳ Pending | M4 Finance |  |
-| `TrustTransaction` | ⏳ Pending | M4 Finance |  |
-| `ChartOfAccount` | ⏳ Pending | M4 Finance |  |
-| `JournalEntry` | ⏳ Pending | M4 Finance |  |
-| `JournalLine` | ⏳ Pending | M4 Finance |  |
-| `AccountingPeriod` | ⏳ Pending | M4 Finance |  |
+| `CaseFeeAgreement` | ✅ Ported | packages/database case_fee_agreements |  |
+| `Invoice` | ✅ Ported | packages/database invoices (CHECK total = net + vat) |  |
+| `InvoiceItem` | ✅ Ported | packages/database invoice_items (insert-only) |  |
+| `Payment` | ✅ Ported | packages/database payments |  |
+| `CreditNote` | ✅ Ported | packages/database credit_notes (insert-only) |  |
+| `Expense` | ✅ Ported | packages/database expenses (services in M4 slice 2) |  |
+| `TimeEntry` | ✅ Ported | packages/database time_entries |  |
+| `TrustAccount` | ✅ Ported | packages/database trust_accounts (CHECK balance >= 0) |  |
+| `TrustTransaction` | ✅ Ported | packages/database trust_transactions (insert-only) |  |
+| `ChartOfAccount` | ✅ Ported | packages/database chart_of_accounts (seeded on first posting) |  |
+| `JournalEntry` | ✅ Ported | packages/database journal_entries (insert-only, + doc_counters) |  |
+| `JournalLine` | ✅ Ported | packages/database journal_lines (insert-only, + office_id, CHECK one side) |  |
+| `AccountingPeriod` | ✅ Ported | packages/database accounting_periods |  |
 | `KnowledgeSource` | ⏳ Pending | M5 AI gate |  |
 | `KnowledgeChunk` | ⏳ Pending | M5 AI gate |  |
 | `AiInteraction` | ⏳ Pending | M5 AI gate |  |
@@ -317,7 +317,7 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `cases/role-picker.tsx` | ✅ Ported | apps/web/src/components/cases/case-form.tsx |  |
 | `conflict-badge.tsx` | ✅ Ported | apps/web/src/components/cases/conflict-badge.tsx |  |
 | `emp-portal/emp-portal-login-form.tsx` | ⏳ Pending | M8 Portals |  |
-| `finance-tabs.tsx` | ⏳ Pending | M4 Finance |  |
+| `finance-tabs.tsx` | ✅ Ported | apps/web/src/components/finance/finance-tabs.tsx |  |
 | `hr-tabs.tsx` | ⏳ Pending | M6 HR |  |
 | `hr-ui.tsx` | ⏳ Pending | M6 HR |  |
 | `icons.tsx` | ✅ Ported | apps/web/src/components/icons.tsx |  |
@@ -487,15 +487,15 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 - [ ] `createExpense`
 - [ ] `listExpenses`
 - [ ] `reimburseExpense`
-- [ ] `createTimeEntry`
-- [ ] `listTimeEntries`
-- [ ] `invoiceTimeEntry`
+- [x] `createTimeEntry`
+- [x] `listTimeEntries`
+- [x] `invoiceTimeEntry`
 
 **fees** (M4 Finance)
 
-- [ ] `getFeeAgreement`
-- [ ] `saveFeeAgreement`
-- [ ] `generateInvoiceFromFee`
+- [x] `getFeeAgreement`
+- [x] `saveFeeAgreement`
+- [x] `generateInvoiceFromFee`
 
 **finance-bank** (M4 Finance)
 
@@ -509,8 +509,8 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **finance-governance** (M4 Finance)
 
-- [ ] `listRecentPeriods`
-- [ ] `setPeriodLock`
+- [x] `listRecentPeriods`
+- [x] `setPeriodLock`
 - [ ] `getRequireApproval`
 - [ ] `setRequireApproval`
 - [ ] `listFinanceAudit`
@@ -600,14 +600,14 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **invoices** (M4 Finance)
 
-- [ ] `createInvoiceInTx`
-- [ ] `createInvoice`
-- [ ] `recordPayment`
-- [ ] `issueCreditNote`
-- [ ] `writeOffBadDebt`
-- [ ] `listInvoices`
-- [ ] `listInvoicesByClient`
-- [ ] `getInvoice`
+- [x] `createInvoiceInTx`
+- [x] `createInvoice`
+- [x] `recordPayment`
+- [x] `issueCreditNote`
+- [x] `writeOffBadDebt`
+- [x] `listInvoices`
+- [x] `listInvoicesByClient`
+- [x] `getInvoice`
 
 **journey** (M2 Core ops)
 
@@ -628,10 +628,10 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 - [ ] `trialBalance`
 - [ ] `agingReport`
 - [ ] `vatReturn`
-- [ ] `listJournal`
+- [x] `listJournal`
 - [ ] `getFinancialStatements`
 - [ ] `getCashFlowStatement`
-- [ ] `listAccounts`
+- [x] `listAccounts`
 - [ ] `createManualJournalEntry`
 
 **messages** (M2 Core ops)
@@ -732,12 +732,12 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **trust** (M4 Finance)
 
-- [ ] `postTrustMovement`
-- [ ] `trustDeposit`
-- [ ] `trustWithdraw`
-- [ ] `trustTransferToFees`
-- [ ] `listTrustAccounts`
-- [ ] `getTrustLedger`
+- [x] `postTrustMovement`
+- [x] `trustDeposit`
+- [x] `trustWithdraw`
+- [x] `trustTransferToFees`
+- [x] `listTrustAccounts`
+- [x] `getTrustLedger`
 
 ## Business rules found inside legacy services
 
@@ -847,7 +847,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `documents/upload-actions.ts` | ✅ Ported | apps/api POST /cases/:id/documents (raw bytes + query metadata) |  |
 | `emp-portal/actions.ts` | ⏳ Pending | M8 Portals |  |
 | `finance/actions.ts` | ⏳ Pending | M4 Finance |  |
-| `finance/trust/actions.ts` | ⏳ Pending | M4 Finance |  |
+| `finance/trust/actions.ts` | ✅ Ported | apps/api POST /finance/trust/:clientId/movements |  |
 | `hr/actions.ts` | ⏳ Pending | M6 HR |  |
 | `hr/recruitment/actions.ts` | ⏳ Pending | M6 HR |  |
 | `leads/actions.ts` | ✅ Ported | apps/api /leads endpoints |  |
@@ -991,6 +991,12 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | Deleting an execution procedure left its follow-up reminder on the calendar | server/execution.ts | ✅ fixed: the linked reminder is removed with it |
 | The report-approved event said the report was sent to the client portal before any sending exists | lib/i18n event.hearingReportApproved | ✅ fixed: says approved only; "sent" waits for the portal (M8) |
 | Global search passed % and _ through as wildcards | server/search.ts | ✅ fixed: matched literally |
+| Two receipts at once could both pass the remaining-amount check (overpaid invoice) | server/invoices.ts recordPayment | ✅ fixed: invoice row locked (e2e with concurrent payments) |
+| A double submit could bill the same hours or expense twice | server/fees.ts, expenses.ts | ✅ fixed: source claimed by a conditional update in the invoice transaction |
+| Journal descriptions stored Arabic text; ledger rows could be edited by the app | lib/finance/ledger.ts | ✅ fixed: i18n key + params; journal/trust history insert-only by grant |
+| Document numbers by scanning all rows + retry on collision | lib/finance/ledger.ts nextNumber | ✅ fixed: per-office counter row, gapless and race-free |
+| Fee percentage accepted up to 1000% | server/fees.ts | ✅ fixed: 0–100% |
+| Trust pages needed the clients module, which accountants don't have | app/finance/trust | ✅ fixed: finance-scoped client picker |
 | Uploads trusted the browser-declared MIME type | app/documents/upload-actions.ts | ✅ fixed: file signature checked against the declared type (errors.UPLOAD_CONTENT_MISMATCH) |
 | Deleted documents of out-of-scope cases were listed in the recycle bin | server/settings.ts | ✅ fixed: recycle bin applies the case row scope to documents |
 

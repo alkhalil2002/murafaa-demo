@@ -14,6 +14,7 @@ import { BillingModule } from "./modules/billing/billing.module.js";
 import { CasesModule } from "./modules/cases/cases.module.js";
 import { CrmModule } from "./modules/crm/crm.module.js";
 import { DocumentsModule } from "./modules/documents/documents.module.js";
+import { FinanceModule } from "./modules/finance/finance.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { OfficesModule } from "./modules/offices/offices.module.js";
 import { OverviewModule } from "./modules/overview/overview.module.js";
@@ -55,6 +56,7 @@ export class AppModule {
         CasesModule,
         CrmModule,
         DocumentsModule,
+        FinanceModule,
         HealthModule,
         OfficesModule,
         OverviewModule,

@@ -1,4 +1,4 @@
-import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { audit, id, tenantPolicy, timestamps } from "./_helpers.js";
 
@@ -15,6 +15,8 @@ export const offices = pgTable(
       .default(sql`'{}'::text[]`),
     /** Letterhead branding (colours, contact, notice); merged over defaults by resolveBranding(). */
     branding: jsonb("branding"),
+    /** Finance governance: new payments and expenses wait for a partner's approval. */
+    requireApproval: boolean("require_approval").notNull().default(false),
     ...timestamps,
     ...audit,
   },

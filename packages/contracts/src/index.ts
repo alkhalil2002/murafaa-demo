@@ -12,3 +12,4 @@ export * from "./hearings.js";
 export * from "./overview.js";
 export * from "./casework.js";
 export * from "./documents.js";
+export * from "./finance.js";

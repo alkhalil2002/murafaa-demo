@@ -664,6 +664,232 @@ export type GenerateDocumentBody = {
     };
 };
 
+export type BillingParties = {
+    clients: Array<{
+        id: string;
+        name: string;
+    }>;
+    cases: Array<{
+        id: string;
+        title: string;
+        clientId: string | null;
+    }>;
+};
+
+export type InvoiceList = Array<InvoiceRow>;
+
+export type InvoiceRow = {
+    id: string;
+    number: string;
+    clientId: string;
+    clientName: string;
+    caseId: string | null;
+    caseTitle: string | null;
+    issueDate: string;
+    net: number;
+    vat: number;
+    total: number;
+    paid: number;
+    remaining: number;
+    status: 'DUE' | 'PAID' | 'PARTIALLY_PAID' | 'OVERDUE' | 'BAD_DEBT' | 'CANCELLED';
+    origin: 'MANUAL' | 'FEE_AGREEMENT' | 'EXPENSE_REIMBURSEMENT' | 'TIME_ENTRY';
+};
+
+export type CreatedNumber = {
+    id: string;
+    number: string;
+};
+
+export type CreateInvoiceBody = {
+    clientId: string;
+    caseId?: string | null;
+    issueDate?: string;
+    basis?: string | null;
+    items: Array<{
+        description: string;
+        quantity?: number;
+        unitPrice: number;
+    }>;
+};
+
+export type InvoiceDetail = {
+    id: string;
+    number: string;
+    clientId: string;
+    clientName: string;
+    caseId: string | null;
+    caseTitle: string | null;
+    issueDate: string;
+    net: number;
+    vat: number;
+    total: number;
+    paid: number;
+    remaining: number;
+    status: 'DUE' | 'PAID' | 'PARTIALLY_PAID' | 'OVERDUE' | 'BAD_DEBT' | 'CANCELLED';
+    origin: 'MANUAL' | 'FEE_AGREEMENT' | 'EXPENSE_REIMBURSEMENT' | 'TIME_ENTRY';
+    basis: string | null;
+    items: Array<{
+        id: string;
+        description: string;
+        quantity: number;
+        unitPrice: number;
+        lineNet: number;
+    }>;
+    payments: Array<{
+        id: string;
+        number: string;
+        date: string;
+        amount: number;
+        method: 'BANK_TRANSFER' | 'MADA' | 'CASH' | 'CHEQUE' | 'FROM_TRUST';
+        reference: string | null;
+        isApproved: boolean;
+    }>;
+    creditNote: {
+        number: string;
+        date: string;
+        amount: number;
+        reason: string | null;
+    } | null;
+};
+
+export type PaymentBody = {
+    amount: number;
+    method: 'BANK_TRANSFER' | 'MADA' | 'CASH' | 'CHEQUE' | 'FROM_TRUST';
+    reference?: string | null;
+    date?: string;
+};
+
+export type CreditNoteBody = {
+    reason?: string | null;
+};
+
+export type FeeAgreementView = {
+    agreement: FeeAgreement | null;
+    previewNet: number;
+    agreed: number | null;
+    collected: number;
+};
+
+export type FeeAgreement = {
+    type: 'FLAT' | 'RETAINER' | 'HOURLY' | 'PERCENTAGE';
+    feeValue: number | null;
+    percentageBps: number | null;
+    awarded: number | null;
+};
+
+export type FeeAgreementBody = {
+    type: 'FLAT' | 'RETAINER' | 'HOURLY' | 'PERCENTAGE';
+    feeValue?: number | null;
+    percentageBps?: number | null;
+    awarded?: number | null;
+};
+
+export type TimeEntryList = Array<TimeEntry>;
+
+export type TimeEntry = {
+    id: string;
+    caseId: string;
+    caseTitle: string;
+    lawyerId: string;
+    lawyerName: string;
+    description: string | null;
+    minutes: number;
+    hourlyRate: number;
+    value: number;
+    workDate: string;
+    billable: boolean;
+    invoiced: boolean;
+};
+
+export type TimeEntryBody = {
+    caseId: string;
+    lawyerId: string;
+    description?: string | null;
+    minutes: number;
+    hourlyRate: number;
+    workDate?: string;
+    billable?: boolean;
+};
+
+export type TrustAccountList = {
+    accounts: Array<TrustAccountRow>;
+    total: number;
+};
+
+export type TrustAccountRow = {
+    clientId: string;
+    clientName: string;
+    balance: number;
+};
+
+export type TrustLedger = {
+    clientId: string;
+    clientName: string;
+    balance: number;
+    movements: Array<{
+        id: string;
+        type: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER_TO_FEES';
+        amount: number;
+        date: string;
+        note: string | null;
+        runningBalance: number;
+    }>;
+};
+
+export type TrustBalance = {
+    balance: number;
+};
+
+export type TrustMoveBody = {
+    type: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER_TO_FEES';
+    amount: number;
+    date?: string;
+    note?: string | null;
+    caseId?: string | null;
+};
+
+export type AccountList = Array<AccountRow>;
+
+export type AccountRow = {
+    id: string;
+    code: string;
+    name: string;
+    type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
+    isActive: boolean;
+};
+
+export type JournalList = Array<JournalEntryRow>;
+
+export type JournalEntryRow = {
+    id: string;
+    entryNo: string;
+    date: string;
+    description: {
+        messageKey: string;
+        params: {
+            [key: string]: string | number;
+        };
+    };
+    sourceType: string;
+    lines: Array<{
+        code: string;
+        name: string;
+        debit: number;
+        credit: number;
+    }>;
+};
+
+export type PeriodList = Array<PeriodRow>;
+
+export type PeriodRow = {
+    periodKey: string;
+    locked: boolean;
+};
+
+export type PeriodLockBody = {
+    locked: boolean;
+};
+
 export type Health = {
     status: 'ok' | 'degraded';
     db: 'up' | 'down';
@@ -3607,6 +3833,593 @@ export type DocumentsRemoveResponses = {
 };
 
 export type DocumentsRemoveResponse = DocumentsRemoveResponses[keyof DocumentsRemoveResponses];
+
+export type FinancePartiesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/parties';
+};
+
+export type FinancePartiesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinancePartiesError = FinancePartiesErrors[keyof FinancePartiesErrors];
+
+export type FinancePartiesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: BillingParties;
+        error: null;
+    };
+};
+
+export type FinancePartiesResponse = FinancePartiesResponses[keyof FinancePartiesResponses];
+
+export type FinanceListInvoicesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        caseId?: string;
+        clientId?: string;
+    };
+    url: '/api/v1/finance/invoices';
+};
+
+export type FinanceListInvoicesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceListInvoicesError = FinanceListInvoicesErrors[keyof FinanceListInvoicesErrors];
+
+export type FinanceListInvoicesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: InvoiceList;
+        error: null;
+    };
+};
+
+export type FinanceListInvoicesResponse = FinanceListInvoicesResponses[keyof FinanceListInvoicesResponses];
+
+export type FinanceCreateInvoiceData = {
+    body: CreateInvoiceBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/invoices';
+};
+
+export type FinanceCreateInvoiceErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceCreateInvoiceError = FinanceCreateInvoiceErrors[keyof FinanceCreateInvoiceErrors];
+
+export type FinanceCreateInvoiceResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedNumber;
+        error: null;
+    };
+};
+
+export type FinanceCreateInvoiceResponse = FinanceCreateInvoiceResponses[keyof FinanceCreateInvoiceResponses];
+
+export type FinanceInvoiceDetailData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/invoices/{id}';
+};
+
+export type FinanceInvoiceDetailErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceInvoiceDetailError = FinanceInvoiceDetailErrors[keyof FinanceInvoiceDetailErrors];
+
+export type FinanceInvoiceDetailResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: InvoiceDetail;
+        error: null;
+    };
+};
+
+export type FinanceInvoiceDetailResponse = FinanceInvoiceDetailResponses[keyof FinanceInvoiceDetailResponses];
+
+export type FinanceRecordPaymentData = {
+    body: PaymentBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/invoices/{id}/payments';
+};
+
+export type FinanceRecordPaymentErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceRecordPaymentError = FinanceRecordPaymentErrors[keyof FinanceRecordPaymentErrors];
+
+export type FinanceRecordPaymentResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedNumber;
+        error: null;
+    };
+};
+
+export type FinanceRecordPaymentResponse = FinanceRecordPaymentResponses[keyof FinanceRecordPaymentResponses];
+
+export type FinanceCreditNoteData = {
+    body: CreditNoteBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/invoices/{id}/credit-note';
+};
+
+export type FinanceCreditNoteErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceCreditNoteError = FinanceCreditNoteErrors[keyof FinanceCreditNoteErrors];
+
+export type FinanceCreditNoteResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedNumber;
+        error: null;
+    };
+};
+
+export type FinanceCreditNoteResponse = FinanceCreditNoteResponses[keyof FinanceCreditNoteResponses];
+
+export type FinanceWriteOffData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/invoices/{id}/bad-debt';
+};
+
+export type FinanceWriteOffErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceWriteOffError = FinanceWriteOffErrors[keyof FinanceWriteOffErrors];
+
+export type FinanceWriteOffResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type FinanceWriteOffResponse = FinanceWriteOffResponses[keyof FinanceWriteOffResponses];
+
+export type FinanceFeeAgreementData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/fee-agreement';
+};
+
+export type FinanceFeeAgreementErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceFeeAgreementError = FinanceFeeAgreementErrors[keyof FinanceFeeAgreementErrors];
+
+export type FinanceFeeAgreementResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: FeeAgreementView;
+        error: null;
+    };
+};
+
+export type FinanceFeeAgreementResponse = FinanceFeeAgreementResponses[keyof FinanceFeeAgreementResponses];
+
+export type FinanceSaveFeeAgreementData = {
+    body: FeeAgreementBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/fee-agreement';
+};
+
+export type FinanceSaveFeeAgreementErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceSaveFeeAgreementError = FinanceSaveFeeAgreementErrors[keyof FinanceSaveFeeAgreementErrors];
+
+export type FinanceSaveFeeAgreementResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type FinanceSaveFeeAgreementResponse = FinanceSaveFeeAgreementResponses[keyof FinanceSaveFeeAgreementResponses];
+
+export type FinanceInvoiceFeeData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/fee-agreement/invoice';
+};
+
+export type FinanceInvoiceFeeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceInvoiceFeeError = FinanceInvoiceFeeErrors[keyof FinanceInvoiceFeeErrors];
+
+export type FinanceInvoiceFeeResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedNumber;
+        error: null;
+    };
+};
+
+export type FinanceInvoiceFeeResponse = FinanceInvoiceFeeResponses[keyof FinanceInvoiceFeeResponses];
+
+export type FinanceListTimeData = {
+    body?: never;
+    path?: never;
+    query?: {
+        caseId?: string;
+    };
+    url: '/api/v1/finance/time-entries';
+};
+
+export type FinanceListTimeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceListTimeError = FinanceListTimeErrors[keyof FinanceListTimeErrors];
+
+export type FinanceListTimeResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: TimeEntryList;
+        error: null;
+    };
+};
+
+export type FinanceListTimeResponse = FinanceListTimeResponses[keyof FinanceListTimeResponses];
+
+export type FinanceAddTimeData = {
+    body: TimeEntryBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/time-entries';
+};
+
+export type FinanceAddTimeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceAddTimeError = FinanceAddTimeErrors[keyof FinanceAddTimeErrors];
+
+export type FinanceAddTimeResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type FinanceAddTimeResponse = FinanceAddTimeResponses[keyof FinanceAddTimeResponses];
+
+export type FinanceInvoiceTimeData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/time-entries/{id}/invoice';
+};
+
+export type FinanceInvoiceTimeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceInvoiceTimeError = FinanceInvoiceTimeErrors[keyof FinanceInvoiceTimeErrors];
+
+export type FinanceInvoiceTimeResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedNumber;
+        error: null;
+    };
+};
+
+export type FinanceInvoiceTimeResponse = FinanceInvoiceTimeResponses[keyof FinanceInvoiceTimeResponses];
+
+export type FinanceTrustAccountsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/trust';
+};
+
+export type FinanceTrustAccountsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceTrustAccountsError = FinanceTrustAccountsErrors[keyof FinanceTrustAccountsErrors];
+
+export type FinanceTrustAccountsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: TrustAccountList;
+        error: null;
+    };
+};
+
+export type FinanceTrustAccountsResponse = FinanceTrustAccountsResponses[keyof FinanceTrustAccountsResponses];
+
+export type FinanceTrustLedgerData = {
+    body?: never;
+    path: {
+        clientId: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/trust/{clientId}';
+};
+
+export type FinanceTrustLedgerErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceTrustLedgerError = FinanceTrustLedgerErrors[keyof FinanceTrustLedgerErrors];
+
+export type FinanceTrustLedgerResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: TrustLedger;
+        error: null;
+    };
+};
+
+export type FinanceTrustLedgerResponse = FinanceTrustLedgerResponses[keyof FinanceTrustLedgerResponses];
+
+export type FinanceTrustMoveData = {
+    body: TrustMoveBody;
+    path: {
+        clientId: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/trust/{clientId}/movements';
+};
+
+export type FinanceTrustMoveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceTrustMoveError = FinanceTrustMoveErrors[keyof FinanceTrustMoveErrors];
+
+export type FinanceTrustMoveResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: TrustBalance;
+        error: null;
+    };
+};
+
+export type FinanceTrustMoveResponse = FinanceTrustMoveResponses[keyof FinanceTrustMoveResponses];
+
+export type FinanceAccountsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/accounts';
+};
+
+export type FinanceAccountsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceAccountsError = FinanceAccountsErrors[keyof FinanceAccountsErrors];
+
+export type FinanceAccountsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: AccountList;
+        error: null;
+    };
+};
+
+export type FinanceAccountsResponse = FinanceAccountsResponses[keyof FinanceAccountsResponses];
+
+export type FinanceJournalData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/journal';
+};
+
+export type FinanceJournalErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceJournalError = FinanceJournalErrors[keyof FinanceJournalErrors];
+
+export type FinanceJournalResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: JournalList;
+        error: null;
+    };
+};
+
+export type FinanceJournalResponse = FinanceJournalResponses[keyof FinanceJournalResponses];
+
+export type FinancePeriodsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/periods';
+};
+
+export type FinancePeriodsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinancePeriodsError = FinancePeriodsErrors[keyof FinancePeriodsErrors];
+
+export type FinancePeriodsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PeriodList;
+        error: null;
+    };
+};
+
+export type FinancePeriodsResponse = FinancePeriodsResponses[keyof FinancePeriodsResponses];
+
+export type FinanceSetPeriodLockData = {
+    body: PeriodLockBody;
+    path: {
+        periodKey: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/periods/{periodKey}';
+};
+
+export type FinanceSetPeriodLockErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceSetPeriodLockError = FinanceSetPeriodLockErrors[keyof FinanceSetPeriodLockErrors];
+
+export type FinanceSetPeriodLockResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type FinanceSetPeriodLockResponse = FinanceSetPeriodLockResponses[keyof FinanceSetPeriodLockResponses];
 
 export type HealthCheckData = {
     body?: never;

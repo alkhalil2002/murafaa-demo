@@ -38,6 +38,7 @@ const OFFICE_I = "77777777-0000-4000-8000-000000000007";
 const OFFICE_J = "66666666-0000-4000-8000-000000000006";
 const OFFICE_K = "55555555-0000-4000-8000-000000000005";
 const OFFICE_L = "44444444-0000-4000-8000-000000000004";
+const OFFICE_M = "33333333-0000-4000-8000-000000000003";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -88,6 +89,10 @@ const PARTNER_L = "0500001001";
 const LAWYER_L1 = "0500001002";
 const LAWYER_L2 = "0500001003";
 const ASSISTANT_L = "0500001004";
+
+const PARTNER_M = "0500001101";
+const ACCOUNTANT_M = "0500001102";
+const LAWYER_M = "0500001103";
 
 let app: NestFastifyApplication;
 
@@ -146,7 +151,7 @@ beforeAll(async () => {
   const pdfPort = (pdfStub.server.address() as { port: number }).port;
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -192,6 +197,16 @@ beforeAll(async () => {
         [PARTNER_G, "PARTNER"],
         [LAWYER_G1, "LAWYER"],
         [LAWYER_G2, "LAWYER"],
+      ],
+    ],
+    [
+      OFFICE_M,
+      "Office M",
+      [],
+      [
+        [PARTNER_M, "PARTNER"],
+        [ACCOUNTANT_M, "ACCOUNTANT"],
+        [LAWYER_M, "LAWYER"],
       ],
     ],
     [
@@ -295,6 +310,7 @@ beforeAll(async () => {
     OFFICE_J,
     OFFICE_K,
     OFFICE_L,
+    OFFICE_M,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -2382,5 +2398,339 @@ describe("generated documents: templates, letterhead PDFs, hearing reports", () 
     expect(
       (await as(lawyer2, "POST", `/api/v1/cases/${id}/hearings/${h.id}/report-pdf`)).statusCode,
     ).toBe(404);
+  });
+});
+
+describe("finance: invoices, VAT, payments, credit notes, fees, time, trust, periods", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let accountant = "";
+  let lawyer = "";
+  let clientA = "";
+  let clientB = "";
+  let caseA = "";
+  let lawyerId = "";
+  const as = (cookie: string, method: "GET" | "POST" | "PUT", url: string, payload?: object) =>
+    app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+  const get = async (url: string, cookie = accountant) =>
+    (await as(cookie, "GET", url)).json().data;
+  const invoice = (body: object) =>
+    as(accountant, "POST", "/api/v1/finance/invoices", { clientId: clientA, ...body });
+  const one = (unitPrice: number) =>
+    invoice({ items: [{ description: "أتعاب", quantity: 1, unitPrice }] });
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_M));
+    accountant = cookieOf(await login(ACCOUNTANT_M));
+    lawyer = cookieOf(await login(LAWYER_M));
+    clientA = (await as(partner, "POST", "/api/v1/clients", { name: "شركة المالية أ" })).json().data
+      .id;
+    clientB = (await as(partner, "POST", "/api/v1/clients", { name: "شركة المالية ب" })).json().data
+      .id;
+    caseA = (
+      await as(partner, "POST", "/api/v1/cases", {
+        number: "1447/90",
+        title: "قضية الأتعاب",
+        clientId: clientA,
+      })
+    ).json().data.id;
+    lawyerId = (
+      (await get("/api/v1/cases/assignable-users", partner)) as Array<{ id: string; name: string }>
+    ).find((u) => u.name === `user ${LAWYER_M}`)!.id;
+  });
+
+  it("keeps finance away from roles without the module", async () => {
+    expect((await as(lawyer, "GET", "/api/v1/finance/invoices")).statusCode).toBe(403);
+    expect((await as(lawyer, "GET", `/api/v1/cases/${caseA}/fee-agreement`)).statusCode).toBe(403);
+  });
+
+  it("issues numbered invoices with 15% VAT and a balanced journal entry", async () => {
+    const res = await invoice({
+      caseId: caseA,
+      items: [
+        { description: "مرافعة", quantity: 2, unitPrice: 333_33 },
+        { description: "استشارة", quantity: 1, unitPrice: 100_01 },
+      ],
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().data.number).toBe("INV-1043");
+    const d = await get(`/api/v1/finance/invoices/${res.json().data.id}`);
+    expect(d).toMatchObject({
+      net: 766_67,
+      vat: 115_00,
+      total: 881_67,
+      status: "DUE",
+      paid: 0,
+      origin: "MANUAL",
+      caseTitle: "قضية الأتعاب",
+    });
+    expect(d.items).toHaveLength(2);
+    expect((await one(1000_00)).json().data.number).toBe("INV-1044");
+
+    const journal = (await get("/api/v1/finance/journal")) as Array<{
+      description: { messageKey: string; params: { number: string } };
+      lines: Array<{ code: string; debit: number; credit: number }>;
+    }>;
+    const entry = journal.find((j) => j.description.params.number === "INV-1043")!;
+    expect(entry.description.messageKey).toBe("journal.invoice");
+    expect(entry.lines).toEqual([
+      { code: "1100", name: "الذمم المدينة", debit: 881_67, credit: 0 },
+      { code: "4000", name: "إيرادات الأتعاب", debit: 0, credit: 766_67 },
+      { code: "2200", name: "ضريبة القيمة المضافة المستحقة", debit: 0, credit: 115_00 },
+    ]);
+    const mismatch = await as(accountant, "POST", "/api/v1/finance/invoices", {
+      clientId: clientB,
+      caseId: caseA,
+      items: [{ description: "x", unitPrice: 100 }],
+    });
+    expect(mismatch.json().error.messageKey).toBe("errors.CASE_CLIENT_MISMATCH");
+  });
+
+  it("takes payments up to the remaining amount, even when two arrive at once", async () => {
+    const id = (await one(1000_00)).json().data.id; // total 1150.00
+    const both = await Promise.all([
+      as(accountant, "POST", `/api/v1/finance/invoices/${id}/payments`, {
+        amount: 700_00,
+        method: "BANK_TRANSFER",
+      }),
+      as(accountant, "POST", `/api/v1/finance/invoices/${id}/payments`, {
+        amount: 700_00,
+        method: "CASH",
+      }),
+    ]);
+    expect(both.map((r) => r.statusCode).sort()).toEqual([201, 409]);
+    expect(both.find((r) => r.statusCode === 409)!.json().error.messageKey).toBe(
+      "errors.PAYMENT_EXCEEDS_REMAINING",
+    );
+    let d = await get(`/api/v1/finance/invoices/${id}`);
+    expect(d).toMatchObject({ paid: 700_00, remaining: 450_00, status: "PARTIALLY_PAID" });
+    await as(accountant, "POST", `/api/v1/finance/invoices/${id}/payments`, {
+      amount: 450_00,
+      method: "MADA",
+      reference: "TX-1",
+    });
+    d = await get(`/api/v1/finance/invoices/${id}`);
+    expect(d).toMatchObject({ remaining: 0, status: "PAID" });
+    expect(d.payments.map((x: { number: string }) => x.number)).toEqual(["REC-1001", "REC-1002"]);
+    const cn = await as(partner, "POST", `/api/v1/finance/invoices/${id}/credit-note`, {});
+    expect(cn.json().error.messageKey).toBe("errors.INVOICE_HAS_PAYMENTS");
+  });
+
+  it("cancels by credit note (full level) and writes off bad debt without reversing VAT", async () => {
+    const id = (await one(200_00)).json().data.id;
+    expect(
+      (await as(lawyer, "POST", `/api/v1/finance/invoices/${id}/credit-note`, {})).statusCode,
+    ).toBe(403);
+    const cn = await as(partner, "POST", `/api/v1/finance/invoices/${id}/credit-note`, {
+      reason: "خطأ في الفاتورة",
+    });
+    expect(cn.json().data.number).toBe("CN-2001");
+    expect(await get(`/api/v1/finance/invoices/${id}`)).toMatchObject({
+      status: "CANCELLED",
+      creditNote: { number: "CN-2001", amount: 230_00, reason: "خطأ في الفاتورة" },
+    });
+    expect(
+      (await as(partner, "POST", `/api/v1/finance/invoices/${id}/credit-note`, {})).json().error
+        .messageKey,
+    ).toBe("errors.ALREADY_CREDITED");
+    expect(
+      (
+        await as(accountant, "POST", `/api/v1/finance/invoices/${id}/payments`, {
+          amount: 1,
+          method: "CASH",
+        })
+      ).json().error.messageKey,
+    ).toBe("errors.INVOICE_NOT_PAYABLE");
+
+    const bad = (await one(400_00)).json().data.id; // 460.00
+    await as(accountant, "POST", `/api/v1/finance/invoices/${bad}/payments`, {
+      amount: 60_00,
+      method: "CASH",
+    });
+    await as(partner, "POST", `/api/v1/finance/invoices/${bad}/bad-debt`);
+    expect(await get(`/api/v1/finance/invoices/${bad}`)).toMatchObject({
+      status: "BAD_DEBT",
+      remaining: 400_00,
+    });
+    const journal = (await get("/api/v1/finance/journal")) as Array<{
+      sourceType: string;
+      lines: Array<{ code: string; debit: number; credit: number }>;
+    }>;
+    expect(journal.find((j) => j.sourceType === "BAD_DEBT")!.lines).toEqual([
+      { code: "5100", name: "المصروفات التشغيلية", debit: 400_00, credit: 0 },
+      { code: "1100", name: "الذمم المدينة", debit: 0, credit: 400_00 },
+    ]);
+  });
+
+  it("invoices fee agreements: flat, percentage of the award, and hourly time billed once", async () => {
+    await as(accountant, "PUT", `/api/v1/cases/${caseA}/fee-agreement`, {
+      type: "PERCENTAGE",
+      percentageBps: 2500,
+      awarded: 80_000_00,
+    });
+    expect(await get(`/api/v1/cases/${caseA}/fee-agreement`)).toMatchObject({
+      previewNet: 20_000_00,
+      agreed: 20_000_00,
+    });
+
+    await as(accountant, "PUT", `/api/v1/cases/${caseA}/fee-agreement`, { type: "HOURLY" });
+    await as(accountant, "POST", "/api/v1/finance/time-entries", {
+      caseId: caseA,
+      lawyerId,
+      minutes: 90,
+      hourlyRate: 500_00,
+    });
+    await as(accountant, "POST", "/api/v1/finance/time-entries", {
+      caseId: caseA,
+      lawyerId,
+      minutes: 30,
+      hourlyRate: 500_00,
+      description: "مراجعة",
+    });
+    expect(
+      (
+        await as(accountant, "POST", "/api/v1/finance/time-entries", {
+          caseId: caseA,
+          lawyerId: OFFICE_A,
+          minutes: 30,
+          hourlyRate: 1,
+        })
+      ).json().error.details[0].path,
+    ).toBe("lawyerId");
+    expect(await get(`/api/v1/cases/${caseA}/fee-agreement`)).toMatchObject({
+      previewNet: 1000_00,
+      agreed: null,
+    });
+    const twice = await Promise.all([
+      as(accountant, "POST", `/api/v1/cases/${caseA}/fee-agreement/invoice`),
+      as(accountant, "POST", `/api/v1/cases/${caseA}/fee-agreement/invoice`),
+    ]);
+    expect(twice.map((r) => r.statusCode).sort()).toEqual([201, 409]);
+    const feeInv = await get(
+      `/api/v1/finance/invoices/${twice.find((r) => r.statusCode === 201)!.json().data.id}`,
+    );
+    expect(feeInv).toMatchObject({
+      net: 1000_00,
+      total: 1150_00,
+      origin: "FEE_AGREEMENT",
+      basis: "أتعاب بالساعة",
+    });
+    const entries = (await get(`/api/v1/finance/time-entries?caseId=${caseA}`)) as Array<{
+      invoiced: boolean;
+      value: number;
+    }>;
+    expect(entries.every((e) => e.invoiced)).toBe(true);
+
+    const te = (
+      await as(accountant, "POST", "/api/v1/finance/time-entries", {
+        caseId: caseA,
+        lawyerId,
+        minutes: 60,
+        hourlyRate: 300_00,
+      })
+    ).json().data.id;
+    expect(
+      (await as(accountant, "POST", `/api/v1/finance/time-entries/${te}/invoice`)).statusCode,
+    ).toBe(201);
+    expect(
+      (await as(accountant, "POST", `/api/v1/finance/time-entries/${te}/invoice`)).json().error
+        .messageKey,
+    ).toBe("errors.TIME_NOT_BILLABLE");
+  });
+
+  it("keeps trust apart from revenue and never below zero; pays an invoice from trust", async () => {
+    const move = (body: object) =>
+      as(accountant, "POST", `/api/v1/finance/trust/${clientB}/movements`, body);
+    expect(
+      (await move({ type: "DEPOSIT", amount: 5000_00, note: "عهدة رسوم" })).json().data,
+    ).toEqual({ balance: 5000_00 });
+    expect((await move({ type: "WITHDRAWAL", amount: 6000_00 })).json().error.messageKey).toBe(
+      "errors.TRUST_INSUFFICIENT_BALANCE",
+    );
+    const racing = await Promise.all([
+      move({ type: "WITHDRAWAL", amount: 3000_00 }),
+      move({ type: "WITHDRAWAL", amount: 3000_00 }),
+    ]);
+    expect(racing.map((r) => r.statusCode).sort()).toEqual([201, 409]);
+    expect(
+      (await move({ type: "DEPOSIT", amount: 1000_00, caseId: caseA })).json().error.messageKey,
+    ).toBe("errors.CASE_CLIENT_MISMATCH");
+
+    const inv = (
+      await as(accountant, "POST", "/api/v1/finance/invoices", {
+        clientId: clientB,
+        items: [{ description: "أتعاب", unitPrice: 1000_00 }],
+      })
+    ).json().data.id;
+    await as(accountant, "POST", `/api/v1/finance/invoices/${inv}/payments`, {
+      amount: 1150_00,
+      method: "FROM_TRUST",
+    });
+    expect(await get(`/api/v1/finance/invoices/${inv}`)).toMatchObject({ status: "PAID" });
+    const ledger = await get(`/api/v1/finance/trust/${clientB}`);
+    expect(ledger).toMatchObject({ balance: 850_00, clientName: "شركة المالية ب" });
+    expect(
+      ledger.movements.map((m: { type: string; runningBalance: number }) => [
+        m.type,
+        m.runningBalance,
+      ]),
+    ).toEqual([
+      ["DEPOSIT", 5000_00],
+      ["WITHDRAWAL", 2000_00],
+      ["TRANSFER_TO_FEES", 850_00],
+    ]);
+    expect((await get("/api/v1/finance/trust")).total).toBe(850_00);
+    const journal = (await get("/api/v1/finance/journal")) as Array<{
+      sourceType: string;
+      lines: Array<{ code: string; debit: number; credit: number }>;
+    }>;
+    expect(
+      journal
+        .find((j) => j.sourceType === "TRUST_TRANSFER")!
+        .lines.map((l) => [l.code, l.debit, l.credit]),
+    ).toEqual([
+      ["2100", 1150_00, 0],
+      ["1100", 0, 1150_00],
+    ]);
+  });
+
+  it("locks a period against postings (full level), and the whole ledger balances", async () => {
+    const key = dateInDays(0).toISOString().slice(0, 7);
+    expect(
+      (await as(lawyer, "PUT", `/api/v1/finance/periods/${key}`, { locked: true })).statusCode,
+    ).toBe(403);
+    expect(
+      (await as(partner, "PUT", `/api/v1/finance/periods/${key}`, { locked: true })).statusCode,
+    ).toBe(200);
+    expect(
+      (await get("/api/v1/finance/periods")).find(
+        (x: { periodKey: string }) => x.periodKey === key,
+      ),
+    ).toEqual({ periodKey: key, locked: true });
+    const counterBefore = (await one(100_00)).json();
+    expect(counterBefore.error.messageKey).toBe("errors.PERIOD_LOCKED");
+    await as(partner, "PUT", `/api/v1/finance/periods/${key}`, { locked: false });
+    // The refused invoice consumed no number: numbering has no gaps.
+    const list = (await get("/api/v1/finance/invoices")) as Array<{ number: string }>;
+    const next = (await one(100_00)).json().data.number;
+    expect(Number(next.slice(4))).toBe(Math.max(...list.map((i) => Number(i.number.slice(4)))) + 1);
+
+    const journal = (await get("/api/v1/finance/journal")) as Array<{
+      lines: Array<{ debit: number; credit: number }>;
+    }>;
+    const all = journal.flatMap((j) => j.lines);
+    expect(all.reduce((s, l) => s + l.debit, 0)).toBe(all.reduce((s, l) => s + l.credit, 0));
+    expect(((await get("/api/v1/finance/accounts")) as unknown[]).length).toBe(14);
+  });
+
+  it("feeds search and the client journey", async () => {
+    const hits = (await get(`/api/v1/search?q=INV-104`, partner)).invoices as Array<{
+      label: string;
+    }>;
+    expect(hits.length).toBeGreaterThan(0);
+    expect((await get(`/api/v1/search?q=INV-104`, lawyer)).invoices).toEqual([]);
+    const j = await get("/api/v1/journey", partner);
+    expect(j.invoicesDue).toBeGreaterThan(0);
+    expect(j.uncollected).toBeGreaterThan(0);
   });
 });
