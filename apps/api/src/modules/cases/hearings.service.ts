@@ -28,6 +28,7 @@ import type { Principal } from "../../common/tenancy/principal.js";
 import { TasksService } from "../tasks/tasks.service.js";
 import { assertOfficeUser, CaseAccess, type CaseRow, type Meta } from "./case-access.service.js";
 import { logCaseEvent } from "./case-events.js";
+import { PerformanceService } from "../performance/performance.service.js";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -43,6 +44,7 @@ export class HearingsService {
   constructor(
     private readonly access: CaseAccess,
     private readonly tasksService: TasksService,
+    private readonly performance: PerformanceService,
   ) {}
 
   private async assignees(tx: Tx, caseId: string) {
@@ -244,6 +246,7 @@ export class HearingsService {
         after: { hearingId },
         ...meta,
       });
+      await this.performance.award(tx, p.officeId, p.userId, "HEARING_RECORDED", hearingId);
       return { id: hearingId };
     });
   }

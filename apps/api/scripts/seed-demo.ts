@@ -305,6 +305,130 @@ try {
       "seeded demo data: 2 clients, 4 leads, 4 cases (with conflicts), hearings, tasks, 2 appointments",
     );
   }
+  if ((await call<unknown[]>("GET", "/hr/employees")).length > 0) {
+    console.log("demo staff skipped: the office already has employees");
+  } else {
+    // Mixed nationalities for a Saudization band, plus one salary advance (legacy seed).
+    const SAR = (riyals: number) => riyals * 100;
+    const staff = [
+      [
+        "عبدالرحمن التنفيذي",
+        "الإدارة",
+        "المدير التنفيذي",
+        "سعودي",
+        "1012345678",
+        "SA0380000000608010167519",
+        "2018-03-01",
+        20000,
+        5000,
+        2000,
+        24,
+      ],
+      [
+        "منى المحاسِبة",
+        "المالية",
+        "محاسبة",
+        "سعودي",
+        "1023456789",
+        "SA4420000001234567891234",
+        "2021-06-15",
+        12000,
+        2000,
+        1200,
+        21,
+      ],
+      [
+        "خالد المحامي",
+        "القانوني",
+        "محامٍ",
+        "سعودي",
+        "1034567890",
+        "SA1140000009876543210987",
+        "2020-01-10",
+        15000,
+        3000,
+        1500,
+        18,
+      ],
+      [
+        "سارة القحطاني",
+        "الاستقبال",
+        "موظفة استقبال",
+        "سعودي",
+        "1045678901",
+        "SA6980000000111122223333",
+        "2024-09-01",
+        7000,
+        1000,
+        700,
+        21,
+      ],
+      [
+        "راج كومار",
+        "التقنية",
+        "مطوّر",
+        "هندي",
+        "2456789012",
+        "SA2230400108054011300020",
+        "2022-04-01",
+        10000,
+        2000,
+        0,
+        15,
+      ],
+      [
+        "أحمد مصطفى",
+        "الإداري",
+        "كاتب",
+        "مصري",
+        "2567890123",
+        "SA5510000044445555666677",
+        "2023-11-20",
+        6000,
+        1000,
+        0,
+        12,
+      ],
+    ] as const;
+    const ids: Record<string, string> = {};
+    for (const [
+      name,
+      department,
+      jobTitle,
+      nationality,
+      nationalId,
+      iban,
+      hireDate,
+      basic,
+      allowances,
+      gosi,
+      leave,
+    ] of staff) {
+      ids[name] = (
+        await call<{ id: string }>("POST", "/hr/employees", {
+          name,
+          department,
+          jobTitle,
+          nationality,
+          nationalId,
+          iban,
+          hireDate,
+          basicSalary: SAR(basic),
+          allowances: SAR(allowances),
+          gosiContribution: SAR(gosi),
+          leaveBalanceDays: leave,
+        })
+      ).id;
+    }
+    // 6,000 SAR over 3 months to the accountant (installment 2,000).
+    await call("POST", "/hr/advances", {
+      employeeId: ids["منى المحاسِبة"],
+      amount: SAR(6000),
+      months: 3,
+      note: "سلفة شخصية",
+    });
+    console.log(`seeded demo staff: ${staff.length} employees, 1 advance`);
+  }
   if ((await call<unknown[]>("GET", "/ai/kb")).length > 0) {
     console.log("demo knowledge base skipped: the office already has sources");
   } else {

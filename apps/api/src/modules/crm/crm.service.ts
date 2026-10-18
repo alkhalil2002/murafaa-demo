@@ -19,6 +19,7 @@ import type { Principal } from "../../common/tenancy/principal.js";
 import { TenantDb } from "../../database/tenant-db.service.js";
 import { CasesService } from "../cases/cases.service.js";
 import { ConflictsService } from "../cases/conflicts.service.js";
+import { PerformanceService } from "../performance/performance.service.js";
 
 type Meta = { ip: string; requestId: string };
 
@@ -36,6 +37,7 @@ export class CrmService {
     private readonly tenantDb: TenantDb,
     private readonly cases: CasesService,
     private readonly conflicts: ConflictsService,
+    private readonly performance: PerformanceService,
   ) {}
 
   async listClients() {
@@ -339,6 +341,7 @@ export class CrmService {
         ...meta,
       });
       await this.conflicts.rescanForName(tx, p.officeId, client!.name, p.userId);
+      await this.performance.award(tx, p.officeId, p.userId, "LEAD_CONVERTED", caseId);
       return { clientId: client!.id, caseId };
     });
   }

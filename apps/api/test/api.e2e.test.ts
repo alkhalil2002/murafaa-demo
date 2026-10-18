@@ -5,7 +5,7 @@ import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import postgres from "postgres";
-import { dateInDays } from "@murafaa/rules";
+import { dateInDays, endOfServiceAward, riyadhCalendarDate, serviceYears } from "@murafaa/rules";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp, mountDocs } from "../src/app.factory.js";
 import { loadEnv } from "../src/config/env.js";
@@ -41,6 +41,7 @@ const OFFICE_L = "44444444-0000-4000-8000-000000000004";
 const OFFICE_M = "33333333-0000-4000-8000-000000000003";
 const OFFICE_N = "22222222-0000-4000-8000-000000000002";
 const OFFICE_O = "11111111-0000-4000-8000-000000000001";
+const OFFICE_P = "12121212-0000-4000-8000-000000000012";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -99,6 +100,9 @@ const LAWYER_M = "0500001103";
 const PARTNER_N = "0500001201";
 const ACCOUNTANT_N = "0500001202";
 
+const PARTNER_P = "0500001401";
+const ADMIN_P = "0500001402";
+const LAWYER_P = "0500001403";
 const PARTNER_O = "0500001301";
 const LAWYER_O1 = "0500001302";
 const LAWYER_O2 = "0500001303";
@@ -174,7 +178,7 @@ beforeAll(async () => {
   const pdfPort = (pdfStub.server.address() as { port: number }).port;
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate ai_citations, ai_interactions, knowledge_chunks, knowledge_sources, expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate performance_events, office_performance_weights, candidates, payroll_lines, payroll_runs, employee_requests, attendance, leaves, advances, employees, ai_citations, ai_interactions, knowledge_chunks, knowledge_sources, expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -220,6 +224,16 @@ beforeAll(async () => {
         [PARTNER_G, "PARTNER"],
         [LAWYER_G1, "LAWYER"],
         [LAWYER_G2, "LAWYER"],
+      ],
+    ],
+    [
+      OFFICE_P,
+      "Office P",
+      [],
+      [
+        [PARTNER_P, "PARTNER"],
+        [ADMIN_P, "ADMIN"],
+        [LAWYER_P, "LAWYER"],
       ],
     ],
     [
@@ -356,6 +370,7 @@ beforeAll(async () => {
     OFFICE_M,
     OFFICE_N,
     OFFICE_O,
+    OFFICE_P,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -3161,5 +3176,341 @@ describe("legal AI: closed knowledge base, citation gate, PII redaction, arena, 
     fakeLlm.reply = () => "وفقاً للمادة (77) من نظام العمل يستحق التعويض.";
     const a = (await as(lawyer1, "POST", "/api/v1/ai/ask", { question: "تعويض" })).json().data;
     expect(a).toMatchObject({ verdict: "BLOCKED", finalOutput: "", citations: [] });
+  });
+});
+
+describe("HR: employees, advances, leaves, requests, attendance, payroll, recruitment, Team Pulse", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let admin = "";
+  let lawyer = "";
+  const ids: Record<string, string> = {};
+  const as = (cookie: string, method: "GET" | "POST" | "PUT", url: string, payload?: object) =>
+    app.inject({
+      method,
+      url: `/api/v1${url}`,
+      headers: { cookie, ...WEB },
+      ...(payload ? { payload } : {}),
+    });
+  const data = async (
+    cookie: string,
+    method: "GET" | "POST" | "PUT",
+    url: string,
+    payload?: object,
+  ) => {
+    const res = await as(cookie, method, url, payload);
+    if (res.statusCode >= 400) throw new Error(`${method} ${url} → ${res.statusCode} ${res.body}`);
+    return res.json().data;
+  };
+  const errorKey = async (cookie: string, method: "POST" | "PUT", url: string, payload?: object) =>
+    (await as(cookie, method, url, payload)).json().error.messageKey;
+  const thisMonth = riyadhCalendarDate().toISOString().slice(0, 7);
+
+  // Read-only checks on the ledger and the audit log, as the table owner.
+  const owner = postgres(OWNER_URL, { max: 1 });
+  afterAll(() => owner.end());
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_P));
+    admin = cookieOf(await login(ADMIN_P));
+    lawyer = cookieOf(await login(LAWYER_P));
+  });
+
+  it("keeps HR to the roles that have it, and records employees in halalas", async () => {
+    expect((await as(lawyer, "GET", "/hr/employees")).statusCode).toBe(403);
+    ids.saudi = (
+      await data(admin, "POST", "/hr/employees", {
+        name: "سارة القحطاني",
+        department: "القضايا",
+        jobTitle: "محامية",
+        hireDate: "2020-01-15",
+        basicSalary: 1_000_000,
+        allowances: 200_000,
+        gosiContribution: 90_000,
+        leaveBalanceDays: 21,
+        iban: "SA0380000000608010167519",
+        nationalId: "1012345678",
+      })
+    ).id;
+    ids.noIban = (
+      await data(admin, "POST", "/hr/employees", {
+        name: "فهد العتيبي",
+        department: "القضايا",
+        hireDate: "2024-03-01",
+        basicSalary: 800_000,
+      })
+    ).id;
+    ids.expat = (
+      await data(admin, "POST", "/hr/employees", {
+        name: "Ahmed Karim",
+        nationality: "مصري",
+        hireDate: "2025-06-01",
+        basicSalary: 500_000,
+        allowances: 100_000,
+        gosiContribution: 700_000,
+        iban: "SA4420000001234567891234",
+      })
+    ).id;
+    const list = await data(admin, "GET", "/hr/employees");
+    expect(list).toHaveLength(3);
+    const sz = await data(admin, "GET", "/hr/saudization");
+    expect(sz).toMatchObject({ total: 3, saudiCount: 2, band: "MID_GREEN" });
+    expect(sz.targets.map((t: { band: string }) => t.band)).toEqual(["PLATINUM", "HIGH_GREEN"]);
+    const org = await data(admin, "GET", "/hr/org");
+    expect(org[0]).toMatchObject({ department: "القضايا" });
+    expect(org[0].employees).toHaveLength(2);
+    const d = await data(admin, "GET", `/hr/employees/${ids.saudi}`);
+    expect(d.ibanMasked).toBe("SA••••7519");
+    const years = serviceYears(2020, riyadhCalendarDate().getUTCFullYear());
+    expect(d.endOfService).toEqual({
+      years,
+      awardMinor: endOfServiceAward({ basicSalary: 1_000_000, allowances: 200_000, years }),
+      frozen: false,
+    });
+  });
+
+  it("grants an advance with its journal entry and refuses installments that round to zero", async () => {
+    expect(
+      await errorKey(admin, "POST", "/hr/advances", {
+        employeeId: ids.saudi,
+        amount: 40,
+        months: 100,
+      }),
+    ).toBe("hr.err.INSTALLMENT_TOO_SMALL");
+    expect(
+      await errorKey(admin, "POST", "/hr/advances", {
+        employeeId: ids.saudi,
+        amount: 1000,
+        monthlyInstallment: 2000,
+      }),
+    ).toBe("hr.err.INSTALLMENT_EXCEEDS_AMOUNT");
+    await data(admin, "POST", "/hr/advances", {
+      employeeId: ids.saudi,
+      amount: 300_000,
+      months: 3,
+    });
+    const [a] = await data(admin, "GET", "/hr/advances");
+    expect(a).toMatchObject({
+      employeeName: "سارة القحطاني",
+      monthlyDue: 100_000,
+      remaining: 300_000,
+      status: "ACTIVE",
+    });
+    const [row] =
+      await owner`select l.debit, l.credit, c.code from journal_lines l join chart_of_accounts c on c.id = l.account_id
+      join journal_entries e on e.id = l.journal_entry_id where e.office_id = ${OFFICE_P} and e.description_key = 'journal.advance' order by l.line_no`;
+    expect(row).toMatchObject({ code: "1300", debit: "300000" });
+  });
+
+  it("draws annual leave from the balance only, never below zero", async () => {
+    expect(
+      await errorKey(admin, "POST", "/hr/leaves", {
+        employeeId: ids.saudi,
+        type: "ANNUAL",
+        days: 30,
+        startDate: "2026-11-01",
+      }),
+    ).toBe("hr.err.LEAVE_BALANCE_INSUFFICIENT");
+    await data(admin, "POST", "/hr/leaves", {
+      employeeId: ids.saudi,
+      type: "ANNUAL",
+      days: 5,
+      startDate: "2026-11-01",
+    });
+    await data(admin, "POST", "/hr/leaves", {
+      employeeId: ids.saudi,
+      type: "SICK",
+      days: 3,
+      startDate: "2026-11-10",
+    });
+    expect((await data(admin, "GET", `/hr/employees/${ids.saudi}`)).leaveBalanceDays).toBe(16);
+  });
+
+  it("decides requests once; an approved leave request takes effect", async () => {
+    const leave = (
+      await data(admin, "POST", "/hr/requests", {
+        employeeId: ids.saudi,
+        kind: "LEAVE",
+        days: 2,
+        detail: "سفر",
+      })
+    ).id;
+    const noDays = (
+      await data(admin, "POST", "/hr/requests", { employeeId: ids.saudi, kind: "LEAVE" })
+    ).id;
+    await data(admin, "POST", `/hr/requests/${leave}/decide`, { status: "IN_REVIEW" });
+    await data(admin, "POST", `/hr/requests/${leave}/decide`, { status: "APPROVED" });
+    expect(
+      await errorKey(admin, "POST", `/hr/requests/${leave}/decide`, { status: "REJECTED" }),
+    ).toBe("hr.err.REQUEST_ALREADY_DECIDED");
+    expect(
+      await errorKey(admin, "POST", `/hr/requests/${noDays}/decide`, { status: "APPROVED" }),
+    ).toBe("hr.err.LEAVE_REQUEST_MISSING_DAYS");
+    const d = await data(admin, "GET", `/hr/employees/${ids.saudi}`);
+    expect(d.leaveBalanceDays).toBe(14);
+    expect(d.leaves).toHaveLength(3);
+    const r = (await data(admin, "GET", "/hr/requests")).find(
+      (x: { id: string }) => x.id === leave,
+    );
+    expect(r.history.map((h: { status: string }) => h.status)).toEqual([
+      "SUBMITTED",
+      "IN_REVIEW",
+      "APPROVED",
+    ]);
+  });
+
+  it("records today's attendance, keeps the first check-in, and counts the month", async () => {
+    expect((await as(admin, "POST", `/hr/attendance/${ids.noIban}/clock-out`)).statusCode).toBe(
+      404,
+    );
+    await data(admin, "PUT", `/hr/attendance/${ids.saudi}`, { status: "PRESENT" });
+    const first = (await data(admin, "GET", "/hr/attendance/today")).rows.find(
+      (r: { employeeId: string }) => r.employeeId === ids.saudi,
+    );
+    await data(admin, "PUT", `/hr/attendance/${ids.saudi}`, { status: "LATE" });
+    await data(admin, "POST", `/hr/attendance/${ids.saudi}/clock-out`);
+    await data(admin, "PUT", `/hr/attendance/${ids.noIban}`, { status: "ABSENT" });
+    const today = (await data(admin, "GET", "/hr/attendance/today")).rows;
+    const s = today.find((r: { employeeId: string }) => r.employeeId === ids.saudi);
+    expect(s).toMatchObject({ status: "LATE", checkIn: first.checkIn });
+    expect(s.checkOut).not.toBeNull();
+    expect(today.find((r: { employeeId: string }) => r.employeeId === ids.noIban)).toMatchObject({
+      status: "ABSENT",
+      checkIn: null,
+    });
+    const month = await data(admin, "GET", `/hr/attendance/month?month=${thisMonth}`);
+    expect(
+      month.rows.find((r: { employeeId: string }) => r.employeeId === ids.saudi),
+    ).toMatchObject({ lateCount: 1, daysPresent: 0 });
+  });
+
+  it("runs payroll once per month: GOSI capped, advances repaid, one balanced entry, WPS records", async () => {
+    const [year, month] = thisMonth.split("-").map(Number);
+    const runId = (await data(admin, "POST", "/hr/payroll", { year, month })).id;
+    expect(await errorKey(admin, "POST", "/hr/payroll", { year, month })).toBe(
+      "hr.err.PAYROLL_ALREADY_RUN",
+    );
+    const run = await data(admin, "GET", `/hr/payroll/${runId}`);
+    expect(run).toMatchObject({
+      periodKey: thisMonth,
+      totalBasic: 2_300_000,
+      totalAllowances: 300_000,
+      totalGosi: 690_000,
+      totalAdvances: 100_000,
+      totalNet: 1_010_000 + 800_000 + 0,
+    });
+    expect(
+      run.lines.find((l: { employeeName: string }) => l.employeeName === "Ahmed Karim"),
+    ).toMatchObject({ gosi: 600_000, net: 0 });
+    const [adv] = await data(admin, "GET", "/hr/advances");
+    expect(adv).toMatchObject({ paid: 100_000, remaining: 200_000 });
+    const lines =
+      await owner`select sum(l.debit)::int as dr, sum(l.credit)::int as cr from journal_lines l where l.journal_entry_id = ${run.journalEntryId}`;
+    expect(lines[0]).toEqual({ dr: 2_600_000, cr: 2_600_000 });
+    const wps = await data(admin, "GET", `/hr/payroll/${runId}/wps`);
+    expect(wps).toMatchObject({ recordCount: 3, missingIban: ["فهد العتيبي"] });
+    expect(JSON.stringify(wps)).not.toContain("SA0380000000608010167519");
+    const [audit] =
+      await owner`select count(*)::int as n from audit_log where office_id = ${OFFICE_P} and action = 'payroll.wpsView'`;
+    expect(audit!.n).toBe(1);
+  });
+
+  it("grants system accounts at the full level and switches them off when service ends", async () => {
+    expect(
+      (
+        await as(admin, "POST", `/hr/employees/${ids.noIban}/account`, {
+          phone: "0500001409",
+          role: "LAWYER",
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      await errorKey(partner, "POST", `/hr/employees/${ids.noIban}/account`, {
+        phone: LAWYER_P,
+        role: "LAWYER",
+      }),
+    ).toBe("hr.err.PHONE_ALREADY_IN_USE");
+    await data(partner, "POST", `/hr/employees/${ids.noIban}/account`, {
+      phone: "0500001409",
+      role: "LAWYER",
+    });
+    expect(
+      await errorKey(partner, "POST", `/hr/employees/${ids.noIban}/account`, {
+        phone: "0500001408",
+        role: "LAWYER",
+      }),
+    ).toBe("hr.err.EMPLOYEE_ALREADY_HAS_ACCOUNT");
+    const staff = cookieOf(await login("0500001409"));
+    expect((await as(staff, "GET", "/auth/me")).statusCode).toBe(200);
+    expect((await as(admin, "POST", `/hr/employees/${ids.noIban}/terminate`)).statusCode).toBe(403);
+    await data(partner, "POST", `/hr/employees/${ids.noIban}/terminate`);
+    expect(await errorKey(partner, "POST", `/hr/employees/${ids.noIban}/terminate`)).toBe(
+      "hr.err.EMPLOYEE_ALREADY_TERMINATED",
+    );
+    expect((await as(staff, "GET", "/auth/me")).statusCode).toBe(401);
+    const d = await data(partner, "GET", `/hr/employees/${ids.noIban}`);
+    expect(d).toMatchObject({ status: "TERMINATED", endOfService: { frozen: true } });
+    expect(
+      await errorKey(admin, "POST", "/hr/advances", { employeeId: ids.noIban, amount: 1000 }),
+    ).toBe("hr.err.EMPLOYEE_ALREADY_TERMINATED");
+    // Terminated staff leave the Nitaqat headcount.
+    expect(await data(admin, "GET", "/hr/saudization")).toMatchObject({ total: 2, saudiCount: 1 });
+  });
+
+  it("moves candidates one stage at a time and deletes softly", async () => {
+    const c = (
+      await data(admin, "POST", "/hr/candidates", {
+        name: "مرشح",
+        roleTitle: "محامٍ متدرب",
+        source: "LINKEDIN",
+      })
+    ).id;
+    await data(admin, "POST", `/hr/candidates/${c}/move`, { direction: -1 });
+    await data(admin, "POST", `/hr/candidates/${c}/move`, { direction: 1 });
+    await data(admin, "POST", `/hr/candidates/${c}/move`, { direction: 1 });
+    expect((await data(admin, "GET", "/hr/candidates"))[0]).toMatchObject({
+      stage: "OFFER",
+      source: "LINKEDIN",
+    });
+    await data(admin, "POST", `/hr/candidates/${c}/delete`);
+    expect(await data(admin, "GET", "/hr/candidates")).toEqual([]);
+  });
+
+  it("awards Team Pulse points for real actions, once per task, with office weights", async () => {
+    const adminId = (await data(admin, "GET", "/auth/me")).user.id;
+    const lawyerId = (await data(lawyer, "GET", "/auth/me")).user.id;
+    expect(
+      (await as(admin, "PUT", "/pulse/weights/TASK_COMPLETED", { points: 7 })).statusCode,
+    ).toBe(403);
+    await data(partner, "PUT", "/pulse/weights/TASK_COMPLETED", { points: 7 });
+    const t1 = (await data(partner, "POST", "/tasks", { title: "مهمة", assigneeId: lawyerId })).id;
+    await data(lawyer, "PUT", `/tasks/${t1}/status`, { status: "DONE" });
+    await data(lawyer, "PUT", `/tasks/${t1}/status`, { status: "NEW" });
+    await data(lawyer, "PUT", `/tasks/${t1}/status`, { status: "DONE" });
+    await data(partner, "POST", "/pulse/weights/TASK_COMPLETED/reset");
+    const t2 = (await data(partner, "POST", "/tasks", { title: "مهمة ٢", assigneeId: adminId })).id;
+    await data(admin, "PUT", `/tasks/${t2}/status`, { status: "DONE" });
+
+    const self = await data(lawyer, "GET", "/pulse/self?window=today");
+    expect(self).toMatchObject({ points: 7, tasksDone: 1, completionRatePct: 100 });
+    expect((await as(lawyer, "GET", "/pulse/team")).statusCode).toBe(403);
+    const team = await data(admin, "GET", "/pulse/team?window=week");
+    expect(team.totals).toEqual({ totalPoints: 12, tasksCompleted: 2, hearingsLogged: 0 });
+    expect(team.ranking.map((r: { points: number }) => r.points)).toEqual([7, 5]);
+    const drill = await data(admin, "GET", `/pulse/team/${lawyerId}`);
+    expect(drill.events).toHaveLength(1);
+    expect(
+      (await data(partner, "GET", "/pulse/weights")).find(
+        (w: { kind: string }) => w.kind === "TASK_COMPLETED",
+      ),
+    ).toEqual({
+      kind: "TASK_COMPLETED",
+      points: 5,
+      isDefault: true,
+    });
+    expect((await data(lawyer, "GET", "/today")).employeeOfWeek).toMatchObject({
+      points: 7,
+      role: "LAWYER",
+    });
   });
 });

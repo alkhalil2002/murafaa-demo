@@ -31,6 +31,7 @@ import { CrmService } from "../crm/crm.service.js";
 import { DocumentsService } from "../documents/documents.service.js";
 import { InvoicesService } from "../finance/invoices.service.js";
 import { TasksService } from "../tasks/tasks.service.js";
+import { PulseService } from "../pulse/pulse.service.js";
 
 type Message = { messageKey: string; params: Record<string, string | number> };
 const msg = (messageKey: string, params: Record<string, string | number>): Message => ({
@@ -65,6 +66,7 @@ export class OverviewService {
     private readonly approvals: ApprovalsService,
     private readonly documents: DocumentsService,
     private readonly invoices: InvoicesService,
+    private readonly pulse: PulseService,
   ) {}
 
   private can(policy: OfficePolicy, p: Principal, module: PermModule, action: PermAction = "view") {
@@ -133,7 +135,8 @@ export class OverviewService {
       : [];
 
     return {
-      employeeOfWeek: null,
+      // Shown to every role (legacy getEmployeeOfWeek never denied).
+      employeeOfWeek: await this.tenantDb.run((tx) => this.pulse.employeeOfWeek(tx)),
       hearings: {
         visible: canAppointments,
         items: hearings.slice(0, 6),

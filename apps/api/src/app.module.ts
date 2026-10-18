@@ -10,6 +10,8 @@ import { ENV, type Env } from "./config/env.js";
 import { LLM, type LlmProvider, llmFor } from "./modules/ai/llm.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { AiModule } from "./modules/ai/ai.module.js";
+import { HrModule } from "./modules/hr/hr.module.js";
+import { PulseModule } from "./modules/pulse/pulse.module.js";
 import { AppointmentsModule } from "./modules/appointments/appointments.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { BillingModule } from "./modules/billing/billing.module.js";
@@ -63,7 +65,9 @@ export class AppModule {
         FinanceModule,
         HealthModule,
         OfficesModule,
+        HrModule,
         OverviewModule,
+        PulseModule,
         PermissionsModule,
         RecycleModule,
         SecurityModule,

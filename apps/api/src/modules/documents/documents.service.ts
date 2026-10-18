@@ -35,6 +35,7 @@ import { CaseAccess, type Meta } from "../cases/case-access.service.js";
 import { OfficesService } from "../offices/offices.service.js";
 import { logCaseEvent } from "../cases/case-events.js";
 import { caseVisibility } from "../cases/case-scope.js";
+import { PerformanceService } from "../performance/performance.service.js";
 
 type DocRow = typeof documents.$inferSelect;
 const invalid = (messageKey: string, path?: string) =>
@@ -87,6 +88,7 @@ export class DocumentsService {
     private readonly policies: PolicyService,
     private readonly offices: OfficesService,
     private readonly pdf: PdfClient,
+    private readonly performance: PerformanceService,
   ) {}
 
   list(p: Principal, caseId: string, meta: Meta) {
@@ -478,6 +480,7 @@ export class DocumentsService {
           after: { template: def.key },
           ...meta,
         });
+        await this.performance.award(tx, p.officeId, p.userId, "DOCUMENT_GENERATED", d.id);
       },
     );
     return toItem(doc);

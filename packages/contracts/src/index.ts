@@ -14,3 +14,4 @@ export * from "./casework.js";
 export * from "./documents.js";
 export * from "./finance.js";
 export * from "./ai.js";
+export * from "./hr.js";

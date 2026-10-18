@@ -8,14 +8,14 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 45 | 6 |
-| Business rules inside services/components | 37 | 31 | 6 |
-| Services | 54 | 38 | 16 |
-| Service capabilities | 225 | 169 | 56 |
-| Screens | 63 | 42 | 21 |
-| Components | 20 | 16 | 4 |
+| `src/lib` files | 51 | 46 | 5 |
+| Business rules inside services/components | 37 | 34 | 3 |
+| Services | 54 | 50 | 4 |
+| Service capabilities | 225 | 206 | 19 |
+| Screens | 63 | 56 | 7 |
+| Components | 20 | 18 | 2 |
 | Route handlers | 9 | 4 (+1 replaced) | 4 |
-| Models | 56 | 45 (+ `outbox`, `sessions` new) | 11 |
+| Models | 56 | 55 (+ `outbox`, `sessions` new) | 1 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -64,7 +64,7 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `najiz.ts` | ✅ Ported | packages/rules/src/reference/najiz.ts | tests added |
 | `pdf/letterhead.ts` | ✅ Ported | packages/documents/src/letterhead.ts | labels from i18n; CSP forbids any fetch; tested escaping |
 | `pdf/render.ts` | ✅ Ported | apps/pdf (separate service: puppeteer, Arabic fonts in the image, token auth, no JS and no network while rendering) + apps/api common/pdf/pdf.client.ts |  |
-| `performance.ts` | ⏳ Pending | M6 HR | PERFORMANCE_POINTS ported (packages/rules performance.ts); event log writer pending |
+| `performance.ts` | ✅ Ported | apps/api/src/modules/performance/performance.service.ts | written by tasks, hearings, documents, invoices and lead conversion in their transaction; each source counts once (legacy re-awarded a task moved out of DONE and back) |
 | `permissions/engine.ts` | ✅ Ported | packages/auth/src/engine.ts | 20 tests |
 | `permissions/guard.ts` | ✅ Ported | apps/api PermissionsGuard | layer 1 + partner-only + view-only preview, audited; layers 2–3 apply in the cases module (M2) via PolicyService |
 | `permissions/matrix.ts` | ✅ Ported | packages/auth/src/matrix.ts + policy.ts (seedPolicy) |  |
@@ -105,18 +105,18 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `finance-dashboard` | ✅ Ported | apps/api/src/modules/finance/reports.service.ts dashboard |  |
 | `finance-governance` | ✅ Ported | apps/api/src/modules/finance/governance.service.ts (approval queue added; approver must not be the recorder) |  |
 | `hearings` | ✅ Ported | apps/api/src/modules/cases/hearings.service.ts + hearings.controller.ts |  |
-| `hr/advances` | ⏳ Pending | M6 HR |  |
-| `hr/attendance` | ⏳ Pending | M6 HR |  |
-| `hr/employees` | ⏳ Pending | M6 HR |  |
-| `hr/index` | ⏳ Pending | M6 HR |  |
+| `hr/advances` | ✅ Ported | apps/api/src/modules/hr/records.service.ts (journal through finance LedgerPoster) |  |
+| `hr/attendance` | ✅ Ported | apps/api/src/modules/hr/records.service.ts |  |
+| `hr/employees` | ✅ Ported | apps/api/src/modules/hr/employees.service.ts (grant account: only a partner may grant PARTNER; terminate disables the login) |  |
+| `hr/index` | ✅ Ported | apps/api/src/modules/hr/hr.module.ts |  |
 | `hr/integrations` | ⏳ Pending | M7 Integrations |  |
-| `hr/leaves` | ⏳ Pending | M6 HR |  |
-| `hr/org-chart` | ⏳ Pending | M6 HR |  |
-| `hr/payroll` | ⏳ Pending | M6 HR |  |
-| `hr/recruitment` | ⏳ Pending | M6 HR | candidate pipeline ported (packages/rules workflows.ts) |
-| `hr/requests` | ⏳ Pending | M6 HR |  |
-| `hr/saudization` | ⏳ Pending | M6 HR |  |
-| `hr/wps` | ⏳ Pending | M6 HR | WPS file generation |
+| `hr/leaves` | ✅ Ported | apps/api/src/modules/hr/records.service.ts |  |
+| `hr/org-chart` | ✅ Ported | apps/api/src/modules/hr/employees.service.ts orgChart |  |
+| `hr/payroll` | ✅ Ported | apps/api/src/modules/hr/payroll.service.ts |  |
+| `hr/recruitment` | ✅ Ported | apps/api/src/modules/hr/recruitment.service.ts |  |
+| `hr/requests` | ✅ Ported | apps/api/src/modules/hr/records.service.ts |  |
+| `hr/saudization` | ✅ Ported | apps/api/src/modules/hr/employees.service.ts saudization |  |
+| `hr/wps` | ✅ Ported | apps/api/src/modules/hr/payroll.service.ts wps (IBANs masked, view audited) |  |
 | `invoices` | ✅ Ported | apps/api/src/modules/finance/invoices.service.ts (invoice row locked for payments/credit notes/write-offs) |  |
 | `journey` | ✅ Ported | apps/api/src/modules/overview (invoice and WhatsApp counts join with M4/M7) |  |
 | `leads` | ✅ Ported | apps/api/src/modules/crm (incl. convertLead) |  |
@@ -127,7 +127,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `permissions-admin` | ✅ Ported | apps/api/src/modules/permissions |  |
 | `portal` | ⏳ Pending | M8 Portals |  |
 | `procedure-requests` | ✅ Ported | apps/api/src/modules/cases/procedure-requests.service.ts |  |
-| `pulse` | ⏳ Pending | M6 HR | points + override rule ported (packages/rules performance.ts); legacy sinceFor() used server-local time, use Riyadh time (dates.ts) |
+| `pulse` | ✅ Ported | apps/api/src/modules/pulse (Riyadh-time windows) |  |
 | `search` | ✅ Ported | apps/api/src/modules/overview (GET /search; documents M3, invoices M4, employees M6) |  |
 | `security` | ✅ Ported | apps/api/src/modules/security |  |
 | `security-audit` | ✅ Ported | apps/api/src/modules/permissions (GET /permissions/audit) |  |
@@ -175,19 +175,19 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/finance/statements` | ✅ Ported | apps/web/src/app/(app)/finance/statements (+ client statement) |  |
 | `/finance/trust` | ✅ Ported | apps/web/src/app/(app)/finance/trust |  |
 | `/finance/trust/[clientId]` | ✅ Ported | apps/web/src/app/(app)/finance/trust/[clientId] |  |
-| `/hr` | ⏳ Pending | M6 HR |  |
-| `/hr/[id]` | ⏳ Pending | M6 HR |  |
-| `/hr/advances` | ⏳ Pending | M6 HR |  |
-| `/hr/attendance` | ⏳ Pending | M6 HR |  |
-| `/hr/integrations` | ⏳ Pending | M6 HR |  |
-| `/hr/leaves` | ⏳ Pending | M6 HR |  |
-| `/hr/org` | ⏳ Pending | M6 HR |  |
-| `/hr/payroll` | ⏳ Pending | M6 HR |  |
-| `/hr/payroll/[id]` | ⏳ Pending | M6 HR |  |
-| `/hr/performance` | ⏳ Pending | M6 HR |  |
-| `/hr/recruitment` | ⏳ Pending | M6 HR |  |
-| `/hr/requests` | ⏳ Pending | M6 HR |  |
-| `/hr/saudization` | ⏳ Pending | M6 HR |  |
+| `/hr` | ✅ Ported | apps/web/src/app/(app)/hr |  |
+| `/hr/[id]` | ✅ Ported | apps/web/src/app/(app)/hr/[id] |  |
+| `/hr/advances` | ✅ Ported | apps/web/src/app/(app)/hr/advances |  |
+| `/hr/attendance` | ✅ Ported | apps/web/src/app/(app)/hr/attendance |  |
+| `/hr/integrations` | ✅ Ported | apps/web/src/app/(app)/hr/integrations (all shown not connected, no connect buttons: owner decision) |  |
+| `/hr/leaves` | ✅ Ported | apps/web/src/app/(app)/hr/leaves |  |
+| `/hr/org` | ✅ Ported | apps/web/src/app/(app)/hr/org |  |
+| `/hr/payroll` | ✅ Ported | apps/web/src/app/(app)/hr/payroll (defaults to the current month; legacy hard-coded July 2026) |  |
+| `/hr/payroll/[id]` | ✅ Ported | apps/web/src/app/(app)/hr/payroll/[id] (+ WPS records) |  |
+| `/hr/performance` | ✅ Ported | apps/web/src/app/(app)/hr/performance |  |
+| `/hr/recruitment` | ✅ Ported | apps/web/src/app/(app)/hr/recruitment |  |
+| `/hr/requests` | ✅ Ported | apps/web/src/app/(app)/hr/requests |  |
+| `/hr/saudization` | ✅ Ported | apps/web/src/app/(app)/hr/saudization |  |
 | `/journey` | ✅ Ported | apps/web/src/app/(app)/journey |  |
 | `/leads` | ✅ Ported | apps/web/src/app/(app)/leads (pipeline incl. convert) |  |
 | `/login` | ✅ Ported | apps/web/src/app/login (+ components/auth/login-form.tsx) |  |
@@ -200,7 +200,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/portal/(app)/cases/[id]` | ⏳ Pending | M8 Portals |  |
 | `/portal/(app)/invoices` | ⏳ Pending | M8 Portals |  |
 | `/portal/login` | ⏳ Pending | M8 Portals |  |
-| `/pulse` | ⏳ Pending | M6 HR |  |
+| `/pulse` | ✅ Ported | apps/web/src/app/(app)/pulse |  |
 | `/search` | ✅ Ported | apps/web/src/app/(app)/search (+ topbar dropdown) |  |
 | `/settings` | ✅ Ported | apps/web/src/app/(app)/settings (branding, recycle bin, account) |  |
 | `/tasks` | ✅ Ported | apps/web/src/app/(app)/tasks (kanban) |  |
@@ -264,17 +264,17 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `KnowledgeChunk` | ✅ Ported | packages/database knowledge_chunks (+ office_id, generated tsvector + GIN index instead of a JSON embedding) |  |
 | `AiInteraction` | ✅ Ported | packages/database ai_interactions (insert-only; stores the redacted question) |  |
 | `AiCitation` | ✅ Ported | packages/database ai_citations (insert-only) |  |
-| `Employee` | ⏳ Pending | M6 HR |  |
-| `Advance` | ⏳ Pending | M6 HR |  |
-| `Leave` | ⏳ Pending | M6 HR |  |
+| `Employee` | ✅ Ported | packages/database employees (CHECKs: money and leave balance >= 0, score 0–100) |  |
+| `Advance` | ✅ Ported | packages/database advances (CHECK 0 <= paid <= amount) |  |
+| `Leave` | ✅ Ported | packages/database leaves |  |
 | `IntegrationConnection` | ⏳ Pending | M7 Integrations |  |
-| `Candidate` | ⏳ Pending | M6 HR |  |
-| `Attendance` | ⏳ Pending | M6 HR |  |
-| `EmployeeRequest` | ⏳ Pending | M6 HR |  |
-| `PayrollRun` | ⏳ Pending | M6 HR |  |
-| `PayrollLine` | ⏳ Pending | M6 HR |  |
-| `PerformanceEvent` | ⏳ Pending | M6 HR |  |
-| `OfficePerformanceWeight` | ⏳ Pending | M6 HR |  |
+| `Candidate` | ✅ Ported | packages/database candidates |  |
+| `Attendance` | ✅ Ported | packages/database attendance (unique office + employee + day) |  |
+| `EmployeeRequest` | ✅ Ported | packages/database employee_requests (decisions lock the row) |  |
+| `PayrollRun` | ✅ Ported | packages/database payroll_runs (unique office + period) |  |
+| `PayrollLine` | ✅ Ported | packages/database payroll_lines (insert-only, + office_id, CHECK net = gross − deductions) |  |
+| `PerformanceEvent` | ✅ Ported | packages/database performance_events (insert-only, + source_id unique per kind) |  |
+| `OfficePerformanceWeight` | ✅ Ported | packages/database office_performance_weights (reset = soft delete) |  |
 | `CaseApproval` | ✅ Ported | packages/database case_approvals |  |
 | `ClientApprovalRequest` | ✅ Ported | packages/database client_approval_requests |  |
 | `ProcedureRequest` | ✅ Ported | packages/database procedure_requests |  |
@@ -318,8 +318,8 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `conflict-badge.tsx` | ✅ Ported | apps/web/src/components/cases/conflict-badge.tsx |  |
 | `emp-portal/emp-portal-login-form.tsx` | ⏳ Pending | M8 Portals |  |
 | `finance-tabs.tsx` | ✅ Ported | apps/web/src/components/finance/finance-tabs.tsx |  |
-| `hr-tabs.tsx` | ⏳ Pending | M6 HR |  |
-| `hr-ui.tsx` | ⏳ Pending | M6 HR |  |
+| `hr-tabs.tsx` | ✅ Ported | apps/web/src/components/hr/hr-tabs.tsx |  |
+| `hr-ui.tsx` | ✅ Ported | apps/web/src/components/hr/hr-ui.tsx (errors come from the API messageKey instead of ?err=) |  |
 | `icons.tsx` | ✅ Ported | apps/web/src/components/icons.tsx |  |
 | `idle-logout.tsx` | ✅ Ported | apps/web/src/components/shell/idle-logout.tsx |  |
 | `perms-tabs.tsx` | ✅ Ported | apps/web/src/components/perms/perms-tabs.tsx |  |
@@ -535,25 +535,25 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **hr/advances** (M6 HR)
 
-- [ ] `createAdvance`
-- [ ] `listAdvances`
+- [x] `createAdvance`
+- [x] `listAdvances`
 
 **hr/attendance** (M6 HR)
 
-- [ ] `getTodayAttendance`
-- [ ] `setTodayStatus`
-- [ ] `clockOut`
-- [ ] `getMonthlySummary`
+- [x] `getTodayAttendance`
+- [x] `setTodayStatus`
+- [x] `clockOut`
+- [x] `getMonthlySummary`
 
 **hr/employees** (M6 HR)
 
-- [ ] `createEmployee`
-- [ ] `listEmployees`
-- [ ] `getEmployee`
-- [ ] `grantEmployeeAccount`
-- [ ] `updateEmployee`
-- [ ] `previewEndOfService`
-- [ ] `terminateEmployee`
+- [x] `createEmployee`
+- [x] `listEmployees`
+- [x] `getEmployee`
+- [x] `grantEmployeeAccount`
+- [x] `updateEmployee`
+- [x] `previewEndOfService`
+- [x] `terminateEmployee`
 
 **hr/integrations** (M7 Integrations)
 
@@ -564,39 +564,39 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **hr/leaves** (M6 HR)
 
-- [ ] `createLeave`
-- [ ] `listLeaves`
+- [x] `createLeave`
+- [x] `listLeaves`
 
 **hr/org-chart** (M6 HR)
 
-- [ ] `getOrgChart`
+- [x] `getOrgChart`
 
 **hr/payroll** (M6 HR)
 
-- [ ] `runPayroll`
-- [ ] `listPayrollRuns`
-- [ ] `getPayrollRun`
+- [x] `runPayroll`
+- [x] `listPayrollRuns`
+- [x] `getPayrollRun`
 
 **hr/recruitment** (M6 HR)
 
-- [ ] `listCandidates`
-- [ ] `createCandidate`
-- [ ] `moveCandidate`
-- [ ] `deleteCandidate`
+- [x] `listCandidates`
+- [x] `createCandidate`
+- [x] `moveCandidate`
+- [x] `deleteCandidate`
 
 **hr/requests** (M6 HR)
 
-- [ ] `createRequest`
-- [ ] `decideRequest`
-- [ ] `listRequests`
+- [x] `createRequest`
+- [x] `decideRequest`
+- [x] `listRequests`
 
 **hr/saudization** (M6 HR)
 
-- [ ] `getSaudizationStatus`
+- [x] `getSaudizationStatus`
 
 **hr/wps** (M6 HR)
 
-- [ ] `generateWpsFile`
+- [x] `generateWpsFile`
 
 **invoices** (M4 Finance)
 
@@ -678,15 +678,15 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **pulse** (M6 HR)
 
-- [ ] `getPulseRanking`
-- [ ] `getEmployeeOfWeek`
-- [ ] `getPulseTeamTotals`
-- [ ] `getPulseSelfCard`
-- [ ] `getPulseDrilldown`
-- [ ] `getPerformanceWeights`
-- [ ] `setPerformanceWeight`
-- [ ] `resetPerformanceWeight`
-- [ ] `canViewPulseTeam`
+- [x] `getPulseRanking`
+- [x] `getEmployeeOfWeek`
+- [x] `getPulseTeamTotals`
+- [x] `getPulseSelfCard`
+- [x] `getPulseDrilldown`
+- [x] `getPerformanceWeights`
+- [x] `setPerformanceWeight`
+- [x] `resetPerformanceWeight`
+- [x] `canViewPulseTeam`
 
 **search** (M2 Core ops)
 
@@ -771,16 +771,16 @@ These lived in service files, not in `src/lib`, so a file-level port would miss 
 | `Objection reminder task due 5 days before the deadline (AUDIT Q11)` | server/hearings.ts | packages/rules objectionReminderDue | ✅ Ported |
 | `Credit note blocked when credited, bad debt, or any payment exists` | server/invoices.ts issueCreditNote | packages/rules creditNoteBlocker | ✅ Ported |
 | `Advance: installment ≤ amount and never rounds to 0` | server/hr/advances.ts | packages/rules advanceBlocker | ✅ Ported |
-| `Approving a leave request needs days + balance, then deducts it` | server/hr/requests.ts decideRequest | packages/rules leaveApprovalBlocker | ✅ Ported (rule); deduction in M6 |
+| `Approving a leave request needs days + balance, then deducts it` | server/hr/requests.ts decideRequest | packages/rules leaveApprovalBlocker + apps/api hr decideRequest | ✅ Ported (e2e) |
 | `Saudization counts every non-terminated employee` | server/hr/saudization.ts | packages/rules countsForSaudization | ✅ Ported |
-| `A decided (approved/rejected) HR request is terminal` | server/hr/requests.ts | M6 requests module | ⏳ Pending |
+| `A decided (approved/rejected) HR request is terminal` | server/hr/requests.ts | packages/rules requestDecided + apps/api hr records (row lock) | ✅ Ported (e2e) |
 | `Conflict flags: a documented waiver survives re-scans; creating a client/lead re-scans existing cases` | lib/conflict/service.ts | apps/api cases/conflicts.service.ts | ✅ Ported (e2e) |
 | `Hearing reminders can recur (reminderRecurDays) and escalate to a task` | server/hearings.ts | apps/api hearings: escalate, and a pending hearing keeps one recurring reminder (prototype; legacy only stored the interval). Rolling the due date forward needs the Cloud Scheduler jobs runner | 🟡 Partial |
-| `Integrations start disconnected and are never shown as connected without a real connection` | server/hr/integrations.ts | M7 | ⏳ Pending (owner decision) |
+| `Integrations start disconnected and are never shown as connected without a real connection` | server/hr/integrations.ts | apps/web /hr/integrations: all six shown not connected, no simulated connect (M7 wires real ones) | ✅ Ported (owner decision) |
 | `Screen → module map + free screens (docs/04 VIEW2MOD/FREE_VIEWS); legacy app-shell nav` | components/app-shell.tsx | packages/auth screens.ts (docs/04 wins on 4 deviations, see AUDIT table) | ✅ Ported |
 | `Global search: ≥2 chars, 8 per category, category gated by module, cases/documents/tasks row-scoped` | server/search.ts, shell-frame.tsx | packages/auth SEARCH_CATEGORY_MODULE + apps/api overview search | ✅ Ported (e2e; % and _ taken literally) |
 | `Idle sign-out after 20 minutes (mouse/key/click/scroll/touch)` | components/idle-logout.tsx | packages/auth SESSION_POLICY | ✅ Ported (rule); component in M1 |
-| `Service error codes with localized messages (PAYROLL_ALREADY_RUN, PERIOD_LOCKED, …)` | components/hr-ui.tsx ERR_KEYS | packages/contracts error codes per module | ⏳ Pending |
+| `Service error codes with localized messages (PAYROLL_ALREADY_RUN, PERIOD_LOCKED, …)` | components/hr-ui.tsx ERR_KEYS | API error messageKey (hr.err.*, errors.*) shown by each form | ✅ Ported |
 | `Input validation limits (MAX_HALALAS cap, 4000-char text, colour regex, …) in ~60 Zod schemas` | src/server/*.ts | packages/contracts, per module | ⏳ Pending (port each schema with its module) |
 
 ## Features visible in legacy history (not separate files)
@@ -848,12 +848,12 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `emp-portal/actions.ts` | ⏳ Pending | M8 Portals |  |
 | `finance/actions.ts` | ✅ Ported | apps/api /finance/* endpoints |  |
 | `finance/trust/actions.ts` | ✅ Ported | apps/api POST /finance/trust/:clientId/movements |  |
-| `hr/actions.ts` | ⏳ Pending | M6 HR |  |
-| `hr/recruitment/actions.ts` | ⏳ Pending | M6 HR |  |
+| `hr/actions.ts` | ✅ Ported | apps/api /hr/* endpoints |  |
+| `hr/recruitment/actions.ts` | ✅ Ported | apps/api /hr/candidates endpoints |  |
 | `leads/actions.ts` | ✅ Ported | apps/api /leads endpoints |  |
 | `perms/actions.ts` | ✅ Ported | apps/api /permissions endpoints |  |
 | `portal/actions.ts` | ⏳ Pending | M8 Portals |  |
-| `pulse/actions.ts` | ⏳ Pending | M6 HR |  |
+| `pulse/actions.ts` | ✅ Ported | apps/api /pulse/weights endpoints |  |
 | `settings/actions.ts` | ✅ Ported | apps/api /offices/branding, /recycle |  |
 | `tasks/actions.ts` | ✅ Ported | apps/api /tasks endpoints |  |
 
@@ -904,6 +904,7 @@ Every action legacy wrote to the audit log. The rebuilt modules must keep loggin
 | 8 document templates | ✅ Ported | packages/documents templates.ts |
 | Permission matrix | ✅ Ported | packages/auth seedPolicy |
 | Knowledge base sample sources | ✅ Ported | apps/api/scripts/seed-demo.ts (dev only, marked demo) |
+| Demo staff (6 employees, mixed nationalities) + one advance | ✅ Ported | apps/api/scripts/seed-demo.ts (through the API) |
 | Demo office + 6 role users (0500000001–6) | ✅ Ported | packages/database/src/seed.ts (`pnpm db:seed`) |
 | Demo cases (2) | ✅ Ported | apps/api/scripts/seed-demo.ts (`pnpm db:seed:demo`, through the real API: 4 cases with HIGH/MEDIUM conflicts, hearings, tasks, appointments) |
 
@@ -927,6 +928,7 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | 1 | Multi-tenancy | `office_id` everywhere | Decided (2026-07-05); now enforced by RLS |
 | 2 | Claude on Vertex in me-central2 | stub LLM; dev fallback called api.anthropic.com | **Open** — M5 built provider-agnostic (AI shows not connected until a provider is set); choose the provider and confirm the model is served in-Kingdom, or approve another region in writing (PDPL) |
 | new | Embeddings for retrieval | 64-dim hash stub (not real vectors) | **Open** — full-text search now; pgvector needs an embedding provider (same residency rule) |
+| new | WPS bank / Mudad file format | on-screen records only | **Open** — the export file is built with the Mudad integration (M7); which bank format first? |
 | new | Knowledge base per office or shared | one global KB | **Open** — built per office under RLS (each office curates its own); a shared official corpus would need a reviewed global table |
 | 3 | users vs employees | employees link to an optional user (grantEmployeeAccount) | Implemented; confirm |
 | 4 | Sentry vs PDPL | no Sentry | **Open** — new stack uses Cloud Logging only |
@@ -964,6 +966,14 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 |---|---|---|
 | AI drafting called api.anthropic.com directly and skipped the citation gate | lib/ai/hearing-draft.ts | ✅ fixed: through the provider (regional) + PII redaction + the gate on every field |
 | Stub LLM produced canned legal-sounding answers | lib/ai/llm.ts StubLlm | ✅ fixed: no fake output; AI shows not connected until a provider is configured |
+| HR integrations page simulated connect/sync for GOSI, Qiwa, Mudad, ZATCA, Absher, Muqeem | server/hr/integrations.ts | ✅ fixed: all shown not connected, no toggles, until M7 wires a real connection (owner decision) |
+| Terminating an employee left their system login active | server/hr/employees.ts terminateEmployee | ✅ fixed: the linked account is disabled in the same transaction (sessions end on the next request) |
+| Any role with full HR could grant the PARTNER role | server/hr/employees.ts grantEmployeeAccount | ✅ fixed: only a partner may grant PARTNER |
+| Pulse points re-awarded when a task left DONE and came back | server/tasks.ts + lib/performance.ts | ✅ fixed: one event per source (unique office + kind + source_id) |
+| Pulse today/month windows used server-local time | server/pulse.ts sinceFor | ✅ fixed: Riyadh midnight (packages/rules pulseSince) |
+| Payroll form defaulted to July 2026 | app/hr/payroll/page.tsx | ✅ fixed: current Riyadh month |
+| Payroll lines had no office_id; WPS view showed full IBANs and was not audited | PayrollLine, server/hr/wps.ts | ✅ fixed: office_id + RLS; IBANs masked; payroll.wpsView audited |
+| Advances, leaves and requests could be recorded for terminated employees | server/hr/*.ts | ✅ fixed: 409 hr.err.EMPLOYEE_ALREADY_TERMINATED |
 | Prompts carried client and opponent names and raw phone/ID numbers | server/ai.ts case context | ✅ fixed: party names left out, identifiers redacted (packages/rules redactPii) before the prompt and in storage |
 | Answer sources listed citations from sentences the gate removed | components/ai-answer.tsx (all KEPT rows) | ✅ fixed: only citations whose sentence survived, once each |
 | Knowledge base was global with no office_id | KnowledgeSource | ✅ fixed: per office under RLS |

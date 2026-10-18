@@ -4,6 +4,7 @@ import { CasesModule } from "../cases/cases.module.js";
 import { CrmModule } from "../crm/crm.module.js";
 import { DocumentsModule } from "../documents/documents.module.js";
 import { FinanceModule } from "../finance/finance.module.js";
+import { PulseModule } from "../pulse/pulse.module.js";
 import { TasksModule } from "../tasks/tasks.module.js";
 import { OverviewController } from "./overview.controller.js";
 import { OverviewService } from "./overview.service.js";
@@ -15,6 +16,7 @@ import { OverviewService } from "./overview.service.js";
     CrmModule,
     DocumentsModule,
     FinanceModule,
+    PulseModule,
     TasksModule,
   ],
   controllers: [OverviewController],

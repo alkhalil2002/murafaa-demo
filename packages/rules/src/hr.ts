@@ -189,3 +189,47 @@ export function leaveApprovalBlocker(
   if (!days) return "LEAVE_REQUEST_MISSING_DAYS";
   return balanceDays >= days ? null : "LEAVE_BALANCE_INSUFFICIENT";
 }
+
+// ── Enumerations (labels in @murafaa/i18n) ──
+
+/** isSaudi compares the free-text nationality to this value; also the form default. */
+export const SAUDI_NATIONALITY = "سعودي";
+export const ADVANCE_STATUSES = ["ACTIVE", "SETTLED", "CANCELLED"] as const;
+export const LEAVE_TYPES = ["ANNUAL", "SICK", "UNPAID", "MATERNITY", "OTHER"] as const;
+export type LeaveType = (typeof LEAVE_TYPES)[number];
+export const REQUEST_KINDS = ["LEAVE", "ADVANCE", "CERTIFICATE", "OTHER"] as const;
+export const REQUEST_STATUSES = ["SUBMITTED", "IN_REVIEW", "APPROVED", "REJECTED"] as const;
+export type RequestStatus = (typeof REQUEST_STATUSES)[number];
+/** The statuses a decision may move a request to. */
+export const REQUEST_DECISIONS = ["IN_REVIEW", "APPROVED", "REJECTED"] as const;
+export const ATTENDANCE_STATUSES = ["PRESENT", "LATE", "ABSENT", "LEAVE"] as const;
+export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
+/** Government platforms an office may connect later (M7); none is connected yet. */
+export const HR_INTEGRATION_KEYS = ["GOSI", "QIWA", "MUDAD", "ZATCA", "ABSHER", "MUQEEM"] as const;
+
+/** Only annual leave draws down the balance (legacy hr/leaves.ts). */
+export function leaveDeductsBalance(type: LeaveType): boolean {
+  return type === "ANNUAL";
+}
+
+/** A decided request is final. */
+export function requestDecided(status: RequestStatus): boolean {
+  return status === "APPROVED" || status === "REJECTED";
+}
+
+/** Marking someone present or late stamps the first check-in of the day. */
+export function stampsCheckIn(status: AttendanceStatus): boolean {
+  return status === "PRESENT" || status === "LATE";
+}
+
+// ── Payroll period ──
+
+/** "YYYY-MM" for a payroll month. */
+export function payrollPeriodKey(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+/** Salaries are posted on the last calendar day of the month, as YYYY-MM-DD. */
+export function payrollPayDate(year: number, month: number): string {
+  return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+}

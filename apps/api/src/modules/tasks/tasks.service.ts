@@ -13,6 +13,7 @@ import type { Principal } from "../../common/tenancy/principal.js";
 import { TenantDb } from "../../database/tenant-db.service.js";
 import { assertOfficeUser, type Meta } from "../cases/case-access.service.js";
 import { caseVisibility } from "../cases/case-scope.js";
+import { PerformanceService } from "../performance/performance.service.js";
 
 export type AutoTask = {
   caseId: string;
@@ -35,6 +36,7 @@ export class TasksService {
   constructor(
     private readonly tenantDb: TenantDb,
     private readonly policies: PolicyService,
+    private readonly performance: PerformanceService,
   ) {}
 
   /** Idempotent system task, inside the caller's transaction (docs BR-TASK-3). */
@@ -124,7 +126,7 @@ export class TasksService {
 
   /** Move between board columns; DONE stamps the completion time. */
   async move(p: Principal, id: string, status: TaskColumn, meta: Meta) {
-    await this.visibleTask(p, id, async (tx) => {
+    await this.visibleTask(p, id, async (tx, task) => {
       await tx
         .update(tasks)
         .set({ status, completedAt: status === "DONE" ? sql`now()` : null, updatedBy: p.userId })
@@ -138,6 +140,9 @@ export class TasksService {
         after: { to: status },
         ...meta,
       });
+      // The assignee earns the completion (legacy), once per task.
+      if (status === "DONE" && task.assigneeId)
+        await this.performance.award(tx, p.officeId, task.assigneeId, "TASK_COMPLETED", id);
     });
   }
 
@@ -159,7 +164,11 @@ export class TasksService {
   }
 
   /** A task the caller may act on: not deleted, and its case (if any) is in scope. */
-  private async visibleTask(p: Principal, id: string, fn: (tx: Tx) => Promise<void>) {
+  private async visibleTask(
+    p: Principal,
+    id: string,
+    fn: (tx: Tx, task: { id: string; assigneeId: string | null }) => Promise<void>,
+  ) {
     const policy = await this.policies.forOffice(p.officeId);
     await this.tenantDb.run(async (tx) => {
       const visibleCases = tx
@@ -167,7 +176,7 @@ export class TasksService {
         .from(cases)
         .where(caseVisibility(tx, policy, p));
       const [task] = await tx
-        .select({ id: tasks.id })
+        .select({ id: tasks.id, assigneeId: tasks.assigneeId })
         .from(tasks)
         .where(
           and(
@@ -177,11 +186,23 @@ export class TasksService {
           ),
         );
       if (!task) throw new ApiException(ErrorCode.NOT_FOUND);
-      await fn(tx);
+      await fn(tx, task);
     });
   }
 
   // ── Read models for the office overview ──
+
+  /** A person's assigned tasks and how many are done (نبض الفريق self card). */
+  async assigneeCounts(tx: Tx, userId: string) {
+    const [r] = await tx
+      .select({
+        assigned: count(),
+        done: sql<number>`count(*) filter (where ${tasks.status} = 'DONE')`.mapWith(Number),
+      })
+      .from(tasks)
+      .where(and(isNull(tasks.deletedAt), eq(tasks.assigneeId, userId)));
+    return { assigned: r?.assigned ?? 0, done: r?.done ?? 0 };
+  }
 
   /** Open (NEW / IN_PROGRESS) tasks across the office (legacy dashboard count). */
   async openCount(tx: Tx) {

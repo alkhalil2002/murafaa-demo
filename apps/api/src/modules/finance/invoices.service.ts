@@ -38,6 +38,7 @@ import { TenantDb } from "../../database/tenant-db.service.js";
 import { caseVisibility } from "../cases/case-scope.js";
 import { nextNumber, postJournal } from "./ledger.js";
 import { assertClient, TrustService } from "./trust.service.js";
+import { PerformanceService } from "../performance/performance.service.js";
 
 type Meta = { ip: string; requestId: string };
 const conflict = (key: string) => new ApiException(ErrorCode.CONFLICT, undefined, key);
@@ -65,6 +66,7 @@ export class InvoicesService {
     private readonly tenantDb: TenantDb,
     private readonly trust: TrustService,
     private readonly policies: PolicyService,
+    private readonly performance: PerformanceService,
   ) {}
 
   /**
@@ -133,6 +135,7 @@ export class InvoicesService {
       sourceId: inv!.id,
       lines: invoicePosting(amounts),
     });
+    await this.performance.award(tx, p.officeId, p.userId, "INVOICE_CREATED", inv!.id);
     return inv!;
   }
 

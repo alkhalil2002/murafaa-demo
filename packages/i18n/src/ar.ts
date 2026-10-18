@@ -69,6 +69,8 @@ export const ar = {
   "journal.trustWithdrawal": "سحب من عهدة العميل",
   "journal.trustTransfer": "تحويل من العهدة لسداد أتعاب",
   "journal.expense": "مصروف — {what}",
+  "journal.advance": "سلفة موظف — {name}",
+  "journal.payroll": "مسيّر رواتب {period}",
   "invoice.basis.FLAT": "أتعاب — مبلغ مقطوع",
   "invoice.basis.RETAINER": "أتعاب شهرية (Retainer)",
   "invoice.basis.HOURLY": "أتعاب بالساعة",
@@ -1477,6 +1479,8 @@ export const ar = {
   "hr.org.noDept": "بلا قسم",
   "hr.integ.hint":
     "ربط المكتب بالجهات الحكومية لمزامنة الموظفين والرواتب والاشتراكات والفواتير. الربط الفعلي يتطلّب خادماً وصلاحيات API رسمية من كل جهة؛ ما يظهر هنا محاكاة لحالة الاتصال والمزامنة.",
+  "hr.integ.pending":
+    "ربط المكتب بالجهات الحكومية لمزامنة الموظفين والرواتب والاشتراكات والفواتير. لم تُربط أي جهة بعد: الربط الفعلي يتطلّب صلاحيات API رسمية من كل جهة، ويُفعَّل في مرحلة التكاملات.",
   "hr.integ.connected": "مربوط",
   "hr.integ.notConnected": "غير مربوط",
   "hr.integ.lastSync": "آخر مزامنة",

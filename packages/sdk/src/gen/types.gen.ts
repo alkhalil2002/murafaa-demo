@@ -1175,6 +1175,300 @@ export type OfficeBranding = {
     confidentialityNotice: string;
 };
 
+export type EmployeeList = Array<EmployeeRow>;
+
+export type EmployeeRow = {
+    id: string;
+    name: string;
+    department: string | null;
+    jobTitle: string | null;
+    nationality: string;
+    hireDate: string;
+    status: 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
+    basicSalary: number;
+    allowances: number;
+    performanceScore: number | null;
+};
+
+export type EmployeeDetail = {
+    id: string;
+    name: string;
+    department: string | null;
+    jobTitle: string | null;
+    nationality: string;
+    hireDate: string;
+    status: 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
+    basicSalary: number;
+    allowances: number;
+    gosiContribution: number;
+    leaveBalanceDays: number;
+    performanceScore: number | null;
+    ibanMasked: string | null;
+    terminatedAt: string | null;
+    endOfService: {
+        awardMinor: number;
+        years: number | null;
+        frozen: boolean;
+    };
+    account: {
+        name: string;
+        phone: string;
+        role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+        isActive: boolean;
+    } | null;
+    advances: Array<{
+        amount: number;
+        status: string;
+        id: string;
+        monthlyDue: number;
+        remaining: number;
+    }>;
+    leaves: Array<{
+        id: string;
+        type: 'ANNUAL' | 'SICK' | 'UNPAID' | 'MATERNITY' | 'OTHER';
+        days: number;
+        startDate: string;
+    }>;
+    requests: Array<{
+        id: string;
+        kind: 'LEAVE' | 'ADVANCE' | 'CERTIFICATE' | 'OTHER';
+        status: 'SUBMITTED' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
+        detail: string | null;
+    }>;
+};
+
+export type CreateEmployeeBody = {
+    name: string;
+    phone?: string | null;
+    department?: string | null;
+    jobTitle?: string | null;
+    nationality?: string;
+    nationalId?: string | null;
+    iban?: string | null;
+    hireDate: string;
+    basicSalary: number;
+    allowances?: number;
+    gosiContribution?: number;
+    leaveBalanceDays?: number;
+};
+
+export type UpdateEmployeeBody = {
+    name?: string;
+    phone?: string | null;
+    department?: string | null;
+    jobTitle?: string | null;
+    nationality?: string;
+    nationalId?: string | null;
+    iban?: string | null;
+    hireDate?: string;
+    basicSalary?: number;
+    allowances?: number;
+    gosiContribution?: number;
+    leaveBalanceDays?: number;
+    performanceScore?: number | null;
+};
+
+export type GrantAccountBody = {
+    phone: string;
+    role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+};
+
+export type OrgChart = Array<{
+    department: string | null;
+    employees: Array<{
+        id: string;
+        name: string;
+        jobTitle: string | null;
+    }>;
+}>;
+
+export type Saudization = {
+    total: number;
+    saudiCount: number;
+    pct: number;
+    band: 'PLATINUM' | 'HIGH_GREEN' | 'MID_GREEN' | 'LOW_GREEN' | 'YELLOW' | 'RED';
+    targets: Array<{
+        band: 'PLATINUM' | 'HIGH_GREEN' | 'MID_GREEN' | 'LOW_GREEN' | 'YELLOW' | 'RED';
+        minPct: number;
+        saudisNeeded: number;
+    }>;
+};
+
+export type AdvanceList = Array<AdvanceRow>;
+
+export type AdvanceRow = {
+    id: string;
+    employeeId: string;
+    employeeName: string;
+    amount: number;
+    months: number;
+    paid: number;
+    monthlyDue: number;
+    remaining: number;
+    advanceDate: string;
+    status: 'ACTIVE' | 'SETTLED' | 'CANCELLED';
+    note: string | null;
+};
+
+export type CreateAdvanceBody = {
+    employeeId: string;
+    amount: number;
+    months?: number;
+    monthlyInstallment?: number | null;
+    advanceDate?: string;
+    note?: string | null;
+};
+
+export type LeaveList = Array<LeaveRow>;
+
+export type LeaveRow = {
+    id: string;
+    employeeId: string;
+    employeeName: string;
+    type: 'ANNUAL' | 'SICK' | 'UNPAID' | 'MATERNITY' | 'OTHER';
+    days: number;
+    startDate: string;
+    note: string | null;
+};
+
+export type CreateLeaveBody = {
+    employeeId: string;
+    type?: 'ANNUAL' | 'SICK' | 'UNPAID' | 'MATERNITY' | 'OTHER';
+    days: number;
+    startDate: string;
+    note?: string | null;
+};
+
+export type EmployeeRequestList = Array<EmployeeRequestRow>;
+
+export type EmployeeRequestRow = {
+    id: string;
+    employeeId: string;
+    employeeName: string;
+    kind: 'LEAVE' | 'ADVANCE' | 'CERTIFICATE' | 'OTHER';
+    detail: string | null;
+    days: number | null;
+    status: 'SUBMITTED' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
+    history: Array<{
+        status: 'SUBMITTED' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
+        by: string;
+        at: string;
+        note?: string;
+    }>;
+    createdAt: string;
+};
+
+export type CreateEmployeeRequestBody = {
+    employeeId: string;
+    kind: 'LEAVE' | 'ADVANCE' | 'CERTIFICATE' | 'OTHER';
+    detail?: string | null;
+    days?: number | null;
+    department?: string | null;
+};
+
+export type DecideEmployeeRequestBody = {
+    status: 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
+    note?: string | null;
+};
+
+export type AttendanceToday = {
+    day: string;
+    rows: Array<{
+        employeeId: string;
+        employeeName: string;
+        status: 'PRESENT' | 'LATE' | 'ABSENT' | 'LEAVE' | null;
+        checkIn: string | null;
+        checkOut: string | null;
+    }>;
+};
+
+export type AttendanceMonth = {
+    month: string;
+    rows: Array<{
+        employeeId: string;
+        employeeName: string;
+        daysPresent: number;
+        lateCount: number;
+        daysAbsent: number;
+    }>;
+};
+
+export type SetAttendanceBody = {
+    status: 'PRESENT' | 'LATE' | 'ABSENT' | 'LEAVE';
+};
+
+export type PayrollRunList = Array<{
+    id: string;
+    periodKey: string;
+    totalBasic: number;
+    totalAllowances: number;
+    totalGosi: number;
+    totalAdvances: number;
+    totalNet: number;
+    lineCount: number;
+}>;
+
+export type RunPayrollBody = {
+    year: number;
+    month: number;
+};
+
+export type PayrollRunDetail = {
+    id: string;
+    periodKey: string;
+    totalBasic: number;
+    totalAllowances: number;
+    totalGosi: number;
+    totalAdvances: number;
+    totalNet: number;
+    journalEntryId: string | null;
+    lines: Array<{
+        id: string;
+        employeeName: string;
+        basic: number;
+        allowances: number;
+        gosi: number;
+        advanceDeduction: number;
+        net: number;
+    }>;
+};
+
+export type WpsFile = {
+    periodKey: string;
+    recordCount: number;
+    totalNet: number;
+    missingIban: Array<string>;
+    records: Array<{
+        employeeName: string;
+        nationalId: string | null;
+        ibanMasked: string | null;
+        basic: number;
+        allowances: number;
+        deductions: number;
+        net: number;
+    }>;
+};
+
+export type CandidateList = Array<CandidateRow>;
+
+export type CandidateRow = {
+    id: string;
+    name: string;
+    roleTitle: string | null;
+    source: 'REFERRAL' | 'WEBSITE' | 'LINKEDIN' | 'PHONE_CALL' | 'EXHIBITION' | 'WHATSAPP' | 'OTHER';
+    stage: 'APPLIED' | 'INTERVIEW' | 'OFFER' | 'HIRED';
+};
+
+export type CreateCandidateBody = {
+    name: string;
+    roleTitle?: string | null;
+    source?: 'REFERRAL' | 'WEBSITE' | 'LINKEDIN' | 'PHONE_CALL' | 'EXHIBITION' | 'WHATSAPP' | 'OTHER';
+};
+
+export type MoveCandidateBody = {
+    direction: 1 | -1;
+};
+
 export type TodaySummary = {
     employeeOfWeek: {
         name: string;
@@ -1370,6 +1664,53 @@ export type ActivityFeed = {
     counts: {
         [key: string]: number;
     };
+};
+
+export type PulseSelf = {
+    points: number;
+    tasksDone: number;
+    completionRatePct: number;
+    events: Array<{
+        id: string;
+        kind: 'TASK_COMPLETED' | 'HEARING_RECORDED' | 'DOCUMENT_GENERATED' | 'INVOICE_CREATED' | 'LEAD_CONVERTED';
+        points: number;
+        occurredAt: string;
+    }>;
+};
+
+export type PulseTeam = {
+    totals: {
+        totalPoints: number;
+        tasksCompleted: number;
+        hearingsLogged: number;
+    };
+    ranking: Array<{
+        userId: string;
+        name: string;
+        role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+        points: number;
+    }>;
+};
+
+export type PulseDrill = {
+    userId: string;
+    name: string;
+    events: Array<{
+        id: string;
+        kind: 'TASK_COMPLETED' | 'HEARING_RECORDED' | 'DOCUMENT_GENERATED' | 'INVOICE_CREATED' | 'LEAD_CONVERTED';
+        points: number;
+        occurredAt: string;
+    }>;
+};
+
+export type PulseWeights = Array<{
+    kind: 'TASK_COMPLETED' | 'HEARING_RECORDED' | 'DOCUMENT_GENERATED' | 'INVOICE_CREATED' | 'LEAD_CONVERTED';
+    points: number;
+    isDefault: boolean;
+}>;
+
+export type SetPulseWeightBody = {
+    points: number;
 };
 
 export type RoleMatrix = Array<RoleMatrixRow>;
@@ -5546,6 +5887,786 @@ export type OfficesUpdateBrandingResponses = {
 
 export type OfficesUpdateBrandingResponse = OfficesUpdateBrandingResponses[keyof OfficesUpdateBrandingResponses];
 
+export type HrEmployeesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/employees';
+};
+
+export type HrEmployeesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrEmployeesError = HrEmployeesErrors[keyof HrEmployeesErrors];
+
+export type HrEmployeesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: EmployeeList;
+        error: null;
+    };
+};
+
+export type HrEmployeesResponse = HrEmployeesResponses[keyof HrEmployeesResponses];
+
+export type HrCreateEmployeeData = {
+    body: CreateEmployeeBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/employees';
+};
+
+export type HrCreateEmployeeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrCreateEmployeeError = HrCreateEmployeeErrors[keyof HrCreateEmployeeErrors];
+
+export type HrCreateEmployeeResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type HrCreateEmployeeResponse = HrCreateEmployeeResponses[keyof HrCreateEmployeeResponses];
+
+export type HrEmployeeData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/employees/{id}';
+};
+
+export type HrEmployeeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrEmployeeError = HrEmployeeErrors[keyof HrEmployeeErrors];
+
+export type HrEmployeeResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: EmployeeDetail;
+        error: null;
+    };
+};
+
+export type HrEmployeeResponse = HrEmployeeResponses[keyof HrEmployeeResponses];
+
+export type HrUpdateEmployeeData = {
+    body: UpdateEmployeeBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/employees/{id}';
+};
+
+export type HrUpdateEmployeeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrUpdateEmployeeError = HrUpdateEmployeeErrors[keyof HrUpdateEmployeeErrors];
+
+export type HrUpdateEmployeeResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HrUpdateEmployeeResponse = HrUpdateEmployeeResponses[keyof HrUpdateEmployeeResponses];
+
+export type HrGrantAccountData = {
+    body: GrantAccountBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/employees/{id}/account';
+};
+
+export type HrGrantAccountErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrGrantAccountError = HrGrantAccountErrors[keyof HrGrantAccountErrors];
+
+export type HrGrantAccountResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type HrGrantAccountResponse = HrGrantAccountResponses[keyof HrGrantAccountResponses];
+
+export type HrTerminateData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/employees/{id}/terminate';
+};
+
+export type HrTerminateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrTerminateError = HrTerminateErrors[keyof HrTerminateErrors];
+
+export type HrTerminateResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HrTerminateResponse = HrTerminateResponses[keyof HrTerminateResponses];
+
+export type HrOrgData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/org';
+};
+
+export type HrOrgErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrOrgError = HrOrgErrors[keyof HrOrgErrors];
+
+export type HrOrgResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: OrgChart;
+        error: null;
+    };
+};
+
+export type HrOrgResponse = HrOrgResponses[keyof HrOrgResponses];
+
+export type HrSaudizationData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/saudization';
+};
+
+export type HrSaudizationErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrSaudizationError = HrSaudizationErrors[keyof HrSaudizationErrors];
+
+export type HrSaudizationResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: Saudization;
+        error: null;
+    };
+};
+
+export type HrSaudizationResponse = HrSaudizationResponses[keyof HrSaudizationResponses];
+
+export type HrAdvancesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/advances';
+};
+
+export type HrAdvancesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrAdvancesError = HrAdvancesErrors[keyof HrAdvancesErrors];
+
+export type HrAdvancesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: AdvanceList;
+        error: null;
+    };
+};
+
+export type HrAdvancesResponse = HrAdvancesResponses[keyof HrAdvancesResponses];
+
+export type HrCreateAdvanceData = {
+    body: CreateAdvanceBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/advances';
+};
+
+export type HrCreateAdvanceErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrCreateAdvanceError = HrCreateAdvanceErrors[keyof HrCreateAdvanceErrors];
+
+export type HrCreateAdvanceResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type HrCreateAdvanceResponse = HrCreateAdvanceResponses[keyof HrCreateAdvanceResponses];
+
+export type HrLeavesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/leaves';
+};
+
+export type HrLeavesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrLeavesError = HrLeavesErrors[keyof HrLeavesErrors];
+
+export type HrLeavesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: LeaveList;
+        error: null;
+    };
+};
+
+export type HrLeavesResponse = HrLeavesResponses[keyof HrLeavesResponses];
+
+export type HrCreateLeaveData = {
+    body: CreateLeaveBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/leaves';
+};
+
+export type HrCreateLeaveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrCreateLeaveError = HrCreateLeaveErrors[keyof HrCreateLeaveErrors];
+
+export type HrCreateLeaveResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type HrCreateLeaveResponse = HrCreateLeaveResponses[keyof HrCreateLeaveResponses];
+
+export type HrRequestsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/requests';
+};
+
+export type HrRequestsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrRequestsError = HrRequestsErrors[keyof HrRequestsErrors];
+
+export type HrRequestsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: EmployeeRequestList;
+        error: null;
+    };
+};
+
+export type HrRequestsResponse = HrRequestsResponses[keyof HrRequestsResponses];
+
+export type HrCreateRequestData = {
+    body: CreateEmployeeRequestBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/requests';
+};
+
+export type HrCreateRequestErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrCreateRequestError = HrCreateRequestErrors[keyof HrCreateRequestErrors];
+
+export type HrCreateRequestResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type HrCreateRequestResponse = HrCreateRequestResponses[keyof HrCreateRequestResponses];
+
+export type HrDecideRequestData = {
+    body: DecideEmployeeRequestBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/requests/{id}/decide';
+};
+
+export type HrDecideRequestErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrDecideRequestError = HrDecideRequestErrors[keyof HrDecideRequestErrors];
+
+export type HrDecideRequestResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HrDecideRequestResponse = HrDecideRequestResponses[keyof HrDecideRequestResponses];
+
+export type HrAttendanceTodayData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/attendance/today';
+};
+
+export type HrAttendanceTodayErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrAttendanceTodayError = HrAttendanceTodayErrors[keyof HrAttendanceTodayErrors];
+
+export type HrAttendanceTodayResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: AttendanceToday;
+        error: null;
+    };
+};
+
+export type HrAttendanceTodayResponse = HrAttendanceTodayResponses[keyof HrAttendanceTodayResponses];
+
+export type HrAttendanceMonthData = {
+    body?: never;
+    path?: never;
+    query?: {
+        month?: string;
+    };
+    url: '/api/v1/hr/attendance/month';
+};
+
+export type HrAttendanceMonthErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrAttendanceMonthError = HrAttendanceMonthErrors[keyof HrAttendanceMonthErrors];
+
+export type HrAttendanceMonthResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: AttendanceMonth;
+        error: null;
+    };
+};
+
+export type HrAttendanceMonthResponse = HrAttendanceMonthResponses[keyof HrAttendanceMonthResponses];
+
+export type HrSetAttendanceData = {
+    body: SetAttendanceBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/attendance/{id}';
+};
+
+export type HrSetAttendanceErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrSetAttendanceError = HrSetAttendanceErrors[keyof HrSetAttendanceErrors];
+
+export type HrSetAttendanceResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HrSetAttendanceResponse = HrSetAttendanceResponses[keyof HrSetAttendanceResponses];
+
+export type HrClockOutData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/attendance/{id}/clock-out';
+};
+
+export type HrClockOutErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrClockOutError = HrClockOutErrors[keyof HrClockOutErrors];
+
+export type HrClockOutResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HrClockOutResponse = HrClockOutResponses[keyof HrClockOutResponses];
+
+export type HrPayrollRunsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/payroll';
+};
+
+export type HrPayrollRunsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrPayrollRunsError = HrPayrollRunsErrors[keyof HrPayrollRunsErrors];
+
+export type HrPayrollRunsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PayrollRunList;
+        error: null;
+    };
+};
+
+export type HrPayrollRunsResponse = HrPayrollRunsResponses[keyof HrPayrollRunsResponses];
+
+export type HrRunPayrollData = {
+    body: RunPayrollBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/payroll';
+};
+
+export type HrRunPayrollErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrRunPayrollError = HrRunPayrollErrors[keyof HrRunPayrollErrors];
+
+export type HrRunPayrollResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type HrRunPayrollResponse = HrRunPayrollResponses[keyof HrRunPayrollResponses];
+
+export type HrPayrollRunData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/payroll/{id}';
+};
+
+export type HrPayrollRunErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrPayrollRunError = HrPayrollRunErrors[keyof HrPayrollRunErrors];
+
+export type HrPayrollRunResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PayrollRunDetail;
+        error: null;
+    };
+};
+
+export type HrPayrollRunResponse = HrPayrollRunResponses[keyof HrPayrollRunResponses];
+
+export type HrWpsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/payroll/{id}/wps';
+};
+
+export type HrWpsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrWpsError = HrWpsErrors[keyof HrWpsErrors];
+
+export type HrWpsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: WpsFile;
+        error: null;
+    };
+};
+
+export type HrWpsResponse = HrWpsResponses[keyof HrWpsResponses];
+
+export type HrCandidatesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/candidates';
+};
+
+export type HrCandidatesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrCandidatesError = HrCandidatesErrors[keyof HrCandidatesErrors];
+
+export type HrCandidatesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: CandidateList;
+        error: null;
+    };
+};
+
+export type HrCandidatesResponse = HrCandidatesResponses[keyof HrCandidatesResponses];
+
+export type HrCreateCandidateData = {
+    body: CreateCandidateBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/hr/candidates';
+};
+
+export type HrCreateCandidateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrCreateCandidateError = HrCreateCandidateErrors[keyof HrCreateCandidateErrors];
+
+export type HrCreateCandidateResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type HrCreateCandidateResponse = HrCreateCandidateResponses[keyof HrCreateCandidateResponses];
+
+export type HrMoveCandidateData = {
+    body: MoveCandidateBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/candidates/{id}/move';
+};
+
+export type HrMoveCandidateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrMoveCandidateError = HrMoveCandidateErrors[keyof HrMoveCandidateErrors];
+
+export type HrMoveCandidateResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HrMoveCandidateResponse = HrMoveCandidateResponses[keyof HrMoveCandidateResponses];
+
+export type HrRemoveCandidateData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/hr/candidates/{id}/delete';
+};
+
+export type HrRemoveCandidateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type HrRemoveCandidateError = HrRemoveCandidateErrors[keyof HrRemoveCandidateErrors];
+
+export type HrRemoveCandidateResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type HrRemoveCandidateResponse = HrRemoveCandidateResponses[keyof HrRemoveCandidateResponses];
+
 export type OverviewTodayData = {
     body?: never;
     path?: never;
@@ -5802,6 +6923,186 @@ export type OverviewActivityResponses = {
 };
 
 export type OverviewActivityResponse = OverviewActivityResponses[keyof OverviewActivityResponses];
+
+export type PulseSelfData = {
+    body?: never;
+    path?: never;
+    query?: {
+        window?: 'today' | 'week' | 'month';
+    };
+    url: '/api/v1/pulse/self';
+};
+
+export type PulseSelfErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PulseSelfError = PulseSelfErrors[keyof PulseSelfErrors];
+
+export type PulseSelfResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PulseSelf;
+        error: null;
+    };
+};
+
+export type PulseSelfResponse = PulseSelfResponses[keyof PulseSelfResponses];
+
+export type PulseTeamData = {
+    body?: never;
+    path?: never;
+    query?: {
+        window?: 'today' | 'week' | 'month';
+    };
+    url: '/api/v1/pulse/team';
+};
+
+export type PulseTeamErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PulseTeamError = PulseTeamErrors[keyof PulseTeamErrors];
+
+export type PulseTeamResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PulseTeam;
+        error: null;
+    };
+};
+
+export type PulseTeamResponse = PulseTeamResponses[keyof PulseTeamResponses];
+
+export type PulseDrillData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        window?: 'today' | 'week' | 'month';
+    };
+    url: '/api/v1/pulse/team/{id}';
+};
+
+export type PulseDrillErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PulseDrillError = PulseDrillErrors[keyof PulseDrillErrors];
+
+export type PulseDrillResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PulseDrill;
+        error: null;
+    };
+};
+
+export type PulseDrillResponse = PulseDrillResponses[keyof PulseDrillResponses];
+
+export type PulseWeightsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/pulse/weights';
+};
+
+export type PulseWeightsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PulseWeightsError = PulseWeightsErrors[keyof PulseWeightsErrors];
+
+export type PulseWeightsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PulseWeights;
+        error: null;
+    };
+};
+
+export type PulseWeightsResponse = PulseWeightsResponses[keyof PulseWeightsResponses];
+
+export type PulseSetWeightData = {
+    body: SetPulseWeightBody;
+    path: {
+        kind: 'TASK_COMPLETED' | 'HEARING_RECORDED' | 'DOCUMENT_GENERATED' | 'INVOICE_CREATED' | 'LEAD_CONVERTED';
+    };
+    query?: never;
+    url: '/api/v1/pulse/weights/{kind}';
+};
+
+export type PulseSetWeightErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PulseSetWeightError = PulseSetWeightErrors[keyof PulseSetWeightErrors];
+
+export type PulseSetWeightResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type PulseSetWeightResponse = PulseSetWeightResponses[keyof PulseSetWeightResponses];
+
+export type PulseResetWeightData = {
+    body?: never;
+    path: {
+        kind: 'TASK_COMPLETED' | 'HEARING_RECORDED' | 'DOCUMENT_GENERATED' | 'INVOICE_CREATED' | 'LEAD_CONVERTED';
+    };
+    query?: never;
+    url: '/api/v1/pulse/weights/{kind}/reset';
+};
+
+export type PulseResetWeightErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PulseResetWeightError = PulseResetWeightErrors[keyof PulseResetWeightErrors];
+
+export type PulseResetWeightResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type PulseResetWeightResponse = PulseResetWeightResponses[keyof PulseResetWeightResponses];
 
 export type PermissionsMatrixData = {
     body?: never;
