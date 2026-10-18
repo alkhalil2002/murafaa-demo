@@ -26,6 +26,12 @@ export const ar = {
   "errors.IP_NOT_ALLOWED": "الوصول مقيّد من هذا العنوان",
   "common.underConstruction": "هذه الشاشة قيد الإنشاء.",
   "errors.LAST_PARTNER": "لا يمكن تغيير دور آخر شريك في المكتب.",
+  "errors.IP_LOCKOUT":
+    "هذه القائمة لا تشمل عنوانك الحالي، وحفظها سيمنعك من الدخول. أضف عنوانك أولاً.",
+  "security.ip.invalidEntry": "عنوان غير صالح. استخدم عنوان IP أو نطاق IPv4 مثل 203.0.113.0/24.",
+  "security.ip.currentAddress": "عنوانك الحالي: {ip}",
+  "security.totp.disableHint": "لإيقاف المصادقة الثنائية أدخل رمزاً حالياً من تطبيق المصادقة.",
+  "security.totp.expired": "انتهت مهلة الإعداد. حدّث الصفحة لإنشاء مفتاح جديد.",
   "portal.login.tagline": "بوابة العميل",
   "empPortal.login.tagline": "بوابة الموظف",
   "empPortal.title": "بوابة الموظف",

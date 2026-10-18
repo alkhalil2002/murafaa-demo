@@ -5,3 +5,4 @@ export * from "./office.js";
 export * from "./search.js";
 export * from "./auth.js";
 export * from "./permissions.js";
+export * from "./settings.js";

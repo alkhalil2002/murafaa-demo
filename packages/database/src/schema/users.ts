@@ -27,6 +27,9 @@ export const users = pgTable(
     /** TOTP secret, AES-256-GCM encrypted by the API (never stored in plaintext). */
     totpSecretEnc: text("totp_secret_enc"),
     totpEnabled: boolean("totp_enabled").notNull().default(false),
+    /** A secret being enrolled, encrypted, until the user confirms it with a code. */
+    totpPendingEnc: text("totp_pending_enc"),
+    totpPendingExpiresAt: timestamp("totp_pending_expires_at", { withTimezone: true }),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     ...timestamps,
     ...audit,

@@ -229,7 +229,7 @@ export class AuthService {
   async me(principal: Principal): Promise<Me> {
     const [row] = await this.tenantDb.run((tx) =>
       tx
-        .select({ name: users.name, officeName: offices.name })
+        .select({ name: users.name, phone: users.phone, officeName: offices.name })
         .from(users)
         .innerJoin(offices, eq(offices.id, users.officeId))
         .where(eq(users.id, principal.userId))
@@ -261,6 +261,7 @@ export class AuthService {
       ),
       modules,
       isPartner: principal.role === "PARTNER",
+      phone: row.phone,
     };
   }
 

@@ -193,6 +193,9 @@ importers:
       '@murafaa/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@murafaa/documents':
+        specifier: workspace:*
+        version: link:../../packages/documents
       '@murafaa/rules':
         specifier: workspace:*
         version: link:../../packages/rules

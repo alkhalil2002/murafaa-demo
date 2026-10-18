@@ -66,6 +66,8 @@ export const me = z
     modules: z.record(permModule, permLevel),
     /** The REAL role is partner (role preview does not change this). */
     isPartner: z.boolean(),
+    /** The caller's own login phone (E.164), for the account panel. */
+    phone: z.string(),
   })
   .meta({ id: "Me" });
 export type Me = z.infer<typeof me>;

@@ -5,18 +5,11 @@ import { useState } from "react";
 import { authRequestOtp, authVerify } from "@murafaa/sdk";
 import { t, type MessageKey } from "@murafaa/i18n";
 import { IconWhatsapp } from "@/components/icons";
+import { apiErrorKey as errorKey } from "@/lib/api-error";
 import { browserApi } from "@/lib/browser-api";
 
 type Step = "phone" | "code";
-type ApiErrorBody = {
-  error?: { code?: string; messageKey?: string; details?: Array<{ message: string }> };
-};
-
-/** The i18n key to show for an API error envelope (field message first, then the code's message). */
-function errorKey(body: unknown): MessageKey {
-  const error = (body as ApiErrorBody | undefined)?.error;
-  return (error?.details?.[0]?.message ?? error?.messageKey ?? "auth.error.generic") as MessageKey;
-}
+type ApiErrorBody = { error?: { code?: string } };
 
 /** OTP login (legacy login-form): phone → WhatsApp code → optional TOTP. */
 export function LoginForm() {

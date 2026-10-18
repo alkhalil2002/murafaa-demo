@@ -25,6 +25,7 @@ const OFFICE_A = "aaaaaaaa-0000-4000-8000-00000000000a";
 const OFFICE_B = "bbbbbbbb-0000-4000-8000-00000000000b";
 const OFFICE_LOCKED = "cccccccc-0000-4000-8000-00000000000c";
 const OFFICE_D = "dddddddd-0000-4000-8000-00000000000d";
+const OFFICE_E = "eeeeeeee-0000-4000-8000-00000000000e";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -41,6 +42,9 @@ const LOGOUT_A = "0500000110";
 // Office D: one partner and one lawyer, for permissions administration.
 const PARTNER_D = "0500000201";
 const LAWYER_D = "0500000202";
+// Office E: account security and settings.
+const PARTNER_E = "0500000301";
+const LAWYER_E = "0500000302";
 
 let app: NestFastifyApplication;
 
@@ -116,6 +120,15 @@ beforeAll(async () => {
         [LAWYER_D, "LAWYER"],
       ],
     ],
+    [
+      OFFICE_E,
+      "Office E",
+      [],
+      [
+        [PARTNER_E, "PARTNER"],
+        [LAWYER_E, "LAWYER"],
+      ],
+    ],
   ];
   for (const [office, name, allowlist, people] of seed) {
     await owner.begin(async (tx) => {
@@ -132,7 +145,7 @@ beforeAll(async () => {
 
   // Every office starts from the docs/04 default policy, as a new office would.
   const seeder = createDb(OWNER_URL, { max: 1 });
-  for (const office of [OFFICE_A, OFFICE_B, OFFICE_LOCKED, OFFICE_D]) {
+  for (const office of [OFFICE_A, OFFICE_B, OFFICE_LOCKED, OFFICE_D, OFFICE_E]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
   await seeder.close();
@@ -463,6 +476,144 @@ describe("permissions administration (partner only)", () => {
     );
     expect(entries.find((e) => e.action === "permission.setLevel")?.detail).toBe(
       "role=LAWYER · module=FINANCE · level=VIEW",
+    );
+  });
+});
+
+describe("account security and office settings", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let lawyer = "";
+  const as = (cookie: string, method: "GET" | "PUT" | "POST", url: string, payload?: object) =>
+    app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+  const notCode = (secret: string) => (totpCode(secret) === "000000" ? "111111" : "000000");
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_E));
+    lawyer = cookieOf(await login(LAWYER_E));
+  });
+
+  it("returns the caller's phone in /auth/me", async () => {
+    expect((await as(lawyer, "GET", "/api/v1/auth/me")).json().data.phone).toBe(e164(LAWYER_E));
+  });
+
+  it("enrols TOTP only after a valid code, and disabling needs a code too", async () => {
+    const { secret, uri } = (await as(lawyer, "POST", "/api/v1/security/totp/begin")).json().data;
+    expect(uri).toMatch(/^otpauth:\/\/totp\//);
+    const wrong = await as(lawyer, "POST", "/api/v1/security/totp/confirm", {
+      code: notCode(secret),
+    });
+    expect(wrong.json().error).toMatchObject({
+      code: "TOTP_INVALID",
+      messageKey: "security.totp.invalidCode",
+    });
+    expect((await as(lawyer, "GET", "/api/v1/security/status")).json().data.totpEnabled).toBe(
+      false,
+    );
+
+    expect(
+      (await as(lawyer, "POST", "/api/v1/security/totp/confirm", { code: totpCode(secret) }))
+        .statusCode,
+    ).toBe(200);
+    expect((await as(lawyer, "GET", "/api/v1/security/status")).json().data.totpEnabled).toBe(true);
+
+    expect(
+      (await as(lawyer, "POST", "/api/v1/security/totp/disable", { code: notCode(secret) }))
+        .statusCode,
+    ).toBe(401);
+    expect(
+      (await as(lawyer, "POST", "/api/v1/security/totp/disable", { code: totpCode(secret) }))
+        .statusCode,
+    ).toBe(200);
+    expect((await as(lawyer, "GET", "/api/v1/security/status")).json().data.totpEnabled).toBe(
+      false,
+    );
+  });
+
+  it("expires an unconfirmed enrollment", async () => {
+    const { secret } = (await as(partner, "POST", "/api/v1/security/totp/begin")).json().data;
+    const owner = postgres(OWNER_URL, { max: 1 });
+    await owner.begin(async (tx) => {
+      await tx`select set_config('app.office_id', ${OFFICE_E}, true)`;
+      await tx`update users set totp_pending_expires_at = now() - interval '1 minute' where phone = ${e164(PARTNER_E)}`;
+    });
+    await owner.end();
+    const res = await as(partner, "POST", "/api/v1/security/totp/confirm", {
+      code: totpCode(secret),
+    });
+    expect(res.json().error.messageKey).toBe("security.totp.expired");
+  });
+
+  it("validates the IP allowlist and refuses one that would lock the partner out", async () => {
+    expect((await as(lawyer, "GET", "/api/v1/security/ip-allowlist")).statusCode).toBe(403);
+
+    const bad = await as(partner, "PUT", "/api/v1/security/ip-allowlist", {
+      entries: ["10.0.0.0/8", "not-an-ip"],
+    });
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json().error.details).toEqual([
+      { path: "entries.1", message: "security.ip.invalidEntry" },
+    ]);
+
+    const lockout = await as(partner, "PUT", "/api/v1/security/ip-allowlist", {
+      entries: ["10.0.0.0/8"],
+    });
+    expect(lockout.json().error).toMatchObject({
+      code: "CONFLICT",
+      messageKey: "errors.IP_LOCKOUT",
+    });
+
+    const ok = await as(partner, "PUT", "/api/v1/security/ip-allowlist", {
+      entries: ["127.0.0.1", " 127.0.0.1 ", "10.0.0.0/8"],
+    });
+    expect(ok.json().data.entries).toEqual(["127.0.0.1", "10.0.0.0/8"]);
+    expect(
+      (await as(partner, "PUT", "/api/v1/security/ip-allowlist", { entries: [] })).json().data
+        .entries,
+    ).toEqual([]);
+  });
+
+  it("lets everyone read the branding and only partners change it", async () => {
+    const read = (await as(lawyer, "GET", "/api/v1/offices/branding")).json().data;
+    expect(read).toMatchObject({ name: "Office E", primaryColor: "#0E3A30" });
+
+    expect(
+      (await as(lawyer, "PUT", "/api/v1/offices/branding", { ...read, name: "x" })).statusCode,
+    ).toBe(403);
+    expect(
+      (await as(partner, "PUT", "/api/v1/offices/branding", { ...read, primaryColor: "red" }))
+        .statusCode,
+    ).toBe(400);
+
+    const saved = (
+      await as(partner, "PUT", "/api/v1/offices/branding", {
+        ...read,
+        name: "مكتب هـ",
+        accentColor: "#112233",
+      })
+    ).json().data;
+    expect(saved).toMatchObject({ name: "مكتب هـ", accentColor: "#112233" });
+    expect((await as(lawyer, "GET", "/api/v1/offices/current")).json().data.name).toBe("مكتب هـ");
+  });
+
+  it("shows an empty recycle bin until modules register their records", async () => {
+    expect((await as(lawyer, "GET", "/api/v1/recycle")).json()).toEqual({ data: [], error: null });
+  });
+
+  it("audits security and branding changes", async () => {
+    const owner = postgres(OWNER_URL, { max: 1 });
+    const rows = await owner.begin(async (tx) => {
+      await tx`select set_config('app.office_id', ${OFFICE_E}, true)`;
+      return tx<{ action: string }[]>`select distinct action from audit_log`;
+    });
+    await owner.end();
+    expect(rows.map((r) => r.action)).toEqual(
+      expect.arrayContaining([
+        "security.totp.enable",
+        "security.totp.disable",
+        "security.ipAllowlist.update",
+        "office.branding.update",
+      ]),
     );
   });
 });

@@ -1,7 +1,10 @@
 import { Injectable } from "@nestjs/common";
-import { ErrorCode, type Office } from "@murafaa/contracts";
+import { ErrorCode, type Office, type OfficeBrandingDto } from "@murafaa/contracts";
+import { resolveBranding } from "@murafaa/documents";
 import { offices } from "@murafaa/database";
-import { isNull } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
+import { writeAudit } from "../../common/audit/audit.js";
+import type { Principal } from "../../common/tenancy/principal.js";
 import { ApiException } from "../../common/http/api.exception.js";
 import { TenantDb } from "../../database/tenant-db.service.js";
 
@@ -16,5 +19,45 @@ export class OfficesService {
     );
     if (!row) throw new ApiException(ErrorCode.NOT_FOUND);
     return { id: row.id, name: row.name, createdAt: row.createdAt.toISOString() };
+  }
+
+  /** Letterhead branding merged over the defaults (legacy getOfficeBranding). */
+  async branding(): Promise<OfficeBrandingDto> {
+    const [row] = await this.tenantDb.run((tx) =>
+      tx.select({ name: offices.name, branding: offices.branding }).from(offices).limit(1),
+    );
+    if (!row) throw new ApiException(ErrorCode.NOT_FOUND);
+    const { logoStorageKey: _logo, ...branding } = resolveBranding(
+      row.branding ?? { name: row.name },
+    );
+    return branding;
+  }
+
+  /** Update branding and the office name together (partner only, enforced by the controller). */
+  async updateBranding(
+    p: Principal,
+    input: OfficeBrandingDto,
+    meta: { ip: string; requestId: string },
+  ) {
+    await this.tenantDb.run(async (tx) => {
+      const [row] = await tx
+        .select({ branding: offices.branding })
+        .from(offices)
+        .where(eq(offices.id, p.officeId));
+      const merged = { ...resolveBranding(row?.branding), ...input };
+      await tx
+        .update(offices)
+        .set({ name: input.name, branding: merged, updatedBy: p.userId })
+        .where(eq(offices.id, p.officeId));
+      await writeAudit(tx, {
+        officeId: p.officeId,
+        actorId: p.userId,
+        action: "office.branding.update",
+        entity: "offices",
+        entityId: p.officeId,
+        ...meta,
+      });
+    });
+    return this.branding();
   }
 }

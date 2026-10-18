@@ -42,3 +42,22 @@ export function isIpAllowed(ip: string | null, allowlist: string[]): boolean {
   if (!ip) return false;
   return allowlist.some((entry) => matchesEntry(ip, entry));
 }
+
+const IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+
+/** Whether an allowlist entry is well-formed: IPv4, IPv4/CIDR (0–32), or an IPv6 address. */
+export function isValidIpEntry(entry: string): boolean {
+  const e = entry.trim();
+  if (e.includes("/")) {
+    const [base, bits] = e.split("/");
+    return IPV4.test(base ?? "") && /^\d{1,2}$/.test(bits ?? "") && Number(bits) <= 32;
+  }
+  if (IPV4.test(e)) return true;
+  // IPv6: hex groups with at most one "::" (no CIDR for IPv6, matching isIpAllowed).
+  return (
+    /^[0-9a-f:]+$/i.test(e) &&
+    e.includes(":") &&
+    (e.match(/::/g)?.length ?? 0) <= 1 &&
+    e.split(":").length <= 8
+  );
+}

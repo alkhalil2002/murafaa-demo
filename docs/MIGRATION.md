@@ -4,15 +4,15 @@ Every file, screen, route and model in `legacy/` with where it went or which mil
 
 Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP login, TOTP 2FA, editable permissions (all three layers), office IP allowlist enforcement, and audit writers.
 
-## Summary (2026-10-18, after M1 slice 2: permissions)
+## Summary (2026-10-18, after M1 slice 3: account security and settings)
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
 | `src/lib` files | 51 | 29 | 22 |
 | Business rules inside services/components | 37 | 26 | 11 |
-| Services | 54 | 2 | 52 |
-| Service capabilities | 225 | 6 | 219 |
-| Screens | 63 | 5 | 58 |
+| Services | 54 | 4 | 50 |
+| Service capabilities | 225 | 15 | 210 |
+| Screens | 63 | 7 | 56 |
 | Components | 20 | 8 | 12 |
 | Route handlers | 9 | 2 (+1 replaced) | 6 |
 | Models | 56 | 7 (+ `outbox`, `sessions` new) | 49 |
@@ -62,7 +62,7 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `labels.ts` | ⏳ Pending | M2 Core ops | enum → i18n label maps; coverage test in packages/i18n |
 | `money.ts` | ✅ Ported | packages/rules/src/money.ts | 3 tests; formatSar moved to i18n |
 | `najiz.ts` | ✅ Ported | packages/rules/src/reference/najiz.ts | tests added |
-| `pdf/letterhead.ts` | ⏳ Pending | M3 Documents | escapeHtml ported to packages/documents; branding + letterhead pending |
+| `pdf/letterhead.ts` | ⏳ Pending | M3 Documents | escapeHtml + branding (resolveBranding, DEFAULT_BRANDING) ported to packages/documents; letterhead HTML with the PDF service |
 | `pdf/render.ts` | ⏳ Pending | M3 Documents | headless Chrome (puppeteer) — owner-approved 2026-07-24 for correct Arabic shaping/RTL; run it in a separate Cloud Run service with Arabic fonts, not inside the API |
 | `performance.ts` | ⏳ Pending | M6 HR | PERFORMANCE_POINTS ported (packages/rules performance.ts); event log writer pending |
 | `permissions/engine.ts` | ✅ Ported | packages/auth/src/engine.ts | 20 tests |
@@ -123,15 +123,15 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `ledger-reports` | ⏳ Pending | M4 Finance | normal-side balance ported (packages/rules ledger.ts) |
 | `messages` | ⏳ Pending | M2 Core ops |  |
 | `notifications` | ⏳ Pending | M2 Core ops |  |
-| `office-settings` | ⏳ Pending | M1 Foundation |  |
+| `office-settings` | ✅ Ported | apps/api/src/modules/offices (GET/PUT /offices/branding) |  |
 | `permissions-admin` | ✅ Ported | apps/api/src/modules/permissions |  |
 | `portal` | ⏳ Pending | M8 Portals |  |
 | `procedure-requests` | ⏳ Pending | M2 Core ops | status cycle ported (packages/rules workflows.ts) |
 | `pulse` | ⏳ Pending | M6 HR | points + override rule ported (packages/rules performance.ts); legacy sinceFor() used server-local time, use Riyadh time (dates.ts) |
 | `search` | ⏳ Pending | M2 Core ops |  |
-| `security` | ⏳ Pending | M1 Foundation | TOTP enrol/disable + office IP allowlist |
+| `security` | ✅ Ported | apps/api/src/modules/security |  |
 | `security-audit` | ✅ Ported | apps/api/src/modules/permissions (GET /permissions/audit) |  |
-| `settings` | ⏳ Pending | M1 Foundation |  |
+| `settings` | ⏳ Pending | M1 Foundation | recycle bin: GET /recycle exists (per-module view filter); kinds, restore and purge register with cases/leads (M2), documents (M3), employees (M6) |
 | `tasks` | ⏳ Pending | M2 Core ops |  |
 | `templates` | ⏳ Pending | M3 Documents |  |
 | `today` | ⏳ Pending | M2 Core ops | computeWinRate rule ported as winRate (packages/rules cases.ts) |
@@ -144,7 +144,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | Route | Status | Milestone | Notes |
 |---|---|---|---|
 | `/` | ⏳ Pending | M2 Core ops |  |
-| `/account/security` | ⏳ Pending | M1 Foundation |  |
+| `/account/security` | ✅ Ported | apps/web/src/app/(app)/account/security |  |
 | `/activity` | ⏳ Pending | M2 Core ops |  |
 | `/ai` | ⏳ Pending | M5 AI gate |  |
 | `/ai/arena/[caseId]` | ⏳ Pending | M5 AI gate |  |
@@ -194,7 +194,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/notifications` | ⏳ Pending | M2 Core ops |  |
 | `/perms` | ✅ Ported | apps/web/src/app/(app)/perms (matrix + role preview) |  |
 | `/perms/audit` | ✅ Ported | apps/web/src/app/(app)/perms/audit |  |
-| `/perms/security` | ✅ Ported | apps/web/src/app/(app)/perms/security (links to /account/security, slice 3) |  |
+| `/perms/security` | ✅ Ported | apps/web/src/app/(app)/perms/security |  |
 | `/perms/users` | ✅ Ported | apps/web/src/app/(app)/perms/users |  |
 | `/portal/(app)` | ⏳ Pending | M8 Portals |  |
 | `/portal/(app)/cases/[id]` | ⏳ Pending | M8 Portals |  |
@@ -202,7 +202,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/portal/login` | ⏳ Pending | M8 Portals |  |
 | `/pulse` | ⏳ Pending | M6 HR |  |
 | `/search` | ⏳ Pending | M2 Core ops |  |
-| `/settings` | ⏳ Pending | M1 Foundation |  |
+| `/settings` | ✅ Ported | apps/web/src/app/(app)/settings (branding, recycle bin, account) |  |
 | `/tasks` | ⏳ Pending | M2 Core ops |  |
 | `/today` | ⏳ Pending | M2 Core ops |  |
 | `/whatsapp` | ⏳ Pending | M7 Integrations |  |
@@ -645,8 +645,8 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **office-settings** (M1 Foundation)
 
-- [ ] `getOfficeBranding`
-- [ ] `updateOfficeBranding`
+- [x] `getOfficeBranding`
+- [x] `updateOfficeBranding`
 
 **permissions-admin** (M1 Foundation)
 
@@ -694,12 +694,12 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **security** (M1 Foundation)
 
-- [ ] `getSecurityStatus`
-- [ ] `beginTotpEnroll`
-- [ ] `confirmTotpEnroll`
-- [ ] `disableTotp`
-- [ ] `getOfficeIpAllowlist`
-- [ ] `setOfficeIpAllowlist`
+- [x] `getSecurityStatus`
+- [x] `beginTotpEnroll`
+- [x] `confirmTotpEnroll`
+- [x] `disableTotp`
+- [x] `getOfficeIpAllowlist`
+- [x] `setOfficeIpAllowlist`
 
 **security-audit** (M1 Foundation)
 
@@ -707,7 +707,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **settings** (M1 Foundation)
 
-- [ ] `listRecycleBin`
+- [x] `listRecycleBin`
 - [ ] `restoreRecycleItem`
 - [ ] `purgeRecycleBin`
 
@@ -818,7 +818,7 @@ From the legacy commits. Check each against the rebuilt screen before calling a 
 | Team Pulse: ranking, employee of the week, drill-down, editable weights, self card | 8667426 | M6 HR |
 | Employee self-service portal | 7648217 | M8 Portals |
 | Client portal: approvals, document upload, invoices | dcc153a | M8 Portals |
-| Recycle bin: list, restore, purge (partner) | dbfc200 | M1 Foundation |
+| Recycle bin: list, restore, purge (partner) — list endpoint + panel done; kinds arrive with their modules | dbfc200 | M2 Core ops |
 | 9 top-level sections from the prototype audit (today, journey, pulse, whatsapp, …) | dbfc200 | M2 Core ops |
 
 ## Server actions (29 files)
@@ -972,4 +972,7 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | IP allowlist enforced only when rendering the page shell, not on actions | components/app-shell.tsx | ✅ fixed: enforced by the API on every request |
 | A phone registered in two offices cannot log in (resolveUser needs exactly one match) | lib/auth/otp.ts | office picker or per-office login (M1 decision) |
 | Money columns are int4 (MAX_HALALAS ≈ 21.47M SAR) | prisma schema | bigint halalas in Drizzle (M4) |
+| TOTP could be disabled without a code; the enrolment secret round-tripped through the browser | server/security.ts | ✅ fixed: disabling needs a current code; pending secret stored encrypted server-side for 10 min |
+| IP allowlist saved without validation; a partner could lock the office out with one save | server/security.ts | ✅ fixed: entries validated, and a list excluding the caller's own address is refused |
+| Recycle bin listed every deleted case/lead/document/employee to every user | server/settings.ts | ✅ fixed by design: each kind filtered by its module's view permission |
 

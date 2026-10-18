@@ -59,6 +59,7 @@ export type Me = {
         [key: string]: 'NONE' | 'VIEW' | 'EDIT' | 'FULL';
     };
     isPartner: boolean;
+    phone: string;
 };
 
 export type Health = {
@@ -71,6 +72,19 @@ export type Office = {
     id: string;
     name: string;
     createdAt: string;
+};
+
+export type OfficeBranding = {
+    name: string;
+    tagline: string;
+    phone: string;
+    email: string;
+    website: string;
+    address: string;
+    licenseNo: string;
+    primaryColor: string;
+    accentColor: string;
+    confidentialityNotice: string;
 };
 
 export type RoleMatrix = Array<RoleMatrixRow>;
@@ -118,6 +132,33 @@ export type SecurityAuditEntry = {
 
 export type StartPreviewBody = {
     role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+};
+
+export type RecycleBin = Array<RecycleItem>;
+
+export type RecycleItem = {
+    kind: 'case' | 'lead' | 'document' | 'employee';
+    id: string;
+    label: string;
+    deletedAt: string;
+};
+
+export type SecurityStatus = {
+    totpEnabled: boolean;
+    phone: string;
+};
+
+export type TotpEnrollment = {
+    secret: string;
+    uri: string;
+};
+
+export type TotpCodeBody = {
+    code: string;
+};
+
+export type IpAllowlist = {
+    entries: Array<string>;
 };
 
 export type AuthRequestOtpData = {
@@ -287,6 +328,62 @@ export type OfficesCurrentResponses = {
 };
 
 export type OfficesCurrentResponse = OfficesCurrentResponses[keyof OfficesCurrentResponses];
+
+export type OfficesBrandingData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/offices/branding';
+};
+
+export type OfficesBrandingErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OfficesBrandingError = OfficesBrandingErrors[keyof OfficesBrandingErrors];
+
+export type OfficesBrandingResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: OfficeBranding;
+        error: null;
+    };
+};
+
+export type OfficesBrandingResponse = OfficesBrandingResponses[keyof OfficesBrandingResponses];
+
+export type OfficesUpdateBrandingData = {
+    body: OfficeBranding;
+    path?: never;
+    query?: never;
+    url: '/api/v1/offices/branding';
+};
+
+export type OfficesUpdateBrandingErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type OfficesUpdateBrandingError = OfficesUpdateBrandingErrors[keyof OfficesUpdateBrandingErrors];
+
+export type OfficesUpdateBrandingResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: OfficeBranding;
+        error: null;
+    };
+};
+
+export type OfficesUpdateBrandingResponse = OfficesUpdateBrandingResponses[keyof OfficesUpdateBrandingResponses];
 
 export type PermissionsMatrixData = {
     body?: never;
@@ -513,3 +610,199 @@ export type PermissionsStartPreviewResponses = {
 };
 
 export type PermissionsStartPreviewResponse = PermissionsStartPreviewResponses[keyof PermissionsStartPreviewResponses];
+
+export type RecycleListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/recycle';
+};
+
+export type RecycleListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type RecycleListError = RecycleListErrors[keyof RecycleListErrors];
+
+export type RecycleListResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: RecycleBin;
+        error: null;
+    };
+};
+
+export type RecycleListResponse = RecycleListResponses[keyof RecycleListResponses];
+
+export type SecurityStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/security/status';
+};
+
+export type SecurityStatusErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type SecurityStatusError = SecurityStatusErrors[keyof SecurityStatusErrors];
+
+export type SecurityStatusResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: SecurityStatus;
+        error: null;
+    };
+};
+
+export type SecurityStatusResponse = SecurityStatusResponses[keyof SecurityStatusResponses];
+
+export type SecurityBeginData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/security/totp/begin';
+};
+
+export type SecurityBeginErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type SecurityBeginError = SecurityBeginErrors[keyof SecurityBeginErrors];
+
+export type SecurityBeginResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: TotpEnrollment;
+        error: null;
+    };
+};
+
+export type SecurityBeginResponse = SecurityBeginResponses[keyof SecurityBeginResponses];
+
+export type SecurityConfirmData = {
+    body: TotpCodeBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/security/totp/confirm';
+};
+
+export type SecurityConfirmErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type SecurityConfirmError = SecurityConfirmErrors[keyof SecurityConfirmErrors];
+
+export type SecurityConfirmResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type SecurityConfirmResponse = SecurityConfirmResponses[keyof SecurityConfirmResponses];
+
+export type SecurityDisableData = {
+    body: TotpCodeBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/security/totp/disable';
+};
+
+export type SecurityDisableErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type SecurityDisableError = SecurityDisableErrors[keyof SecurityDisableErrors];
+
+export type SecurityDisableResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type SecurityDisableResponse = SecurityDisableResponses[keyof SecurityDisableResponses];
+
+export type SecurityGetIpAllowlistData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/security/ip-allowlist';
+};
+
+export type SecurityGetIpAllowlistErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type SecurityGetIpAllowlistError = SecurityGetIpAllowlistErrors[keyof SecurityGetIpAllowlistErrors];
+
+export type SecurityGetIpAllowlistResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: IpAllowlist;
+        error: null;
+    };
+};
+
+export type SecurityGetIpAllowlistResponse = SecurityGetIpAllowlistResponses[keyof SecurityGetIpAllowlistResponses];
+
+export type SecuritySetIpAllowlistData = {
+    body: IpAllowlist;
+    path?: never;
+    query?: never;
+    url: '/api/v1/security/ip-allowlist';
+};
+
+export type SecuritySetIpAllowlistErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type SecuritySetIpAllowlistError = SecuritySetIpAllowlistErrors[keyof SecuritySetIpAllowlistErrors];
+
+export type SecuritySetIpAllowlistResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: IpAllowlist;
+        error: null;
+    };
+};
+
+export type SecuritySetIpAllowlistResponse = SecuritySetIpAllowlistResponses[keyof SecuritySetIpAllowlistResponses];

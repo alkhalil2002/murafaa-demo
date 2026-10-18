@@ -1,4 +1,4 @@
-import { pgTable, text } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { audit, id, tenantPolicy, timestamps } from "./_helpers.js";
 
@@ -13,6 +13,8 @@ export const offices = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
+    /** Letterhead branding (colours, contact, notice); merged over defaults by resolveBranding(). */
+    branding: jsonb("branding"),
     ...timestamps,
     ...audit,
   },

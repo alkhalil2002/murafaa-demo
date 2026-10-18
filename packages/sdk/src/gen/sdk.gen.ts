@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses } from './types.gen.js';
+import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesBrandingData, OfficesBrandingErrors, OfficesBrandingResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, OfficesUpdateBrandingData, OfficesUpdateBrandingErrors, OfficesUpdateBrandingResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses, RecycleListData, RecycleListErrors, RecycleListResponses, SecurityBeginData, SecurityBeginErrors, SecurityBeginResponses, SecurityConfirmData, SecurityConfirmErrors, SecurityConfirmResponses, SecurityDisableData, SecurityDisableErrors, SecurityDisableResponses, SecurityGetIpAllowlistData, SecurityGetIpAllowlistErrors, SecurityGetIpAllowlistResponses, SecuritySetIpAllowlistData, SecuritySetIpAllowlistErrors, SecuritySetIpAllowlistResponses, SecurityStatusData, SecurityStatusErrors, SecurityStatusResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -44,6 +44,17 @@ export const healthCheck = <ThrowOnError extends boolean = false>(options?: Opti
 
 export const officesCurrent = <ThrowOnError extends boolean = false>(options?: Options<OfficesCurrentData, ThrowOnError>): RequestResult<OfficesCurrentResponses, OfficesCurrentErrors, ThrowOnError> => (options?.client ?? client).get<OfficesCurrentResponses, OfficesCurrentErrors, ThrowOnError>({ url: '/api/v1/offices/current', ...options });
 
+export const officesBranding = <ThrowOnError extends boolean = false>(options?: Options<OfficesBrandingData, ThrowOnError>): RequestResult<OfficesBrandingResponses, OfficesBrandingErrors, ThrowOnError> => (options?.client ?? client).get<OfficesBrandingResponses, OfficesBrandingErrors, ThrowOnError>({ url: '/api/v1/offices/branding', ...options });
+
+export const officesUpdateBranding = <ThrowOnError extends boolean = false>(options: Options<OfficesUpdateBrandingData, ThrowOnError>): RequestResult<OfficesUpdateBrandingResponses, OfficesUpdateBrandingErrors, ThrowOnError> => (options.client ?? client).put<OfficesUpdateBrandingResponses, OfficesUpdateBrandingErrors, ThrowOnError>({
+    url: '/api/v1/offices/branding',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
 export const permissionsMatrix = <ThrowOnError extends boolean = false>(options?: Options<PermissionsMatrixData, ThrowOnError>): RequestResult<PermissionsMatrixResponses, PermissionsMatrixErrors, ThrowOnError> => (options?.client ?? client).get<PermissionsMatrixResponses, PermissionsMatrixErrors, ThrowOnError>({ url: '/api/v1/permissions/matrix', ...options });
 
 export const permissionsSetLevel = <ThrowOnError extends boolean = false>(options: Options<PermissionsSetLevelData, ThrowOnError>): RequestResult<PermissionsSetLevelResponses, PermissionsSetLevelErrors, ThrowOnError> => (options.client ?? client).put<PermissionsSetLevelResponses, PermissionsSetLevelErrors, ThrowOnError>({
@@ -81,6 +92,41 @@ export const permissionsEndPreview = <ThrowOnError extends boolean = false>(opti
 
 export const permissionsStartPreview = <ThrowOnError extends boolean = false>(options: Options<PermissionsStartPreviewData, ThrowOnError>): RequestResult<PermissionsStartPreviewResponses, PermissionsStartPreviewErrors, ThrowOnError> => (options.client ?? client).post<PermissionsStartPreviewResponses, PermissionsStartPreviewErrors, ThrowOnError>({
     url: '/api/v1/permissions/preview',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const recycleList = <ThrowOnError extends boolean = false>(options?: Options<RecycleListData, ThrowOnError>): RequestResult<RecycleListResponses, RecycleListErrors, ThrowOnError> => (options?.client ?? client).get<RecycleListResponses, RecycleListErrors, ThrowOnError>({ url: '/api/v1/recycle', ...options });
+
+export const securityStatus = <ThrowOnError extends boolean = false>(options?: Options<SecurityStatusData, ThrowOnError>): RequestResult<SecurityStatusResponses, SecurityStatusErrors, ThrowOnError> => (options?.client ?? client).get<SecurityStatusResponses, SecurityStatusErrors, ThrowOnError>({ url: '/api/v1/security/status', ...options });
+
+export const securityBegin = <ThrowOnError extends boolean = false>(options?: Options<SecurityBeginData, ThrowOnError>): RequestResult<SecurityBeginResponses, SecurityBeginErrors, ThrowOnError> => (options?.client ?? client).post<SecurityBeginResponses, SecurityBeginErrors, ThrowOnError>({ url: '/api/v1/security/totp/begin', ...options });
+
+export const securityConfirm = <ThrowOnError extends boolean = false>(options: Options<SecurityConfirmData, ThrowOnError>): RequestResult<SecurityConfirmResponses, SecurityConfirmErrors, ThrowOnError> => (options.client ?? client).post<SecurityConfirmResponses, SecurityConfirmErrors, ThrowOnError>({
+    url: '/api/v1/security/totp/confirm',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const securityDisable = <ThrowOnError extends boolean = false>(options: Options<SecurityDisableData, ThrowOnError>): RequestResult<SecurityDisableResponses, SecurityDisableErrors, ThrowOnError> => (options.client ?? client).post<SecurityDisableResponses, SecurityDisableErrors, ThrowOnError>({
+    url: '/api/v1/security/totp/disable',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const securityGetIpAllowlist = <ThrowOnError extends boolean = false>(options?: Options<SecurityGetIpAllowlistData, ThrowOnError>): RequestResult<SecurityGetIpAllowlistResponses, SecurityGetIpAllowlistErrors, ThrowOnError> => (options?.client ?? client).get<SecurityGetIpAllowlistResponses, SecurityGetIpAllowlistErrors, ThrowOnError>({ url: '/api/v1/security/ip-allowlist', ...options });
+
+export const securitySetIpAllowlist = <ThrowOnError extends boolean = false>(options: Options<SecuritySetIpAllowlistData, ThrowOnError>): RequestResult<SecuritySetIpAllowlistResponses, SecuritySetIpAllowlistErrors, ThrowOnError> => (options.client ?? client).put<SecuritySetIpAllowlistResponses, SecuritySetIpAllowlistErrors, ThrowOnError>({
+    url: '/api/v1/security/ip-allowlist',
     ...options,
     headers: {
         'Content-Type': 'application/json',
