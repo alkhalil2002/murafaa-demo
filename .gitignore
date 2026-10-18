@@ -1,13 +1,16 @@
 # Dependencies
 node_modules/
 
-# Next.js build output
+# Build output
+dist/
 .next/
 out/
 build/
 next-env.d.ts
 *.tsbuildinfo
+.turbo/
 /coverage
+**/coverage/
 
 # Environment / secrets — never commit these
 .env

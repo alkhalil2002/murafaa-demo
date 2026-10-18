@@ -1,0 +1,3 @@
+{
+  "extends": "@murafaa/config/tsconfig/library.json"
+}

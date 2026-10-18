@@ -1,0 +1,28 @@
+{
+  "name": "@murafaa/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "UI message catalogs (ar first, en later) and formatters. Shared by web and mobile.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@murafaa/config": "workspace:*",
+    "@murafaa/documents": "workspace:*",
+    "@murafaa/rules": "workspace:*",
+    "@types/node": "24.19.2",
+    "eslint": "10.13.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

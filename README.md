@@ -2,7 +2,7 @@
 
 منصة إدارة مكاتب محاماة مدعومة بالذكاء الاصطناعي للسوق السعودي — عربية، RTL، مبنية على أنظمة وإجراءات التقاضي السعودية.
 
-> **هذا المستودع حزمة تسليم للبناء.** الكود الحقيقي يُبنى من الصفر وفق الوثائق. النموذج الحالي مرجع بصري فقط.
+> **monorepo** فيه API بـ NestJS، وموقع بـ Next.js، وموبايل لاحقاً، وحزم مشتركة. التطبيق القديم في `legacy/` مرجع فقط، والنموذج مرجع بصري فقط. التشغيل المحلي: `docs/DEVELOPMENT.md`.
 
 ## ابدأ من هنا
 
@@ -31,21 +31,26 @@
 
 ## الـ Stack
 
-Next.js + TypeScript · Tailwind + shadcn/ui (RTL) · PostgreSQL + pgvector · Prisma · Claude عبر Vertex AI · Auth.js (OTP) · Google Cloud (الدمام). التفاصيل في `docs/02` و`CLAUDE.md`.
+pnpm + Turborepo · NestJS 12 (API) · Next.js 16 (Web) · Expo (لاحقاً) · TypeScript 6 · Tailwind 4 + shadcn/ui (RTL) · PostgreSQL + pgvector + RLS · Drizzle · Zod 4 → OpenAPI → SDK · Claude عبر Vertex AI · OTP · Google Cloud (الدمام). التفاصيل في `docs/02` و`docs/adr/0001` و`CLAUDE.md`.
 
 ## بنية المستودع
 
 ```
 murafaa/
 ├── CLAUDE.md
-├── README.md
-├── docs/
-│   ├── 01-business-analysis.md
-│   ├── 02-technical-spec.md
-│   ├── 03-data-model.md
-│   ├── 04-permissions-matrix.md
-│   ├── 05-screens-inventory.md
-│   └── 06-business-rules.md
-└── prototype/
-    └── murafaa-prototype.html
+├── apps/
+│   ├── api/          NestJS — الخادم الوحيد (REST /api/v1)
+│   └── web/          Next.js — الواجهة فقط
+├── packages/
+│   ├── rules/        قواعد العمل (docs/06) + اختبارات
+│   ├── auth/         الأدوار ومصفوفة الصلاحيات (docs/04)
+│   ├── contracts/    عقود Zod
+│   ├── i18n/         النصوص
+│   ├── database/     مخطّط Drizzle + RLS + الهجرات
+│   ├── sdk/          عميل الـ API (مولَّد)
+│   └── config/       إعدادات ESLint/TS
+├── infrastructure/docker/   Postgres المحلي
+├── docs/             الوثائق + adr/
+├── legacy/           التطبيق الأول (مرجع فقط)
+└── prototype/        النموذج البصري
 ```

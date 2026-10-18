@@ -1,0 +1,7 @@
+import { defineConfig } from "@hey-api/openapi-ts";
+
+export default defineConfig({
+  input: "../../apps/api/openapi.json",
+  output: { path: "src/gen", importFileExtension: ".js" },
+  plugins: ["@hey-api/client-fetch", "@hey-api/typescript", "@hey-api/sdk"],
+});

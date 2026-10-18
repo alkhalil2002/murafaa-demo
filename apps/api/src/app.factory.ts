@@ -1,0 +1,52 @@
+import "reflect-metadata";
+import helmet from "@fastify/helmet";
+import { VersioningType } from "@nestjs/common";
+import { NestFactory } from "@nestjs/core";
+import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
+import { SwaggerModule } from "@nestjs/swagger";
+import { Logger } from "nestjs-pino";
+import { AppModule } from "./app.module.js";
+import { buildOpenApi } from "./common/zod/openapi.js";
+import type { Env } from "./config/env.js";
+
+export const API_PREFIX = "api";
+export const API_VERSION = "1";
+
+/**
+ * Builds the configured app without listening, so main.ts, the OpenAPI script
+ * and e2e tests all run the exact same pipeline. Call `app.init()` (or listen).
+ */
+export async function createApp(env: Env): Promise<NestFastifyApplication> {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule.forRoot(env),
+    new FastifyAdapter({ trustProxy: true }),
+    { bufferLogs: true },
+  );
+  app.useLogger(app.get(Logger));
+
+  const isProd = env.NODE_ENV === "production";
+  // Swagger UI needs inline scripts, so the strict CSP is relaxed outside production only.
+  await app.register(helmet, { contentSecurityPolicy: isProd ? undefined : false });
+  app.enableCors({ origin: env.CORS_ORIGINS, credentials: true });
+  app.setGlobalPrefix(API_PREFIX);
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: API_VERSION });
+  app.enableShutdownHooks();
+  return app;
+}
+
+/** The OpenAPI document for this app. Requires the app to be initialised. */
+export function openApiOf(app: NestFastifyApplication, env: Env) {
+  return buildOpenApi(app, {
+    prefix: API_PREFIX,
+    version: API_VERSION,
+    title: "Murafaa API",
+    appVersion: env.APP_VERSION,
+  });
+}
+
+/** Serves Swagger UI at /api/docs outside production. */
+export function mountDocs(app: NestFastifyApplication, env: Env): void {
+  if (env.NODE_ENV === "production") return;
+  // buildOpenApi emits a plain OpenAPI 3.1 object; SwaggerModule only needs it to render.
+  SwaggerModule.setup(`${API_PREFIX}/docs`, app, () => openApiOf(app, env) as never);
+}

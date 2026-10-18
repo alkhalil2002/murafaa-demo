@@ -1,0 +1,8 @@
+legacy/
+prototype/
+pnpm-lock.yaml
+**/dist/
+**/.next/
+packages/sdk/src/gen/
+packages/database/migrations/meta/
+apps/api/openapi.json

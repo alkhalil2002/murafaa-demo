@@ -16,46 +16,77 @@
 
 ## 2. المعمارية (نظرة عامة)
 
+> **محدَّث 2026-10-18** — القرار في `docs/adr/0001-monorepo-nestjs-drizzle.md`. السبب: تطبيق موبايل قادم، وعزل المكاتب على مستوى قاعدة البيانات.
+
 ```
-┌─────────────────────────────────────────────┐
-│  Next.js (App Router) — TypeScript           │
-│  الواجهة (RTL/AR) + server actions/API       │
-└───────────────┬─────────────────────────────┘
-                │
-   ┌────────────┼─────────────┬───────────────┐
-   │            │             │               │
-┌──▼───┐   ┌────▼────┐   ┌────▼─────┐   ┌─────▼──────┐
-│ Auth │   │ Prisma  │   │ RAG +    │   │ Integrations│
-│ OTP  │   │ Postgres│   │ Citation │   │ Najiz/Nafath│
-│      │   │+pgvector│   │ Gate     │   │ ZATCA/WPS   │
-└──────┘   └─────────┘   └────┬─────┘   └────────────┘
-                              │
-                         ┌────▼─────┐
-                         │ Claude   │
-                         │ (Vertex) │
-                         └──────────┘
+┌──────────────┐   ┌──────────────┐
+│ apps/web     │   │ apps/mobile  │   ← واجهات فقط، تستخدم SDK مولَّداً
+│ Next.js (RTL)│   │ Expo (لاحقاً) │
+└──────┬───────┘   └──────┬───────┘
+       └────────┬─────────┘
+                │ REST /api/v1 (OpenAPI)
+┌───────────────▼─────────────────────────────┐
+│ apps/api — NestJS 12 (Fastify)               │
+│ الصلاحيات (fail-closed) · Zod · التدقيق     │
+└──┬──────────┬──────────────┬────────────────┘
+   │          │              │
+┌──▼───┐ ┌────▼─────┐ ┌──────▼──────┐ ┌──────────────┐
+│ OTP  │ │ Drizzle  │ │ RAG +       │ │ Integrations │
+│      │ │ Postgres │ │ Citation    │ │ Najiz/Nafath │
+│      │ │+pgvector │ │ Gate        │ │ ZATCA/WPS    │
+│      │ │ + RLS    │ └──────┬──────┘ └──────────────┘
+└──────┘ └──────────┘  ┌─────▼─────┐
+                       │ Claude    │
+                       │ (Vertex)  │
+                       └───────────┘
    كل ما سبق داخل Google Cloud — منطقة الدمام (إقامة بيانات)
 ```
 
-**الطبقات:** عرض (React/RTL) → خدمة (server actions/route handlers، فيها فرض الصلاحيات والقواعد) → بيانات (Prisma/Postgres) → خدمات خارجية (الذكاء، التكاملات). المهام الخلفية عبر Cloud Tasks/Scheduler.
+**الطبقات:**
+- **العرض:** web وmobile، بلا منطق أعمال.
+- **الـ API:** NestJS. فيه فرض الصلاحيات والقواعد والتحقق بـ Zod.
+- **البيانات:** Drizzle وPostgres. عزل المكاتب بـ RLS على `office_id`.
+- **الخدمات الخارجية:** الذكاء والتكاملات.
+
+**الحزم المشتركة** (`packages/`):
+
+| الحزمة | المحتوى |
+|---|---|
+| `rules` | قواعد العمل النقية |
+| `auth` | مصفوفة الصلاحيات |
+| `contracts` | عقود Zod |
+| `i18n` | النصوص |
+| `database` | المخطّط والهجرات |
+| `sdk` | عميل الـ API، مولَّد |
+
+**المهام الخلفية:** جدول `outbox` يُكتب داخل نفس الـ transaction، ثم يُرسَل إلى Cloud Tasks. لا cron داخل العملية.
 
 ---
 
 ## 3. الـ Stack (التفصيل)
 
-- **Runtime/Framework:** Next.js (App Router) على Node LTS، TypeScript بوضع `strict`.
-- **UI:** Tailwind CSS + shadcn/ui (Radix) مع دعم RTL؛ خطوط IBM Plex Sans Arabic + Amiri؛ design tokens من ثيم النموذج (`--bench`, `--gold`, `--advocate`, `--parch`).
-- **i18n:** كل النصوص عربية عبر طبقة i18n (لا نصوص مكتوبة في الكود مباشرة) — لتسهيل المراجعة ومستقبلاً الإنجليزية.
-- **DB:** PostgreSQL (Cloud SQL، الدمام) + امتداد `pgvector`.
-- **ORM:** Prisma (مخطّط واحد مصدر الحقيقة + migrations).
-- **AI:** Claude عبر Vertex AI (نقطة إقليمية).
-- **Auth:** Auth.js (NextAuth) + جلسات + OTP.
-- **Jobs:** Cloud Tasks + Cloud Scheduler.
-- **Storage:** Google Cloud Storage (الدمام) للمستندات وملفات PDF/WPS.
-- **Hosting:** Cloud Run.
-- **Observability:** Cloud Logging/Monitoring + Sentry (تتبّع الأخطاء).
+- **Runtime:** Node 24 LTS، وTypeScript 6 بوضع `strict` و`noUncheckedIndexedAccess`. المستودع monorepo بـ pnpm 12 وTurborepo، وكله ESM.
+- **API:** NestJS 12 على Fastify:
+  - REST بإصدارات `/api/v1`.
+  - OpenAPI 3.1 مولَّد من عقود Zod 4.
+  - helmet، وسجلات pino مع حجب الحقول الحسّاسة.
+- **Web:** Next.js 16 (App Router) وReact 19:
+  - Tailwind CSS 4 مع shadcn/ui (Radix) بدعم RTL.
+  - خطوط IBM Plex Sans Arabic وAmiri.
+  - design tokens من ثيم النموذج (`bench`، `gold`، `advocate`، `parch`) داخل `@theme`.
+- **Mobile (لاحقاً):** Expo بنفس الـ API والـ SDK والحزم.
+- **i18n:** كل النصوص في `packages/i18n`، دالة `t()` مكتوبة الأنواع، ومشتركة بين web وmobile. ESLint يرفض أي نص عربي مكتوب مباشرة في الواجهة.
+- **DB:** PostgreSQL (Cloud SQL، الدمام) مع امتداد `pgvector`، و**RLS مفروض دائماً**.
+- **ORM:** Drizzle. المخطّط هو مصدر الحقيقة، وسياسات RLS معرّفة فيه، والهجرات SQL مُراجَعة.
+- **العقود والعميل:** Zod 4 في `packages/contracts`، ومنها `@hey-api/openapi-ts` يولّد `packages/sdk`.
+- **AI:** Claude عبر Vertex AI (نقطة إقليمية)، من الـ API فقط.
+- **Auth:** داخل الـ API. OTP عبر الجوال/واتساب، ثم httpOnly cookie للويب وbearer + refresh للموبايل.
+- **Jobs:** Cloud Tasks وCloud Scheduler مع outbox.
+- **Storage:** Google Cloud Storage (الدمام) للمستندات وملفات PDF وWPS.
+- **Hosting:** Cloud Run (api وweb).
+- **Observability:** Cloud Logging/Monitoring.
 
-> **ملاحظة:** ثبّت إصدارات الحزم في `package.json` وقت البدء، وأعد التحقق من توفّر مناطق الاستضافة (تتغيّر) قبل الإنتاج.
+> **ملاحظة:** الإصدارات مثبّتة في `package.json`، وتعارضات التوافق موثّقة في ADR-0001. أعد التحقق من توفّر مناطق الاستضافة قبل الإنتاج، فهي تتغيّر.
 
 ---
 
@@ -70,9 +101,10 @@
 
 ## 5. تصميم الـ API
 
-- نمط: route handlers / server actions، RESTful، استجابات JSON موحّدة `{data, error}`.
+- نمط: NestJS controllers، RESTful بإصدارات `/api/v1`، استجابات JSON موحّدة `{data, error}`. الأخطاء تحمل `code` ومفتاح i18n، لا نصاً.
 - **كل نقطة نهاية تفحص الصلاحية أولاً** (الطبقات الثلاث من `04-permissions-matrix.md`) قبل أي منطق.
-- التحقق من المدخلات بـ schema (Zod) على حدود الخادم.
+- التحقق من المدخلات بـ schema (Zod) على حدود الخادم (`@ZodBody/@ZodQuery/@ZodParams`)، ونفس العقود تولّد OpenAPI والـ SDK.
+- أي route بلا إعلان صلاحية يُرفض (`@Public` أو `@Authenticated` أو `@RequirePermission`).
 - ترقيم/تصفية موحّدة للقوائم.
 - كل عملية حسّاسة تُسجَّل في `AUDIT`.
 
@@ -118,7 +150,7 @@
 
 ## 8. المصادقة والصلاحيات
 
-- **الدخول:** OTP عبر الجوال/واتساب (يطابق `loginSendOtp`/`loginVerify`)، تسليم عبر مزوّد سعودي. جلسات آمنة (httpOnly cookies). نفاذ للتحقق الرسمي لاحقاً.
+- **الدخول:** OTP عبر الجوال/واتساب (يطابق `loginSendOtp`/`loginVerify`)، تسليم عبر مزوّد سعودي. الجلسات تصدر من الـ API: httpOnly cookie للويب، وbearer + refresh للموبايل. نفاذ للتحقق الرسمي لاحقاً.
 - **الصلاحيات:** الطبقات الثلاث من `04-permissions-matrix.md` **مفروضة على الخادم**: وصول الوحدة + منع الحقل + نطاق الصفوف. لا «god mode» — كل جلسة لها دور صريح، والمالك دوره «شريك».
 - جدول `roles`/`permissions`/`field_permissions` قابل للتحرير من شاشة الصلاحيات.
 
@@ -146,7 +178,7 @@
 
 - **Cloud Run** للتطبيق، **Cloud SQL** للقاعدة، **Cloud Storage** للملفات — كلها الدمام.
 - **CI/CD:** اختبار + بناء + نشر آلي. بيئات: dev/staging/prod.
-- **Migrations:** Prisma migrate ضمن خط النشر.
+- **Migrations:** Drizzle migrator ضمن خط النشر، بصلاحية المالك. الـ API يتصل بدور غير مالك (`murafaa_api`) حتى تُطبَّق RLS.
 - **Secrets:** Secret Manager (مفاتيح الذكاء والتكاملات).
 - **النسخ الاحتياطي:** نسخ احتياطية مجدولة للقاعدة + اختبار استعادة.
 
@@ -163,7 +195,9 @@
 
 ## 13. خطة البناء المرحلية (مرتّبة بالاعتماديات)
 
-1. **الأساس:** المشروع + Auth (OTP) + نموذج البيانات الأساسي (cases/clients/users) + الصلاحيات على الخادم + التدقيق.
+0. **إعادة بناء الأساس (2026-10-18):** monorepo، والحزم المشتركة، والـ API بالصلاحيات fail-closed، وRLS، والعقود والـ SDK، وCI. قواعد العمل والصلاحيات وبوابة الاستشهاد منقولة من `legacy/` مع اختباراتها.
+1. **الأساس:** المشروع + Auth (OTP) + **التحقق بخطوتين (TOTP)** + نموذج البيانات الأساسي (cases/clients/users) + الصلاحيات على الخادم **بالطبقات الثلاث، وقابلة للتعديل من شاشة الصلاحيات** + **حصر الدخول بعناوين IP للمكتب (اختياري)** + التدقيق.
+   > تتبّع نقل كل ميزة من `legacy/` في `docs/MIGRATION.md`.
 2. **النواة التشغيلية:** القضايا (المراحل، الجلسات، المسنَدون، النطاق) + كشف التعارض + العملاء/CRM + المهام + المواعيد.
 3. **المستندات:** مولّد المستندات + القوالب + PDF + التخزين.
 4. **المالية:** الفواتير + VAT + الأتعاب (الأنواع الأربعة) + المصروفات + الأمانات + القيود.

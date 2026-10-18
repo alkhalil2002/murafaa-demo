@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * Theme tokens carried over from the prototype (docs/05).
+ * bench = platform green · gold = accent · advocate = opponent maroon ·
+ * parch = parchment background. Tailwind 4 reads them from @theme, so
+ * `bg-bench`, `text-gold`, `font-serif`, … work directly.
+ */
+@theme {
+  --color-bench: #0e3a30;
+  --color-bench-2: #0a2a22;
+  --color-gold: #c2974b;
+  --color-gold-soft: #e7d2a4;
+  --color-advocate: #7a2e33;
+  --color-advocate-2: #5c2025;
+  --color-parch: #faf6ec;
+  --color-parch-line: #eadfc8;
+  --color-ink: #1c1a15;
+  --color-ink-soft: #5a5446;
+  --color-line: #d9cfb8;
+  --color-ok: #2e7d5b;
+  --color-warn: #b25c1e;
+  --color-wa: #25d366;
+
+  --font-sans: var(--font-plex-arabic), system-ui, sans-serif;
+  --font-serif: var(--font-amiri), serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-parch);
+    color: var(--color-ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+  }
+}

@@ -1,60 +1,48 @@
 # التطوير المحلي (Local Development)
 
-> يغطّي تشغيل ما بُني في **المرحلة 1 (الأساس)**. البنية والقرارات في `docs/02` و`AUDIT.md`.
+> البنية والقرارات في `docs/02` و`docs/adr/0001-monorepo-nestjs-drizzle.md`. التطبيق القديم (Next.js + Prisma) محفوظ في `legacy/` كمرجع فقط.
 
 ## المتطلبات
-- Node.js LTS (تم التطوير على 26) و npm.
-- PostgreSQL محلي يعمل على المنفذ 5432 (تم التطوير على 18.4).
-  - امتداد `pgvector` **غير مطلوب الآن** — يُضاف في المرحلة 5 (قاعدة المعرفة).
+- **Node 24** عبر nvm. المستودع فيه `.nvmrc`، فاكتب `nvm use` داخل المجلد.
+- **pnpm 12.14.0:**
+  ```bash
+  corepack enable && corepack prepare pnpm@12.14.0 --activate
+  ```
+- **Docker** لتشغيل Postgres 17 مع pgvector على المنفذ **5440**.
 
 ## الإعداد لأول مرة
 ```bash
-# 1) المتغيّرات — انسخ المثال واملأ القيم (لا تلتزم .env أبداً)
-cp .env.example .env
-# عدّل DATABASE_URL ليطابق مستخدم Postgres لديك، وولّد AUTH_SECRET:
-#   openssl rand -base64 32
+nvm use
+pnpm install
 
-# 2) قاعدة بيانات التطوير
-createdb murafaa_dev
+# قاعدة البيانات: تُنشئ murafaa_dev و murafaa_test، والدورين murafaa_app و murafaa_api
+pnpm db:up
 
-# 3) التبعيات
-npm install
+# الهجرات (تعمل بصلاحية مالك الجداول، لا بدور التطبيق)
+MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnpm db:migrate
 
-# 4) المخطّط + الهجرات
-npx prisma migrate dev
-
-# 5) بيانات تجريبية (مكتب + 6 مستخدمين بالأدوار + قضيتان)
-npm run db:seed
+# المتغيّرات (لا تلتزم .env أبداً)
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env.local
 ```
 
 ## الأوامر
 ```bash
-npm run dev        # تشغيل محلي على http://localhost:3000
-npm run build      # بناء إنتاجي (يشمل prisma generate)
-npm run lint       # ESLint + فحص أنواع TypeScript
-npm test           # اختبارات الوحدة (قواعد العمل والصلاحيات)
-npm run db:studio  # تصفّح البيانات
+pnpm dev            # الـ API على :4000 والموقع على :3000
+pnpm build          # بناء كل الحزم والتطبيقات
+pnpm lint           # ESLint، ويرفض أي نص عربي مكتوب مباشرة في الواجهة
+pnpm typecheck
+pnpm test           # اختبارات الوحدة: قواعد العمل والصلاحيات وبوابة الاستشهاد والـ API
+pnpm test:e2e       # عزل المكاتب على Postgres حقيقي (RLS) + مسار HTTP كامل
+pnpm sdk:generate   # بعد أي تغيير في عقود الـ API: يعيد توليد openapi.json والـ SDK
 ```
 
-## تسجيل الدخول (بيئة التطوير)
-مزوّد الرمز `console` يطبع رمز التحقق في **سجل الخادم** بدل إرسال رسالة.
-الأرقام المزروعة (كلها بنفس المكتب):
+- توثيق الـ API: `http://localhost:4000/api/docs` (خارج الإنتاج فقط).
+- فحص الصحة: `curl localhost:4000/api/v1/health`.
 
-| الدور | الجوال |
-|---|---|
-| شريك | `0500000001` |
-| محامي | `0500000002` |
-| مساعد | `0500000003` |
-| محاسب | `0500000004` |
-| إداري | `0500000005` |
-| موظف استقبال | `0500000006` |
-
-الخطوات: افتح `/login` → أدخل الرقم → انسخ الرمز من سجل الخادم (`[otp:console] …`) → أدخله.
-
-## ملاحظات معمارية مطبَّقة في المرحلة 1
-- **تعدد المكاتب:** كل جدول أعمال يحمل `office_id` من البداية (قرار المالك 2026-07-05).
-- **الصلاحيات على الخادم:** الطبقات الثلاث في `src/lib/permissions/` (`engine.ts` نقي + `guard.ts` يفرض ويُسجّل الرفض). الواجهة تُخفي فقط.
-- **لا god mode:** غياب المنح = `NONE`، والمالك دوره `PARTNER` صراحةً.
-- **المال:** هللات بأعداد صحيحة في `src/lib/money.ts` (ضريبة 15% مع اختبار).
-- **i18n:** كل النصوص عبر `src/lib/i18n` — لا نص عربي مكتوب في المكوّنات.
-- **التدقيق:** `src/lib/audit` يسجّل الدخول وقرارات الرفض في جدول `audit_logs`.
+## قواعد مهمة
+- **الاتصال بقاعدة البيانات:** الـ API يتصل بالمستخدم `murafaa_api`، ولا يملك أي جدول، فـ RLS تُطبَّق عليه دائماً. الهجرات فقط تستخدم المالك `murafaa`.
+- **أي استعلام لبيانات مكتب** يمر عبر `TenantDb.run()` في الـ API، أو `withTenant()` في الحزمة. لو لم يُحدَّد مكتب، لا تُرجَع أي صفوف.
+- **أي جدول جديد** يحتاج `tenantPolicy()` و`.enableRLS()`، وسطر `FORCE ROW LEVEL SECURITY` وصلاحيات في migration مخصّصة. اختبار `rls.e2e` يفشل لو نسيت.
+- **أي route جديد** يحتاج `@Public()` أو `@Authenticated()` أو `@RequirePermission(module, action)`. بدونها يُرفض الطلب.
+- **الـ SDK** في `packages/sdk/src/gen` مولَّد آلياً، فلا تعدّله يدوياً.

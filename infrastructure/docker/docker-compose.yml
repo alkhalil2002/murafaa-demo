@@ -1,0 +1,20 @@
+# Local development only. Production runs on Cloud SQL (me-central2).
+name: murafaa
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: murafaa
+      POSTGRES_PASSWORD: murafaa
+      POSTGRES_DB: murafaa_dev
+    ports:
+      - "5440:5432"
+    volumes:
+      - murafaa-pg:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U murafaa -d murafaa_dev"]
+      interval: 5s
+      retries: 10
+volumes:
+  murafaa-pg:

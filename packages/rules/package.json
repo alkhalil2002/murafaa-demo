@@ -1,0 +1,26 @@
+{
+  "name": "@murafaa/rules",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure business rules from docs/06. No I/O; shared by api, web and mobile.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@murafaa/config": "workspace:*",
+    "@types/node": "24.19.2",
+    "eslint": "10.13.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

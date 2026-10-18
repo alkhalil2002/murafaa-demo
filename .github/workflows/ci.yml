@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: murafaa
+          POSTGRES_PASSWORD: murafaa
+          POSTGRES_DB: murafaa_test
+        ports: ["5440:5432"]
+        options: >-
+          --health-cmd "pg_isready -U murafaa -d murafaa_test"
+          --health-interval 5s --health-retries 10
+    env:
+      TEST_MIGRATION_DATABASE_URL: postgres://murafaa:murafaa@localhost:5440/murafaa_test
+      TEST_DATABASE_URL: postgres://murafaa_api:murafaa_api@localhost:5440/murafaa_test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint, typecheck, unit tests, build
+        run: pnpm turbo run lint typecheck test build
+
+      - name: Create the non-owner API login (RLS applies to it)
+        run: |
+          PGPASSWORD=murafaa psql -h localhost -p 5440 -U murafaa -d murafaa_test -c "
+            DO \$\$ BEGIN
+              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'murafaa_app') THEN CREATE ROLE murafaa_app NOLOGIN; END IF;
+            END \$\$;
+            CREATE ROLE murafaa_api LOGIN PASSWORD 'murafaa_api' IN ROLE murafaa_app;"
+
+      - name: Database and API e2e (tenant isolation)
+        run: pnpm turbo run test:e2e
+
+      - name: Generated SDK and OpenAPI are up to date
+        run: |
+          pnpm sdk:generate
+          git diff --exit-code -- apps/api/openapi.json packages/sdk/src/gen
