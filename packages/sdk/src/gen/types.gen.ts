@@ -890,6 +890,99 @@ export type PeriodLockBody = {
     locked: boolean;
 };
 
+export type ExpenseList = Array<ExpenseRow>;
+
+export type ExpenseRow = {
+    id: string;
+    date: string;
+    category: 'SALARIES' | 'OFFICE_RENT' | 'MARKETING' | 'SUBSCRIPTIONS' | 'GOVERNMENT_FEES' | 'COURT_FEES' | 'EXPERT_FEES' | 'ADMIN_EXPENSES' | 'HOSPITALITY_TRANSPORT' | 'OTHER';
+    vendor: string | null;
+    net: number;
+    inputVat: number;
+    method: 'BANK_TRANSFER' | 'MADA' | 'CASH' | 'CHEQUE';
+    documentNo: string | null;
+    billable: boolean;
+    billed: boolean;
+    approved: boolean;
+    clientId: string | null;
+    clientName: string | null;
+    caseId: string | null;
+    caseTitle: string | null;
+};
+
+export type ExpenseBody = {
+    gross: number;
+    explicitVat?: number | null;
+    category?: 'SALARIES' | 'OFFICE_RENT' | 'MARKETING' | 'SUBSCRIPTIONS' | 'GOVERNMENT_FEES' | 'COURT_FEES' | 'EXPERT_FEES' | 'ADMIN_EXPENSES' | 'HOSPITALITY_TRANSPORT' | 'OTHER';
+    vendor?: string | null;
+    method?: 'BANK_TRANSFER' | 'MADA' | 'CASH' | 'CHEQUE';
+    documentNo?: string | null;
+    date?: string;
+    billable?: boolean;
+    recurring?: boolean;
+    clientId?: string | null;
+    caseId?: string | null;
+};
+
+export type FinanceSettings = {
+    requireApproval: boolean;
+};
+
+export type RequireApprovalBody = {
+    value: boolean;
+};
+
+export type PendingApprovals = {
+    payments: Array<{
+        id: string;
+        number: string;
+        invoiceNumber: string;
+        clientName: string;
+        amount: number;
+        date: string;
+    }>;
+    expenses: Array<{
+        id: string;
+        category: 'SALARIES' | 'OFFICE_RENT' | 'MARKETING' | 'SUBSCRIPTIONS' | 'GOVERNMENT_FEES' | 'COURT_FEES' | 'EXPERT_FEES' | 'ADMIN_EXPENSES' | 'HOSPITALITY_TRANSPORT' | 'OTHER';
+        vendor: string | null;
+        gross: number;
+        date: string;
+    }>;
+};
+
+export type FinanceAudit = Array<{
+    id: string;
+    action: string;
+    detail: string | null;
+    actorName: string | null;
+    at: string;
+}>;
+
+export type BankView = {
+    current: {
+        inflow: number;
+        outflow: number;
+    };
+    cash: {
+        inflow: number;
+        outflow: number;
+    };
+    cheques: {
+        inflow: number;
+        outflow: number;
+    };
+    trustBalance: number;
+    account: 'CURRENT' | 'CASH' | 'CHEQUE';
+    ledger: Array<{
+        kind: 'PAYMENT' | 'EXPENSE';
+        id: string;
+        date: string;
+        amount: number;
+        label: string;
+        cleared: boolean;
+    }>;
+};
+
 export type Health = {
     status: 'ok' | 'degraded';
     db: 'up' | 'down';
@@ -4420,6 +4513,327 @@ export type FinanceSetPeriodLockResponses = {
 };
 
 export type FinanceSetPeriodLockResponse = FinanceSetPeriodLockResponses[keyof FinanceSetPeriodLockResponses];
+
+export type FinanceListExpensesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        caseId?: string;
+    };
+    url: '/api/v1/finance/expenses';
+};
+
+export type FinanceListExpensesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceListExpensesError = FinanceListExpensesErrors[keyof FinanceListExpensesErrors];
+
+export type FinanceListExpensesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: ExpenseList;
+        error: null;
+    };
+};
+
+export type FinanceListExpensesResponse = FinanceListExpensesResponses[keyof FinanceListExpensesResponses];
+
+export type FinanceCreateExpenseData = {
+    body: ExpenseBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/expenses';
+};
+
+export type FinanceCreateExpenseErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceCreateExpenseError = FinanceCreateExpenseErrors[keyof FinanceCreateExpenseErrors];
+
+export type FinanceCreateExpenseResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type FinanceCreateExpenseResponse = FinanceCreateExpenseResponses[keyof FinanceCreateExpenseResponses];
+
+export type FinanceReimburseData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/expenses/{id}/reimburse';
+};
+
+export type FinanceReimburseErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceReimburseError = FinanceReimburseErrors[keyof FinanceReimburseErrors];
+
+export type FinanceReimburseResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedNumber;
+        error: null;
+    };
+};
+
+export type FinanceReimburseResponse = FinanceReimburseResponses[keyof FinanceReimburseResponses];
+
+export type FinanceSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/settings';
+};
+
+export type FinanceSettingsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceSettingsError = FinanceSettingsErrors[keyof FinanceSettingsErrors];
+
+export type FinanceSettingsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: FinanceSettings;
+        error: null;
+    };
+};
+
+export type FinanceSettingsResponse = FinanceSettingsResponses[keyof FinanceSettingsResponses];
+
+export type FinanceSetRequireApprovalData = {
+    body: RequireApprovalBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/settings/require-approval';
+};
+
+export type FinanceSetRequireApprovalErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceSetRequireApprovalError = FinanceSetRequireApprovalErrors[keyof FinanceSetRequireApprovalErrors];
+
+export type FinanceSetRequireApprovalResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: FinanceSettings;
+        error: null;
+    };
+};
+
+export type FinanceSetRequireApprovalResponse = FinanceSetRequireApprovalResponses[keyof FinanceSetRequireApprovalResponses];
+
+export type FinanceApprovalsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/approvals';
+};
+
+export type FinanceApprovalsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceApprovalsError = FinanceApprovalsErrors[keyof FinanceApprovalsErrors];
+
+export type FinanceApprovalsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PendingApprovals;
+        error: null;
+    };
+};
+
+export type FinanceApprovalsResponse = FinanceApprovalsResponses[keyof FinanceApprovalsResponses];
+
+export type FinanceApprovePaymentData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/payments/{id}/approve';
+};
+
+export type FinanceApprovePaymentErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceApprovePaymentError = FinanceApprovePaymentErrors[keyof FinanceApprovePaymentErrors];
+
+export type FinanceApprovePaymentResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type FinanceApprovePaymentResponse = FinanceApprovePaymentResponses[keyof FinanceApprovePaymentResponses];
+
+export type FinanceApproveExpenseData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/expenses/{id}/approve';
+};
+
+export type FinanceApproveExpenseErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceApproveExpenseError = FinanceApproveExpenseErrors[keyof FinanceApproveExpenseErrors];
+
+export type FinanceApproveExpenseResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type FinanceApproveExpenseResponse = FinanceApproveExpenseResponses[keyof FinanceApproveExpenseResponses];
+
+export type FinanceAuditData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/finance/audit';
+};
+
+export type FinanceAuditErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceAuditError = FinanceAuditErrors[keyof FinanceAuditErrors];
+
+export type FinanceAuditResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: FinanceAudit;
+        error: null;
+    };
+};
+
+export type FinanceAuditResponse = FinanceAuditResponses[keyof FinanceAuditResponses];
+
+export type FinanceBankViewData = {
+    body?: never;
+    path?: never;
+    query?: {
+        account?: 'CURRENT' | 'CASH' | 'CHEQUE';
+    };
+    url: '/api/v1/finance/bank';
+};
+
+export type FinanceBankViewErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceBankViewError = FinanceBankViewErrors[keyof FinanceBankViewErrors];
+
+export type FinanceBankViewResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: BankView;
+        error: null;
+    };
+};
+
+export type FinanceBankViewResponse = FinanceBankViewResponses[keyof FinanceBankViewResponses];
+
+export type FinanceToggleClearedData = {
+    body?: never;
+    path: {
+        kind: 'PAYMENT' | 'EXPENSE';
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/finance/bank/{kind}/{id}/toggle';
+};
+
+export type FinanceToggleClearedErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type FinanceToggleClearedError = FinanceToggleClearedErrors[keyof FinanceToggleClearedErrors];
+
+export type FinanceToggleClearedResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type FinanceToggleClearedResponse = FinanceToggleClearedResponses[keyof FinanceToggleClearedResponses];
 
 export type HealthCheckData = {
     body?: never;

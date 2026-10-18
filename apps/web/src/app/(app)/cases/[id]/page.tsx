@@ -13,6 +13,7 @@ import {
   crmClients,
   documentsList,
   financeFeeAgreement,
+  financeListExpenses,
   financeListInvoices,
   financeListTime,
 } from "@murafaa/sdk";
@@ -58,6 +59,7 @@ import {
   FeeAgreementForm,
   InvoiceFeeButton,
   InvoiceTimeButton,
+  ReimburseButton,
   TimeEntryForm,
 } from "@/components/finance/finance-forms";
 import {
@@ -1086,12 +1088,14 @@ export default async function CaseDetailPage({
       body = <DeniedPanel />;
     } else {
       const canEditFin = (finLevel === "EDIT" || finLevel === "FULL") && !me.user.previewRole;
-      const [feeRes, invRes, timeRes, usersRes] = await Promise.all([
+      const [feeRes, invRes, timeRes, usersRes, expRes] = await Promise.all([
         financeFeeAgreement({ client: api, path: { id } }),
         financeListInvoices({ client: api, query: { caseId: id } }),
         financeListTime({ client: api, query: { caseId: id } }),
         canEditFin ? casesAssignable({ client: api }) : Promise.resolve(undefined),
+        financeListExpenses({ client: api, query: { caseId: id } }),
       ]);
+      const caseExpenses = expRes.data?.data ?? [];
       const fee = feeRes.data?.data;
       const caseInvoices = invRes.data?.data ?? [];
       const time = timeRes.data?.data ?? [];
@@ -1152,6 +1156,29 @@ export default async function CaseDetailPage({
                   </span>
                   <span className="chip">{t(`invStatus.${inv.status}` as MessageKey)}</span>
                 </Link>
+              ))
+            )}
+          </Panel>
+          <Panel n={t("cases.tag.finance")} title={t("cases.finance.expenses")}>
+            {caseExpenses.length === 0 ? (
+              <Empty>{t("cases.finance.noExpenses")}</Empty>
+            ) : (
+              caseExpenses.map((e) => (
+                <div className="approve-row" key={e.id}>
+                  <span className="ndot" style={{ background: "var(--gold)" }} />
+                  <span className="at">
+                    {t(`expCat.${e.category}` as MessageKey)}
+                    {e.vendor ? <span className="chip"> {e.vendor}</span> : null}
+                  </span>
+                  <span className="chip">{formatSar(e.net)}</span>
+                  {e.billed ? (
+                    <span className="chip" style={{ color: "var(--ok)", borderColor: "var(--ok)" }}>
+                      ✓ {t("exp.billed")}
+                    </span>
+                  ) : e.billable && e.clientId && canEditFin ? (
+                    <ReimburseButton id={e.id} />
+                  ) : null}
+                </div>
               ))
             )}
           </Panel>

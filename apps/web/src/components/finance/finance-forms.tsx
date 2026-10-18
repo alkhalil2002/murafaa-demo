@@ -3,21 +3,30 @@
 import { useState } from "react";
 import {
   financeAddTime,
+  financeApproveExpense,
+  financeApprovePayment,
+  financeCreateExpense,
   financeCreateInvoice,
   financeCreditNote,
   financeInvoiceFee,
   financeInvoiceTime,
   financeRecordPayment,
+  financeReimburse,
   financeSaveFeeAgreement,
+  financeSetPeriodLock,
+  financeSetRequireApproval,
+  financeToggleCleared,
   financeTrustMove,
   financeWriteOff,
 } from "@murafaa/sdk";
 import {
+  EXPENSE_CATEGORIES,
+  EXPENSE_PAYMENT_METHODS,
   FEE_TYPES,
-  halalasToRiyals,
   PAYMENT_METHODS,
-  riyalsToHalalas,
   TRUST_TXN_TYPES,
+  halalasToRiyals,
+  riyalsToHalalas,
 } from "@murafaa/rules";
 import { t, type MessageKey } from "@murafaa/i18n";
 import { browserApi } from "@/lib/browser-api";
@@ -568,6 +577,205 @@ export function InvoiceTimeButton({ id }: { id: string }) {
     <ActionButton
       label={t("time.invoice")}
       call={() => financeInvoiceTime({ client: c, path: { id } })}
+    />
+  );
+}
+
+/** New expense (prototype finExp form): VAT is extracted from the gross unless given. */
+export function ExpenseForm({
+  clients,
+  cases,
+}: {
+  clients: Option[];
+  cases: Array<{ id: string; title: string; clientId: string | null }>;
+}) {
+  const [billable, setBillable] = useState(false);
+  return (
+    <div className="panel">
+      <h2 style={{ marginTop: 0 }}>{t("exp.new")}</h2>
+      <ApiForm
+        onDone={() => setBillable(false)}
+        call={(fd) =>
+          financeCreateExpense({
+            client: c,
+            body: {
+              gross: sar(fd, "gross") ?? 0,
+              explicitVat: sar(fd, "vat"),
+              category: (str(fd, "category") ?? "OTHER") as (typeof EXPENSE_CATEGORIES)[number],
+              vendor: str(fd, "vendor"),
+              method: (str(fd, "method") ??
+                "BANK_TRANSFER") as (typeof EXPENSE_PAYMENT_METHODS)[number],
+              documentNo: str(fd, "documentNo"),
+              billable,
+              recurring: fd.get("recurring") === "on",
+              clientId: billable ? str(fd, "clientId") : null,
+              caseId: billable ? str(fd, "caseId") : null,
+              ...(str(fd, "date") ? { date: str(fd, "date")! } : {}),
+            },
+          })
+        }
+      >
+        {(pending) => (
+          <>
+            <div className="three">
+              <div className="field">
+                <label>{t("exp.category")}</label>
+                <select name="category" defaultValue="OTHER">
+                  {EXPENSE_CATEGORIES.map((x) => (
+                    <option key={x} value={x}>
+                      {t(`expCat.${x}` as MessageKey)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>{t("exp.vendor")}</label>
+                <input type="text" name="vendor" />
+              </div>
+              <div className="field">
+                <label>{t("exp.gross")}</label>
+                <input type="number" name="gross" min="0.01" step="0.01" required />
+              </div>
+              <div className="field">
+                <label>{t("exp.explicitVat")}</label>
+                <input type="number" name="vat" min="0" step="0.01" />
+              </div>
+              <div className="field">
+                <label>{t("exp.method")}</label>
+                <select name="method" defaultValue="BANK_TRANSFER">
+                  {EXPENSE_PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>
+                      {t(`payMethod.${m}` as MessageKey)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>{t("exp.documentNo")}</label>
+                <input type="text" name="documentNo" />
+              </div>
+              <div className="field">
+                <label>{t("exp.date")}</label>
+                <input type="date" name="date" />
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 16,
+                flexWrap: "wrap",
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
+              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={billable}
+                  onChange={(e) => setBillable(e.target.checked)}
+                />
+                {t("exp.billable")}
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input type="checkbox" name="recurring" />
+                {t("exp.recurring")}
+              </label>
+            </div>
+            {billable && (
+              <div className="two">
+                <div className="field">
+                  <label>{t("exp.client")}</label>
+                  <select name="clientId" defaultValue="" required>
+                    <option value="" disabled>
+                      {t("inv.selectClient")}
+                    </option>
+                    {clients.map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {x.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>{t("exp.case")}</label>
+                  <select name="caseId" defaultValue="">
+                    <option value="">{t("inv.noCase")}</option>
+                    {cases.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+            <div className="actions">
+              <button type="submit" className="act b-add" disabled={pending}>
+                {t("exp.add")}
+              </button>
+            </div>
+          </>
+        )}
+      </ApiForm>
+    </div>
+  );
+}
+
+export function ReimburseButton({ id }: { id: string }) {
+  return (
+    <ActionButton
+      label={t("exp.reimburse")}
+      call={() => financeReimburse({ client: c, path: { id } })}
+    />
+  );
+}
+
+export function ApproveButton({ kind, id }: { kind: "payment" | "expense"; id: string }) {
+  return (
+    <ActionButton
+      label={t("finGov.approve")}
+      call={() =>
+        kind === "payment"
+          ? financeApprovePayment({ client: c, path: { id } })
+          : financeApproveExpense({ client: c, path: { id } })
+      }
+    />
+  );
+}
+
+export function PeriodLockButton({ periodKey, locked }: { periodKey: string; locked: boolean }) {
+  return (
+    <ActionButton
+      label={locked ? t("finGov.periods.unlock") : t("finGov.periods.lock")}
+      call={() =>
+        financeSetPeriodLock({ client: c, path: { periodKey }, body: { locked: !locked } })
+      }
+    />
+  );
+}
+
+export function RequireApprovalToggle({ value }: { value: boolean }) {
+  return (
+    <ActionButton
+      label={value ? t("finGov.approval.disable") : t("finGov.approval.enable")}
+      call={() => financeSetRequireApproval({ client: c, body: { value: !value } })}
+    />
+  );
+}
+
+export function ClearedToggle({
+  kind,
+  id,
+  cleared,
+}: {
+  kind: "PAYMENT" | "EXPENSE";
+  id: string;
+  cleared: boolean;
+}) {
+  return (
+    <ActionButton
+      label={cleared ? t("finBank.markUncleared") : t("finBank.markCleared")}
+      call={() => financeToggleCleared({ client: c, path: { kind, id } })}
     />
   );
 }

@@ -39,6 +39,7 @@ const OFFICE_J = "66666666-0000-4000-8000-000000000006";
 const OFFICE_K = "55555555-0000-4000-8000-000000000005";
 const OFFICE_L = "44444444-0000-4000-8000-000000000004";
 const OFFICE_M = "33333333-0000-4000-8000-000000000003";
+const OFFICE_N = "22222222-0000-4000-8000-000000000002";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -93,6 +94,9 @@ const ASSISTANT_L = "0500001004";
 const PARTNER_M = "0500001101";
 const ACCOUNTANT_M = "0500001102";
 const LAWYER_M = "0500001103";
+
+const PARTNER_N = "0500001201";
+const ACCOUNTANT_N = "0500001202";
 
 let app: NestFastifyApplication;
 
@@ -197,6 +201,15 @@ beforeAll(async () => {
         [PARTNER_G, "PARTNER"],
         [LAWYER_G1, "LAWYER"],
         [LAWYER_G2, "LAWYER"],
+      ],
+    ],
+    [
+      OFFICE_N,
+      "Office N",
+      [],
+      [
+        [PARTNER_N, "PARTNER"],
+        [ACCOUNTANT_N, "ACCOUNTANT"],
       ],
     ],
     [
@@ -311,6 +324,7 @@ beforeAll(async () => {
     OFFICE_K,
     OFFICE_L,
     OFFICE_M,
+    OFFICE_N,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -2732,5 +2746,140 @@ describe("finance: invoices, VAT, payments, credit notes, fees, time, trust, per
     const j = await get("/api/v1/journey", partner);
     expect(j.invoicesDue).toBeGreaterThan(0);
     expect(j.uncollected).toBeGreaterThan(0);
+  });
+});
+
+describe("finance: expenses, reimbursement, approvals (two people), bank reconciliation", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let accountant = "";
+  let clientId = "";
+  const as = (cookie: string, method: "GET" | "POST" | "PUT", url: string, payload?: object) =>
+    app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+  const get = async (url: string, cookie = accountant) =>
+    (await as(cookie, "GET", url)).json().data;
+  const journal = async () =>
+    (await get("/api/v1/finance/journal")) as Array<{
+      sourceType: string;
+      description: { params: Record<string, string> };
+      lines: Array<{ code: string; debit: number; credit: number }>;
+    }>;
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_N));
+    accountant = cookieOf(await login(ACCOUNTANT_N));
+    clientId = (await as(partner, "POST", "/api/v1/clients", { name: "عميل المصروفات" })).json()
+      .data.id;
+  });
+
+  it("splits VAT out of an expense, posts it, and reimburses a billable one exactly once", async () => {
+    const res = await as(accountant, "POST", "/api/v1/finance/expenses", {
+      gross: 1150_00,
+      category: "COURT_FEES",
+      vendor: "وزارة العدل",
+      billable: true,
+      clientId,
+    });
+    expect(res.statusCode).toBe(201);
+    const list = (await get("/api/v1/finance/expenses")) as Array<{
+      id: string;
+      net: number;
+      inputVat: number;
+      approved: boolean;
+    }>;
+    expect(list[0]).toMatchObject({ net: 1000_00, inputVat: 150_00, approved: true });
+    expect(
+      (await journal())
+        .find((j) => j.sourceType === "EXPENSE")!
+        .lines.map((l) => [l.code, l.debit, l.credit]),
+    ).toEqual([
+      ["5100", 1000_00, 0],
+      ["2200", 150_00, 0],
+      ["1000", 0, 1150_00],
+    ]);
+    const twice = await Promise.all([
+      as(accountant, "POST", `/api/v1/finance/expenses/${res.json().data.id}/reimburse`),
+      as(accountant, "POST", `/api/v1/finance/expenses/${res.json().data.id}/reimburse`),
+    ]);
+    expect(twice.map((r) => r.statusCode).sort()).toEqual([201, 409]);
+    const inv = await get(
+      `/api/v1/finance/invoices/${twice.find((r) => r.statusCode === 201)!.json().data.id}`,
+    );
+    expect(inv).toMatchObject({
+      net: 1000_00,
+      origin: "EXPENSE_REIMBURSEMENT",
+      basis: "استرداد مصروف",
+    });
+    expect(inv.items[0].description).toBe("استرداد مصروف: وزارة العدل");
+  });
+
+  it("holds new payments and expenses for approval by someone else when the switch is on", async () => {
+    expect(
+      (await as(accountant, "PUT", "/api/v1/finance/settings/require-approval", { value: true }))
+        .statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await as(partner, "PUT", "/api/v1/finance/settings/require-approval", { value: true })
+      ).json().data,
+    ).toEqual({ requireApproval: true });
+
+    const before = (await journal()).length;
+    const exp = (
+      await as(accountant, "POST", "/api/v1/finance/expenses", {
+        gross: 230_00,
+        category: "OFFICE_RENT",
+        method: "CASH",
+      })
+    ).json().data.id;
+    expect((await journal()).length).toBe(before); // not posted yet
+    const inv = (
+      await as(accountant, "POST", "/api/v1/finance/invoices", {
+        clientId,
+        items: [{ description: "أتعاب", unitPrice: 100_00 }],
+      })
+    ).json().data.id;
+    const pay = (
+      await as(accountant, "POST", `/api/v1/finance/invoices/${inv}/payments`, {
+        amount: 50_00,
+        method: "BANK_TRANSFER",
+      })
+    ).json().data.id;
+
+    const pending = await get("/api/v1/finance/approvals");
+    expect(pending.expenses.map((e: { id: string }) => e.id)).toEqual([exp]);
+    expect(pending.payments.map((x: { id: string }) => x.id)).toEqual([pay]);
+
+    const own = await as(accountant, "POST", `/api/v1/finance/expenses/${exp}/approve`);
+    expect(own.statusCode).toBe(403);
+    expect(own.json().error.messageKey).toBe("errors.APPROVE_OWN_ENTRY");
+    expect((await as(partner, "POST", `/api/v1/finance/expenses/${exp}/approve`)).statusCode).toBe(
+      200,
+    );
+    expect((await as(partner, "POST", `/api/v1/finance/expenses/${exp}/approve`)).statusCode).toBe(
+      404,
+    );
+    expect((await journal()).filter((j) => j.sourceType === "EXPENSE").length).toBe(2);
+    expect((await as(partner, "POST", `/api/v1/finance/payments/${pay}/approve`)).statusCode).toBe(
+      200,
+    );
+    expect(await get("/api/v1/finance/approvals")).toEqual({ payments: [], expenses: [] });
+
+    const audit = (await get("/api/v1/finance/audit")) as Array<{ action: string }>;
+    expect(audit.map((a) => a.action)).toEqual(
+      expect.arrayContaining(["finance.requireApproval.set", "expense.approve", "payment.approve"]),
+    );
+    await as(partner, "PUT", "/api/v1/finance/settings/require-approval", { value: false });
+  });
+
+  it("shows money by account and reconciles lines against the statement", async () => {
+    const bank = await get("/api/v1/finance/bank?account=CASH");
+    expect(bank.cash).toEqual({ inflow: 0, outflow: 230_00 });
+    expect(bank.current.inflow).toBe(50_00);
+    expect(bank.current.outflow).toBe(1150_00);
+    const line = bank.ledger[0];
+    expect(line).toMatchObject({ kind: "EXPENSE", amount: -230_00, cleared: false });
+    await as(accountant, "POST", `/api/v1/finance/bank/EXPENSE/${line.id}/toggle`);
+    expect((await get("/api/v1/finance/bank?account=CASH")).ledger[0].cleared).toBe(true);
   });
 });

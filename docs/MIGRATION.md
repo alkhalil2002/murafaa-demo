@@ -10,9 +10,9 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 |---|---|---|---|
 | `src/lib` files | 51 | 41 | 10 |
 | Business rules inside services/components | 37 | 30 | 7 |
-| Services | 54 | 31 | 23 |
-| Service capabilities | 225 | 145 | 80 |
-| Screens | 63 | 30 | 33 |
+| Services | 54 | 34 | 20 |
+| Service capabilities | 225 | 154 | 71 |
+| Screens | 63 | 33 | 30 |
 | Components | 20 | 14 | 6 |
 | Route handlers | 9 | 4 (+1 replaced) | 4 |
 | Models | 56 | 41 (+ `outbox`, `sessions` new) | 15 |
@@ -99,11 +99,11 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `documents` | ✅ Ported | apps/api/src/modules/documents (uploads checked against file content; template generation; hearing report PDF) |  |
 | `emp-portal` | ⏳ Pending | M8 Portals |  |
 | `execution` | ✅ Ported | apps/api/src/modules/cases/execution.service.ts (row-locked collections; office-checked follow-up assignee) |  |
-| `expenses` | ⏳ Pending | M4 Finance |  |
+| `expenses` | ✅ Ported | apps/api/src/modules/finance/expenses.service.ts + fees.service.ts (time entries) |  |
 | `fees` | ✅ Ported | apps/api/src/modules/finance/fees.service.ts (hourly time claimed atomically: billed once) |  |
-| `finance-bank` | ⏳ Pending | M4 Finance |  |
+| `finance-bank` | ✅ Ported | apps/api/src/modules/finance/bank.service.ts |  |
 | `finance-dashboard` | ⏳ Pending | M4 Finance |  |
-| `finance-governance` | ⏳ Pending | M4 Finance |  |
+| `finance-governance` | ✅ Ported | apps/api/src/modules/finance/governance.service.ts (approval queue added; approver must not be the recorder) |  |
 | `hearings` | ✅ Ported | apps/api/src/modules/cases/hearings.service.ts + hearings.controller.ts |  |
 | `hr/advances` | ⏳ Pending | M6 HR |  |
 | `hr/attendance` | ⏳ Pending | M6 HR |  |
@@ -164,11 +164,11 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/emp-portal/login` | ⏳ Pending | M8 Portals |  |
 | `/finance` | ✅ Ported | apps/web/src/app/(app)/finance (invoices + new-invoice form from the prototype) |  |
 | `/finance/[id]` | ✅ Ported | apps/web/src/app/(app)/finance/[id] |  |
-| `/finance/bank` | ⏳ Pending | M4 Finance |  |
+| `/finance/bank` | ✅ Ported | apps/web/src/app/(app)/finance/bank |  |
 | `/finance/coa` | ⏳ Pending | M4 Finance |  |
 | `/finance/dashboard` | ⏳ Pending | M4 Finance |  |
-| `/finance/expenses` | ⏳ Pending | M4 Finance |  |
-| `/finance/governance` | ⏳ Pending | M4 Finance |  |
+| `/finance/expenses` | ✅ Ported | apps/web/src/app/(app)/finance/expenses (+ add-expense form from the prototype) |  |
+| `/finance/governance` | ✅ Ported | apps/web/src/app/(app)/finance/governance (+ approval queue) |  |
 | `/finance/journal` | ⏳ Pending | M4 Finance |  |
 | `/finance/ledger` | ⏳ Pending | M4 Finance |  |
 | `/finance/profitability` | ⏳ Pending | M4 Finance |  |
@@ -252,7 +252,7 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `InvoiceItem` | ✅ Ported | packages/database invoice_items (insert-only) |  |
 | `Payment` | ✅ Ported | packages/database payments |  |
 | `CreditNote` | ✅ Ported | packages/database credit_notes (insert-only) |  |
-| `Expense` | ✅ Ported | packages/database expenses (services in M4 slice 2) |  |
+| `Expense` | ✅ Ported | packages/database expenses |  |
 | `TimeEntry` | ✅ Ported | packages/database time_entries |  |
 | `TrustAccount` | ✅ Ported | packages/database trust_accounts (CHECK balance >= 0) |  |
 | `TrustTransaction` | ✅ Ported | packages/database trust_transactions (insert-only) |  |
@@ -484,9 +484,9 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **expenses** (M4 Finance)
 
-- [ ] `createExpense`
-- [ ] `listExpenses`
-- [ ] `reimburseExpense`
+- [x] `createExpense`
+- [x] `listExpenses`
+- [x] `reimburseExpense`
 - [x] `createTimeEntry`
 - [x] `listTimeEntries`
 - [x] `invoiceTimeEntry`
@@ -499,9 +499,9 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **finance-bank** (M4 Finance)
 
-- [ ] `getBankSummary`
-- [ ] `getBankLedger`
-- [ ] `toggleBankLineCleared`
+- [x] `getBankSummary`
+- [x] `getBankLedger`
+- [x] `toggleBankLineCleared`
 
 **finance-dashboard** (M4 Finance)
 
@@ -511,9 +511,9 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 - [x] `listRecentPeriods`
 - [x] `setPeriodLock`
-- [ ] `getRequireApproval`
-- [ ] `setRequireApproval`
-- [ ] `listFinanceAudit`
+- [x] `getRequireApproval`
+- [x] `setRequireApproval`
+- [x] `listFinanceAudit`
 
 **hearings** (M2 Core ops)
 
@@ -991,6 +991,8 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | Deleting an execution procedure left its follow-up reminder on the calendar | server/execution.ts | ✅ fixed: the linked reminder is removed with it |
 | The report-approved event said the report was sent to the client portal before any sending exists | lib/i18n event.hearingReportApproved | ✅ fixed: says approved only; "sent" waits for the portal (M8) |
 | Global search passed % and _ through as wildcards | server/search.ts | ✅ fixed: matched literally |
+| The require-approval switch marked payments/expenses unapproved but nothing could approve them | server/finance-governance.ts | ✅ fixed: approval queue (prototype approvePayment/approveExpense); approving an expense posts it once; the recorder cannot approve their own entry |
+| Unapproved (unposted) expenses counted as money out in the bank view | server/finance-bank.ts | ✅ fixed: only posted expenses |
 | Two receipts at once could both pass the remaining-amount check (overpaid invoice) | server/invoices.ts recordPayment | ✅ fixed: invoice row locked (e2e with concurrent payments) |
 | A double submit could bill the same hours or expense twice | server/fees.ts, expenses.ts | ✅ fixed: source claimed by a conditional update in the invoice transaction |
 | Journal descriptions stored Arabic text; ledger rows could be edited by the app | lib/finance/ledger.ts | ✅ fixed: i18n key + params; journal/trust history insert-only by grant |

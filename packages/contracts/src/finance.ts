@@ -1,5 +1,7 @@
 import {
   ACCOUNT_TYPES,
+  EXPENSE_CATEGORIES,
+  EXPENSE_PAYMENT_METHODS,
   FEE_TYPES,
   INVOICE_ORIGINS,
   INVOICE_STATUSES,
@@ -256,3 +258,112 @@ export const billingParties = z
     cases: z.array(z.object({ id: z.uuid(), title: z.string(), clientId: z.uuid().nullable() })),
   })
   .meta({ id: "BillingParties" });
+
+// ── Expenses (M4 slice 2) ──
+
+export const expenseRow = z
+  .object({
+    id: z.uuid(),
+    date: z.iso.date(),
+    category: z.enum(EXPENSE_CATEGORIES),
+    vendor: z.string().nullable(),
+    net: z.number().int(),
+    inputVat: z.number().int(),
+    method: z.enum(EXPENSE_PAYMENT_METHODS),
+    documentNo: z.string().nullable(),
+    billable: z.boolean(),
+    billed: z.boolean(),
+    approved: z.boolean(),
+    clientId: z.uuid().nullable(),
+    clientName: z.string().nullable(),
+    caseId: z.uuid().nullable(),
+    caseTitle: z.string().nullable(),
+  })
+  .meta({ id: "ExpenseRow" });
+export const expenseList = z.array(expenseRow).meta({ id: "ExpenseList" });
+export const expenseQuery = z.object({ caseId: z.uuid().optional() });
+export const expenseBody = z
+  .object({
+    /** VAT-inclusive amount paid; VAT is extracted at 15/115 unless given. */
+    gross: positive,
+    explicitVat: halalas.nullish(),
+    category: z.enum(EXPENSE_CATEGORIES).default("OTHER"),
+    vendor: optional(200),
+    method: z.enum(EXPENSE_PAYMENT_METHODS).default("BANK_TRANSFER"),
+    documentNo: optional(100),
+    date: dateOnly.optional(),
+    billable: z.boolean().default(false),
+    recurring: z.boolean().default(false),
+    clientId: z.uuid().nullish(),
+    caseId: z.uuid().nullish(),
+  })
+  .meta({ id: "ExpenseBody" });
+
+// ── Governance: approvals, require-approval switch, finance audit ──
+
+export const financeSettings = z
+  .object({ requireApproval: z.boolean() })
+  .meta({ id: "FinanceSettings" });
+export const pendingApprovals = z
+  .object({
+    payments: z.array(
+      z.object({
+        id: z.uuid(),
+        number: z.string(),
+        invoiceNumber: z.string(),
+        clientName: z.string(),
+        amount: z.number().int(),
+        date: z.iso.date(),
+      }),
+    ),
+    expenses: z.array(
+      z.object({
+        id: z.uuid(),
+        category: z.enum(EXPENSE_CATEGORIES),
+        vendor: z.string().nullable(),
+        gross: z.number().int(),
+        date: z.iso.date(),
+      }),
+    ),
+  })
+  .meta({ id: "PendingApprovals" });
+export const financeAudit = z
+  .array(
+    z.object({
+      id: z.uuid(),
+      action: z.string(),
+      detail: z.string().nullable(),
+      actorName: z.string().nullable(),
+      at: z.iso.datetime(),
+    }),
+  )
+  .meta({ id: "FinanceAudit" });
+
+// ── Bank and till ──
+
+export const BANK_ACCOUNTS = ["CURRENT", "CASH", "CHEQUE"] as const;
+const flow = z.object({ inflow: z.number().int(), outflow: z.number().int() });
+export const bankView = z
+  .object({
+    current: flow,
+    cash: flow,
+    cheques: flow,
+    trustBalance: z.number().int(),
+    account: z.enum(BANK_ACCOUNTS),
+    ledger: z.array(
+      z.object({
+        kind: z.enum(["PAYMENT", "EXPENSE"]),
+        id: z.uuid(),
+        date: z.iso.date(),
+        amount: z.number().int(),
+        label: z.string(),
+        cleared: z.boolean(),
+      }),
+    ),
+  })
+  .meta({ id: "BankView" });
+export const bankQuery = z.object({ account: z.enum(BANK_ACCOUNTS).default("CURRENT") });
+export const bankLineParams = z.object({ kind: z.enum(["PAYMENT", "EXPENSE"]), id: z.uuid() });
+export const requireApprovalBody = z
+  .object({ value: z.boolean() })
+  .meta({ id: "RequireApprovalBody" });
