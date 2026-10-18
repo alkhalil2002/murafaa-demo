@@ -294,6 +294,166 @@ export type WaiveConflictBody = {
     note: string;
 };
 
+export type CaseApprovalList = Array<CaseApproval>;
+
+export type CaseApproval = {
+    id: string;
+    title: string;
+    stage: 'DRAFT' | 'SENIOR_LAWYER' | 'COUNSEL' | 'PROOFREADING' | 'PARTNER' | 'APPROVED';
+    hearingId: string | null;
+    createdAt: string;
+    log: Array<{
+        id: string;
+        message: {
+            messageKey: string;
+            params: {
+                [key: string]: string | number;
+            };
+        } | null;
+        text: string | null;
+        actorName: string | null;
+        occurredAt: string;
+    }>;
+};
+
+export type CreateApprovalBody = {
+    title: string;
+    hearingId?: string | null;
+};
+
+export type RejectApprovalBody = {
+    note?: string | null;
+};
+
+export type CaseContractList = Array<CaseContract>;
+
+export type CaseContract = {
+    id: string;
+    title: string;
+    isSigned: boolean;
+    signedAt: string | null;
+};
+
+export type ContractBody = {
+    title: string;
+};
+
+export type ClientCommunicationList = Array<ClientCommunication>;
+
+export type ClientCommunication = {
+    id: string;
+    type: 'CALL' | 'MESSAGE' | 'MEETING' | 'EMAIL';
+    note: string;
+    authorName: string | null;
+    createdAt: string;
+};
+
+export type CommunicationBody = {
+    type: 'CALL' | 'MESSAGE' | 'MEETING' | 'EMAIL';
+    note: string;
+};
+
+export type CaseMessageList = Array<CaseMessage>;
+
+export type CaseMessage = {
+    id: string;
+    senderType: 'STAFF' | 'CLIENT';
+    senderName: string | null;
+    body: string;
+    createdAt: string;
+};
+
+export type MessageBody = {
+    body: string;
+};
+
+export type ClientApprovalList = Array<ClientApproval>;
+
+export type ClientApproval = {
+    id: string;
+    title: string;
+    kind: 'MEMO' | 'FEE' | 'SETTLEMENT';
+    amount: number | null;
+    note: string | null;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    decisionNote: string | null;
+    createdAt: string;
+};
+
+export type ClientApprovalBody = {
+    title: string;
+    kind: 'MEMO' | 'FEE' | 'SETTLEMENT';
+    amount?: number | null;
+    note?: string | null;
+};
+
+export type CaseExecutionView = {
+    execution: CaseExecution | null;
+};
+
+export type CaseExecution = {
+    id: string;
+    court: string | null;
+    requestNo: string | null;
+    amount: number | null;
+    collected: number;
+    debtor: string | null;
+    basis: string | null;
+    openedAt: string | null;
+    status: 'ACTIVE' | 'PARTIALLY_COLLECTED' | 'FULLY_COLLECTED' | 'STALLED' | 'CLOSED';
+    procedures: Array<{
+        id: string;
+        type: string;
+        status: 'REQUIRED' | 'IN_PROGRESS' | 'EXECUTED' | 'STALLED';
+        note: string | null;
+        party: 'OURS' | 'OPPONENT' | 'COURT' | null;
+        date: string | null;
+        followUpDate: string | null;
+        followUpAssigneeName: string | null;
+    }>;
+};
+
+export type OpenExecutionBody = {
+    court?: string | null;
+    requestNo?: string | null;
+    amount?: number | null;
+    debtor?: string | null;
+    basis?: string | null;
+    openedAt?: string | null;
+};
+
+export type UpdateExecutionBody = {
+    court?: string | null;
+    requestNo?: string | null;
+    amount?: number | null;
+    debtor?: string | null;
+    basis?: string | null;
+};
+
+export type ExecutionStatusBody = {
+    status: 'ACTIVE' | 'PARTIALLY_COLLECTED' | 'FULLY_COLLECTED' | 'STALLED' | 'CLOSED';
+};
+
+export type CollectionBody = {
+    amount: number;
+};
+
+export type ExecutionProcedureBody = {
+    type: 'طلب التنفيذ' | 'أمر التنفيذ' | 'تبليغ المنفذ ضده' | 'حجز حسابات بنكية' | 'حجز عقار' | 'حجز مركبات' | 'حجز أسهم' | 'منع سفر' | 'إيقاف خدمات أبشر' | 'الإفصاح عن الأصول' | 'التحصيل/السداد' | 'البيع بالمزاد' | 'إغلاق الملف' | 'أخرى';
+    note?: string | null;
+    party?: 'OURS' | 'OPPONENT' | 'COURT' | null;
+    date?: string | null;
+    followUpDate?: string | null;
+    followUpAssigneeId?: string | null;
+};
+
+export type UpdateExecutionProcedureBody = {
+    type: 'طلب التنفيذ' | 'أمر التنفيذ' | 'تبليغ المنفذ ضده' | 'حجز حسابات بنكية' | 'حجز عقار' | 'حجز مركبات' | 'حجز أسهم' | 'منع سفر' | 'إيقاف خدمات أبشر' | 'الإفصاح عن الأصول' | 'التحصيل/السداد' | 'البيع بالمزاد' | 'إغلاق الملف' | 'أخرى';
+    note?: string | null;
+    party?: 'OURS' | 'OPPONENT' | 'COURT' | null;
+    date?: string | null;
+};
+
 export type RecordHearingBody = {
     hearingDate: string;
     kind?: 'PRELIMINARY' | 'PLEADING' | 'MEMO_EXCHANGE' | 'PROCEDURAL_CONTROL' | 'WITNESS_HEARING' | 'EXPERT_EXAMINATION' | 'RESERVED_FOR_JUDGMENT' | 'JUDGMENT_PRONOUNCEMENT' | 'RECONCILIATION' | 'OTHER' | null;
@@ -1500,6 +1660,765 @@ export type CasesWaiveResponses = {
 };
 
 export type CasesWaiveResponse = CasesWaiveResponses[keyof CasesWaiveResponses];
+
+export type CaseworkListApprovalsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/approvals';
+};
+
+export type CaseworkListApprovalsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkListApprovalsError = CaseworkListApprovalsErrors[keyof CaseworkListApprovalsErrors];
+
+export type CaseworkListApprovalsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: CaseApprovalList;
+        error: null;
+    };
+};
+
+export type CaseworkListApprovalsResponse = CaseworkListApprovalsResponses[keyof CaseworkListApprovalsResponses];
+
+export type CaseworkCreateApprovalData = {
+    body: CreateApprovalBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/approvals';
+};
+
+export type CaseworkCreateApprovalErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkCreateApprovalError = CaseworkCreateApprovalErrors[keyof CaseworkCreateApprovalErrors];
+
+export type CaseworkCreateApprovalResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type CaseworkCreateApprovalResponse = CaseworkCreateApprovalResponses[keyof CaseworkCreateApprovalResponses];
+
+export type CaseworkAdvanceApprovalData = {
+    body?: never;
+    path: {
+        id: string;
+        approvalId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/approvals/{approvalId}/advance';
+};
+
+export type CaseworkAdvanceApprovalErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkAdvanceApprovalError = CaseworkAdvanceApprovalErrors[keyof CaseworkAdvanceApprovalErrors];
+
+export type CaseworkAdvanceApprovalResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkAdvanceApprovalResponse = CaseworkAdvanceApprovalResponses[keyof CaseworkAdvanceApprovalResponses];
+
+export type CaseworkRejectApprovalData = {
+    body: RejectApprovalBody;
+    path: {
+        id: string;
+        approvalId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/approvals/{approvalId}/reject';
+};
+
+export type CaseworkRejectApprovalErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkRejectApprovalError = CaseworkRejectApprovalErrors[keyof CaseworkRejectApprovalErrors];
+
+export type CaseworkRejectApprovalResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkRejectApprovalResponse = CaseworkRejectApprovalResponses[keyof CaseworkRejectApprovalResponses];
+
+export type CaseworkRemoveApprovalData = {
+    body?: never;
+    path: {
+        id: string;
+        approvalId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/approvals/{approvalId}';
+};
+
+export type CaseworkRemoveApprovalErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkRemoveApprovalError = CaseworkRemoveApprovalErrors[keyof CaseworkRemoveApprovalErrors];
+
+export type CaseworkRemoveApprovalResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkRemoveApprovalResponse = CaseworkRemoveApprovalResponses[keyof CaseworkRemoveApprovalResponses];
+
+export type CaseworkListContractsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/contracts';
+};
+
+export type CaseworkListContractsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkListContractsError = CaseworkListContractsErrors[keyof CaseworkListContractsErrors];
+
+export type CaseworkListContractsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: CaseContractList;
+        error: null;
+    };
+};
+
+export type CaseworkListContractsResponse = CaseworkListContractsResponses[keyof CaseworkListContractsResponses];
+
+export type CaseworkAddContractData = {
+    body: ContractBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/contracts';
+};
+
+export type CaseworkAddContractErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkAddContractError = CaseworkAddContractErrors[keyof CaseworkAddContractErrors];
+
+export type CaseworkAddContractResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type CaseworkAddContractResponse = CaseworkAddContractResponses[keyof CaseworkAddContractResponses];
+
+export type CaseworkToggleContractData = {
+    body?: never;
+    path: {
+        id: string;
+        contractId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/contracts/{contractId}/toggle';
+};
+
+export type CaseworkToggleContractErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkToggleContractError = CaseworkToggleContractErrors[keyof CaseworkToggleContractErrors];
+
+export type CaseworkToggleContractResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkToggleContractResponse = CaseworkToggleContractResponses[keyof CaseworkToggleContractResponses];
+
+export type CaseworkRemoveContractData = {
+    body?: never;
+    path: {
+        id: string;
+        contractId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/contracts/{contractId}';
+};
+
+export type CaseworkRemoveContractErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkRemoveContractError = CaseworkRemoveContractErrors[keyof CaseworkRemoveContractErrors];
+
+export type CaseworkRemoveContractResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkRemoveContractResponse = CaseworkRemoveContractResponses[keyof CaseworkRemoveContractResponses];
+
+export type CaseworkListCommunicationsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/communications';
+};
+
+export type CaseworkListCommunicationsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkListCommunicationsError = CaseworkListCommunicationsErrors[keyof CaseworkListCommunicationsErrors];
+
+export type CaseworkListCommunicationsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: ClientCommunicationList;
+        error: null;
+    };
+};
+
+export type CaseworkListCommunicationsResponse = CaseworkListCommunicationsResponses[keyof CaseworkListCommunicationsResponses];
+
+export type CaseworkAddCommunicationData = {
+    body: CommunicationBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/communications';
+};
+
+export type CaseworkAddCommunicationErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkAddCommunicationError = CaseworkAddCommunicationErrors[keyof CaseworkAddCommunicationErrors];
+
+export type CaseworkAddCommunicationResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type CaseworkAddCommunicationResponse = CaseworkAddCommunicationResponses[keyof CaseworkAddCommunicationResponses];
+
+export type CaseworkRemoveCommunicationData = {
+    body?: never;
+    path: {
+        id: string;
+        communicationId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/communications/{communicationId}';
+};
+
+export type CaseworkRemoveCommunicationErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkRemoveCommunicationError = CaseworkRemoveCommunicationErrors[keyof CaseworkRemoveCommunicationErrors];
+
+export type CaseworkRemoveCommunicationResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkRemoveCommunicationResponse = CaseworkRemoveCommunicationResponses[keyof CaseworkRemoveCommunicationResponses];
+
+export type CaseworkListMessagesData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/messages';
+};
+
+export type CaseworkListMessagesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkListMessagesError = CaseworkListMessagesErrors[keyof CaseworkListMessagesErrors];
+
+export type CaseworkListMessagesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: CaseMessageList;
+        error: null;
+    };
+};
+
+export type CaseworkListMessagesResponse = CaseworkListMessagesResponses[keyof CaseworkListMessagesResponses];
+
+export type CaseworkSendMessageData = {
+    body: MessageBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/messages';
+};
+
+export type CaseworkSendMessageErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkSendMessageError = CaseworkSendMessageErrors[keyof CaseworkSendMessageErrors];
+
+export type CaseworkSendMessageResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type CaseworkSendMessageResponse = CaseworkSendMessageResponses[keyof CaseworkSendMessageResponses];
+
+export type CaseworkListClientApprovalsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/client-approvals';
+};
+
+export type CaseworkListClientApprovalsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkListClientApprovalsError = CaseworkListClientApprovalsErrors[keyof CaseworkListClientApprovalsErrors];
+
+export type CaseworkListClientApprovalsResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: ClientApprovalList;
+        error: null;
+    };
+};
+
+export type CaseworkListClientApprovalsResponse = CaseworkListClientApprovalsResponses[keyof CaseworkListClientApprovalsResponses];
+
+export type CaseworkRequestClientApprovalData = {
+    body: ClientApprovalBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/client-approvals';
+};
+
+export type CaseworkRequestClientApprovalErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkRequestClientApprovalError = CaseworkRequestClientApprovalErrors[keyof CaseworkRequestClientApprovalErrors];
+
+export type CaseworkRequestClientApprovalResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type CaseworkRequestClientApprovalResponse = CaseworkRequestClientApprovalResponses[keyof CaseworkRequestClientApprovalResponses];
+
+export type CaseworkGetExecutionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/execution';
+};
+
+export type CaseworkGetExecutionErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkGetExecutionError = CaseworkGetExecutionErrors[keyof CaseworkGetExecutionErrors];
+
+export type CaseworkGetExecutionResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: CaseExecutionView;
+        error: null;
+    };
+};
+
+export type CaseworkGetExecutionResponse = CaseworkGetExecutionResponses[keyof CaseworkGetExecutionResponses];
+
+export type CaseworkUpdateExecutionData = {
+    body: UpdateExecutionBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/execution';
+};
+
+export type CaseworkUpdateExecutionErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkUpdateExecutionError = CaseworkUpdateExecutionErrors[keyof CaseworkUpdateExecutionErrors];
+
+export type CaseworkUpdateExecutionResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkUpdateExecutionResponse = CaseworkUpdateExecutionResponses[keyof CaseworkUpdateExecutionResponses];
+
+export type CaseworkOpenExecutionData = {
+    body: OpenExecutionBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/execution';
+};
+
+export type CaseworkOpenExecutionErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkOpenExecutionError = CaseworkOpenExecutionErrors[keyof CaseworkOpenExecutionErrors];
+
+export type CaseworkOpenExecutionResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type CaseworkOpenExecutionResponse = CaseworkOpenExecutionResponses[keyof CaseworkOpenExecutionResponses];
+
+export type CaseworkSetExecutionStatusData = {
+    body: ExecutionStatusBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/execution/status';
+};
+
+export type CaseworkSetExecutionStatusErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkSetExecutionStatusError = CaseworkSetExecutionStatusErrors[keyof CaseworkSetExecutionStatusErrors];
+
+export type CaseworkSetExecutionStatusResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkSetExecutionStatusResponse = CaseworkSetExecutionStatusResponses[keyof CaseworkSetExecutionStatusResponses];
+
+export type CaseworkRecordCollectionData = {
+    body: CollectionBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/execution/collections';
+};
+
+export type CaseworkRecordCollectionErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkRecordCollectionError = CaseworkRecordCollectionErrors[keyof CaseworkRecordCollectionErrors];
+
+export type CaseworkRecordCollectionResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkRecordCollectionResponse = CaseworkRecordCollectionResponses[keyof CaseworkRecordCollectionResponses];
+
+export type CaseworkAddExecutionProcedureData = {
+    body: ExecutionProcedureBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/execution/procedures';
+};
+
+export type CaseworkAddExecutionProcedureErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkAddExecutionProcedureError = CaseworkAddExecutionProcedureErrors[keyof CaseworkAddExecutionProcedureErrors];
+
+export type CaseworkAddExecutionProcedureResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type CaseworkAddExecutionProcedureResponse = CaseworkAddExecutionProcedureResponses[keyof CaseworkAddExecutionProcedureResponses];
+
+export type CaseworkRemoveExecutionProcedureData = {
+    body?: never;
+    path: {
+        id: string;
+        procedureId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/execution/procedures/{procedureId}';
+};
+
+export type CaseworkRemoveExecutionProcedureErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkRemoveExecutionProcedureError = CaseworkRemoveExecutionProcedureErrors[keyof CaseworkRemoveExecutionProcedureErrors];
+
+export type CaseworkRemoveExecutionProcedureResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkRemoveExecutionProcedureResponse = CaseworkRemoveExecutionProcedureResponses[keyof CaseworkRemoveExecutionProcedureResponses];
+
+export type CaseworkUpdateExecutionProcedureData = {
+    body: UpdateExecutionProcedureBody;
+    path: {
+        id: string;
+        procedureId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/execution/procedures/{procedureId}';
+};
+
+export type CaseworkUpdateExecutionProcedureErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkUpdateExecutionProcedureError = CaseworkUpdateExecutionProcedureErrors[keyof CaseworkUpdateExecutionProcedureErrors];
+
+export type CaseworkUpdateExecutionProcedureResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkUpdateExecutionProcedureResponse = CaseworkUpdateExecutionProcedureResponses[keyof CaseworkUpdateExecutionProcedureResponses];
+
+export type CaseworkCycleExecutionProcedureData = {
+    body?: never;
+    path: {
+        id: string;
+        procedureId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/execution/procedures/{procedureId}/cycle';
+};
+
+export type CaseworkCycleExecutionProcedureErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CaseworkCycleExecutionProcedureError = CaseworkCycleExecutionProcedureErrors[keyof CaseworkCycleExecutionProcedureErrors];
+
+export type CaseworkCycleExecutionProcedureResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CaseworkCycleExecutionProcedureResponse = CaseworkCycleExecutionProcedureResponses[keyof CaseworkCycleExecutionProcedureResponses];
 
 export type HearingsRecordData = {
     body: RecordHearingBody;

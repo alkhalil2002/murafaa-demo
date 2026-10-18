@@ -1,8 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { authCurrent, casesAssignable, casesDetail, crmClients } from "@murafaa/sdk";
+import {
+  authCurrent,
+  casesAssignable,
+  casesDetail,
+  caseworkGetExecution,
+  caseworkListApprovals,
+  caseworkListClientApprovals,
+  caseworkListCommunications,
+  caseworkListContracts,
+  caseworkListMessages,
+  crmClients,
+} from "@murafaa/sdk";
 import { daysLeft, opponentRole, PROC_STAGES } from "@murafaa/rules";
-import { t, tStored, type MessageKey } from "@murafaa/i18n";
+import { formatSar, t, tStored, type MessageKey } from "@murafaa/i18n";
 import {
   AssigneeManager,
   ChecklistItems,
@@ -13,6 +24,22 @@ import {
   WaiveConflictForm,
 } from "@/components/cases/case-actions";
 import { CaseForm } from "@/components/cases/case-form";
+import {
+  ApprovalControls,
+  ApprovalCreateForm,
+  ChatForm,
+  ClientApprovalForm,
+  CollectionForm,
+  CommunicationForm,
+  ContractControls,
+  ContractForm,
+  EditExecutionForm,
+  ExecutionStatusControls,
+  OpenExecutionForm,
+  ProcedureControls,
+  ProcedureForm,
+  RemoveCommunicationButton,
+} from "@/components/cases/casework";
 import {
   AddRequestForm,
   HearingActions,
@@ -41,7 +68,17 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number];
 /** Tabs rebuilt so far; the rest belong to later M2 slices and M3–M5 (docs/MIGRATION.md). */
-const BUILT: ReadonlySet<Tab> = new Set(["overview", "hearings", "parties", "events", "closing"]);
+const BUILT: ReadonlySet<Tab> = new Set([
+  "overview",
+  "hearings",
+  "parties",
+  "chat",
+  "contracts",
+  "approvals",
+  "execution",
+  "events",
+  "closing",
+]);
 
 const EVENT_ICON: Record<string, string> = {
   STAGE: "⚖",
@@ -447,6 +484,274 @@ export default async function CaseDetailPage({
         )}
       </Panel>
     );
+    const comms =
+      (await caseworkListCommunications({ client: api, path: { id } })).data?.data ?? [];
+    body = (
+      <>
+        {body}
+        <Panel
+          n={t("cases.tag.parties")}
+          title={`${t("cases.comms.title")} — ${t("cases.comms.count", { n: comms.length.toLocaleString("ar-SA") })}`}
+        >
+          {comms.length === 0 ? (
+            <Empty>{t("cases.comms.empty")}</Empty>
+          ) : (
+            comms.map((m) => (
+              <div className="approve-row" key={m.id}>
+                <span className="ndot" style={{ background: "#0a7ea4" }} />
+                <span className="at">
+                  {m.note}
+                  <span className="chip">
+                    {" "}
+                    {t(`clientCommunicationType.${m.type}` as MessageKey)}
+                  </span>
+                </span>
+                <span className="chip">{fmtDate(m.createdAt)}</span>
+                {canEdit && <RemoveCommunicationButton caseId={c.id} id={m.id} />}
+              </div>
+            ))
+          )}
+          {canEdit && <CommunicationForm caseId={c.id} />}
+        </Panel>
+      </>
+    );
+  } else if (tab === "chat") {
+    const messages = (await caseworkListMessages({ client: api, path: { id } })).data?.data ?? [];
+    body = (
+      <Panel n={t("cases.tag.parties")} title={t("cases.chat.title")}>
+        <div className="sub" style={{ marginBottom: 10 }}>
+          {t("cases.chat.hint")}
+        </div>
+        {messages.length === 0 ? (
+          <Empty>{t("cases.chat.empty")}</Empty>
+        ) : (
+          messages.map((m) => (
+            <div className="approve-row" key={m.id}>
+              <span
+                className="ndot"
+                style={{ background: m.senderType === "CLIENT" ? "var(--gold)" : "var(--bench)" }}
+              />
+              <span className="at">
+                {m.body}
+                <span className="chip">
+                  {" "}
+                  {m.senderType === "CLIENT"
+                    ? t("cases.chat.fromClient")
+                    : (m.senderName ?? t("cases.chat.fromOffice"))}
+                </span>
+              </span>
+              <span className="chip">{relTime(m.createdAt)}</span>
+            </div>
+          ))
+        )}
+        {canEdit && <ChatForm caseId={c.id} />}
+      </Panel>
+    );
+  } else if (tab === "contracts") {
+    const contracts = (await caseworkListContracts({ client: api, path: { id } })).data?.data ?? [];
+    body = (
+      <Panel n={t("cases.tag.documents")} title={t("cases.contracts.title")}>
+        {contracts.length === 0 ? (
+          <Empty>{t("cases.contracts.empty")}</Empty>
+        ) : (
+          contracts.map((k) => (
+            <div className="approve-row" key={k.id}>
+              <span className="at">{k.title}</span>
+              <span className={`chip st${k.isSigned ? "" : " done"}`}>
+                {k.isSigned ? t("cases.contracts.signed") : t("cases.contracts.unsigned")}
+              </span>
+              {canEdit && <ContractControls caseId={c.id} id={k.id} />}
+            </div>
+          ))
+        )}
+        {canEdit && <ContractForm caseId={c.id} />}
+      </Panel>
+    );
+  } else if (tab === "approvals") {
+    const [approvalsRes, clientRes] = await Promise.all([
+      caseworkListApprovals({ client: api, path: { id } }),
+      caseworkListClientApprovals({ client: api, path: { id } }),
+    ]);
+    const approvals = approvalsRes.data?.data ?? [];
+    const clientApprovals = clientRes.data?.data ?? [];
+    const sessionNo = (hearingId: string) =>
+      t("cases.hearings.sessionNo", {
+        no: (c.hearings.find((h) => h.id === hearingId)?.sequenceNo ?? 0).toLocaleString("ar-SA"),
+      });
+    const CLIENT_DOT: Record<string, string> = {
+      APPROVED: "var(--ok)",
+      REJECTED: "var(--advocate)",
+      PENDING: "var(--gold)",
+    };
+    body = (
+      <>
+        <div className="panel">
+          <div className="sub" style={{ marginBottom: 12 }}>
+            {t("cases.approvals.hint")}
+          </div>
+          {canEdit && (
+            <ApprovalCreateForm
+              caseId={c.id}
+              hearings={c.hearings.filter((h) => h.reportApprovalRequested)}
+            />
+          )}
+        </div>
+        <Panel n={t("cases.tag.approvals")} title={t("cases.tab.approvals")}>
+          {approvals.length === 0 ? (
+            <Empty>{t("cases.approvals.empty")}</Empty>
+          ) : (
+            approvals.map((a) => (
+              <div className="approve-row" key={a.id} style={{ flexWrap: "wrap" }}>
+                <span
+                  className="ndot"
+                  style={{ background: a.stage === "APPROVED" ? "var(--ok)" : "var(--gold)" }}
+                />
+                <span className="at">
+                  {a.title}
+                  <span className={`chip st${a.stage === "APPROVED" ? "" : " done"}`}>
+                    {" "}
+                    {t(`approvalStage.${a.stage}` as MessageKey)}
+                  </span>
+                  {a.hearingId && <span className="chip"> {sessionNo(a.hearingId)}</span>}
+                </span>
+                {canEdit && (
+                  <ApprovalControls caseId={c.id} id={a.id} stage={a.stage} canDelete={canDelete} />
+                )}
+                {a.stage === "APPROVED" && (
+                  <div
+                    style={{ width: "100%", color: "var(--ok)", fontSize: 15.625, fontWeight: 600 }}
+                  >
+                    {t("cases.approvals.najizReady")}
+                  </div>
+                )}
+                {a.log.length > 0 && (
+                  <div style={{ width: "100%", fontSize: 14.375, color: "var(--ink-soft)" }}>
+                    {a.log.map((ev) => (
+                      <div key={ev.id}>
+                        · {ev.message ? tStored(ev.message.messageKey, ev.message.params) : ev.text}{" "}
+                        — {ev.actorName ?? t("events.actor.system")} ({relTime(ev.occurredAt)})
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </Panel>
+        <Panel n="" title={t("caseWorkspace.clientApprovals.title")}>
+          {canEdit && <ClientApprovalForm caseId={c.id} />}
+          {clientApprovals.length === 0 ? (
+            <Empty>{t("caseWorkspace.clientApprovals.empty")}</Empty>
+          ) : (
+            clientApprovals.map((a) => (
+              <div className="approve-row" key={a.id}>
+                <span className="ndot" style={{ background: CLIENT_DOT[a.status] }} />
+                <span className="at">
+                  {a.title}
+                  <span className="chip"> {t(`clientApprovalKind.${a.kind}` as MessageKey)}</span>
+                  {a.amount != null && <span className="chip"> {formatSar(a.amount)}</span>}
+                </span>
+                <span className="chip st">
+                  {t(`clientApprovalStatus.${a.status}` as MessageKey)}
+                </span>
+              </div>
+            ))
+          )}
+        </Panel>
+      </>
+    );
+  } else if (tab === "execution") {
+    const [exRes, usersRes] = await Promise.all([
+      caseworkGetExecution({ client: api, path: { id } }),
+      canEdit ? casesAssignable({ client: api }) : Promise.resolve(undefined),
+    ]);
+    const ex = exRes.data?.data.execution ?? null;
+    const users = usersRes?.data?.data ?? [];
+    if (!ex) {
+      body = (
+        <div className="panel">
+          <div className="sub">{t("cases.execution.notOpened")}</div>
+          {canEdit && <OpenExecutionForm caseId={c.id} />}
+        </div>
+      );
+    } else {
+      const remaining = Math.max(0, (ex.amount ?? 0) - ex.collected);
+      body = (
+        <>
+          <div className="kpis">
+            <Field
+              label={t("cases.execution.amount")}
+              value={ex.amount != null ? formatSar(ex.amount) : "—"}
+            />
+            <Field label={t("cases.execution.collected")} value={formatSar(ex.collected)} />
+            <Field label={t("cases.execution.remaining")} value={formatSar(remaining)} />
+            <Field
+              label={t("cases.execution.status")}
+              value={t(`execFileStatus.${ex.status}` as MessageKey)}
+            />
+          </div>
+          <Panel n={t("cases.tag.finance")} title={t("cases.tab.execution")}>
+            <div className="chips" style={{ marginBottom: 12 }}>
+              {ex.court && (
+                <span className="chip">
+                  {t("cases.execution.court")}: {ex.court}
+                </span>
+              )}
+              {ex.requestNo && (
+                <span className="chip">
+                  {t("cases.execution.requestNo")}: {ex.requestNo}
+                </span>
+              )}
+              {ex.debtor && (
+                <span className="chip">
+                  {t("cases.execution.debtor")}: {ex.debtor}
+                </span>
+              )}
+              {ex.basis && (
+                <span className="chip">
+                  {t("cases.execution.basis")}: {ex.basis}
+                </span>
+              )}
+              <span className="chip">
+                {t("cases.execution.openedAt")}: {fmtDate(ex.openedAt)}
+              </span>
+            </div>
+            {canEdit && (
+              <>
+                <EditExecutionForm caseId={c.id} ex={ex} />
+                <ExecutionStatusControls caseId={c.id} status={ex.status} />
+                <CollectionForm caseId={c.id} />
+              </>
+            )}
+          </Panel>
+          <Panel n={t("cases.tag.finance")} title={t("cases.execution.procedures")}>
+            {canEdit && <ProcedureForm caseId={c.id} users={users} />}
+            {ex.procedures.length === 0 ? (
+              <Empty>{t("cases.execution.noProcedures")}</Empty>
+            ) : (
+              ex.procedures.map((pr) => (
+                <div className="approve-row" key={pr.id} style={{ flexWrap: "wrap" }}>
+                  <span
+                    className="ndot"
+                    style={{ background: pr.status === "EXECUTED" ? "var(--ok)" : "var(--gold)" }}
+                  />
+                  <span className="at">
+                    {pr.type}
+                    {pr.party && (
+                      <span className="chip"> {t(`docParty.${pr.party}` as MessageKey)}</span>
+                    )}
+                    {pr.date && <span className="chip"> {fmtDate(pr.date)}</span>}
+                    {pr.note ? <span className="chip"> {pr.note}</span> : null}
+                  </span>
+                  <span className="chip">{t(`execProcStatus.${pr.status}` as MessageKey)}</span>
+                  {canEdit && <ProcedureControls caseId={c.id} proc={pr} canDelete={canDelete} />}
+                </div>
+              ))
+            )}
+          </Panel>
+        </>
+      );
+    }
   } else if (tab === "events") {
     const counts = new Map<string, number>();
     for (const e of c.events) counts.set(e.type, (counts.get(e.type) ?? 0) + 1);

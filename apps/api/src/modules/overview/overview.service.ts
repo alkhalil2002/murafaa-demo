@@ -24,6 +24,7 @@ import { PolicyService } from "../../common/permissions/policy.service.js";
 import type { Principal } from "../../common/tenancy/principal.js";
 import { TenantDb } from "../../database/tenant-db.service.js";
 import { AppointmentsService } from "../appointments/appointments.service.js";
+import { ApprovalsService } from "../cases/approvals.service.js";
 import { CasesService } from "../cases/cases.service.js";
 import { type DeadlineItem, DeadlinesService } from "../cases/deadlines.service.js";
 import { CrmService } from "../crm/crm.service.js";
@@ -45,8 +46,8 @@ const ACTIVITY_COUNT_WINDOW = 2000;
  * omitted when the caller's role lacks that module (checked without
  * throwing, so a shared landing page does not log expected denials).
  *
- * Sources whose modules are not rebuilt yet (case approvals, invoices, HR
- * requests, documents, employees, Team Pulse, WhatsApp) contribute nothing
+ * Sources whose modules are not rebuilt yet (invoices, HR requests,
+ * documents, employees, Team Pulse, WhatsApp) contribute nothing
  * until they land; nothing is fabricated in their place.
  */
 @Injectable()
@@ -59,6 +60,7 @@ export class OverviewService {
     private readonly tasks: TasksService,
     private readonly appointments: AppointmentsService,
     private readonly deadlines: DeadlinesService,
+    private readonly approvals: ApprovalsService,
   ) {}
 
   private can(policy: OfficePolicy, p: Principal, module: PermModule, action: PermAction = "view") {
@@ -115,6 +117,16 @@ export class OverviewService {
     const winRatePct = canCases
       ? (await this.tenantDb.run((tx) => this.cases.stats(tx))).winRatePct
       : null;
+    // HR leave/advance requests join here with M6.
+    const approvals = canCases
+      ? (await this.approvals.pending(p)).map((a) => ({
+          id: a.id,
+          title: a.title,
+          caseId: a.caseId,
+          caseTitle: a.caseTitle,
+          stage: a.stage,
+        }))
+      : [];
 
     return {
       employeeOfWeek: null,
@@ -128,7 +140,11 @@ export class OverviewService {
         items: deadlines.slice(0, 6),
         totalWithin7: deadlines.filter((d) => d.daysLeft <= 7).length,
       },
-      approvals: { visible: canHr || canCases, items: [], total: 0 },
+      approvals: {
+        visible: canHr || canCases,
+        items: approvals.slice(0, 6),
+        total: approvals.length,
+      },
       tasks: { visible: canTasks, items: open.slice(0, 6), total: open.length },
       winRate: { visible: canCases, pct: winRatePct },
     };
@@ -176,6 +192,7 @@ export class OverviewService {
     const firstContact = Object.values(leadsByStage).reduce((a, b) => a + b, 0);
     const deadlines = await this.deadlinesFor(policy, p);
     const notifications = await this.notifications(p);
+    const pendingApprovals = canCases ? (await this.approvals.pending(p)).length : 0;
     return {
       firstContact,
       inboundChats: 0, // WhatsApp (M7)
@@ -185,7 +202,7 @@ export class OverviewService {
       followUps: appts?.followUps ?? 0,
       contracted: leadsByStage.CONTRACTED,
       activeCases: caseStats?.activeCases ?? 0,
-      pendingApprovals: 0, // case approvals (M2 slice 5)
+      pendingApprovals,
       invoicesDue: 0, // invoices (M4)
       uncollected: 0,
       archivedCases: caseStats?.archivedCases ?? 0,
@@ -243,6 +260,20 @@ export class OverviewService {
     const policy = await this.policies.forOffice(p.officeId);
     const items: Array<{ id: string; message: Message; href: string; at: string }> = [];
 
+    if (this.can(policy, p, PermModule.CASES)) {
+      for (const a of await this.approvals.pending(p)) {
+        items.push({
+          id: `approval:${a.id}`,
+          message: msg("notif.approvalPending", {
+            title: a.title,
+            stage: `@approvalStage.${a.stage}`,
+          }),
+          href: `/cases/${a.caseId}?tab=approvals`,
+          at: a.createdAt.toISOString(),
+        });
+      }
+    }
+
     for (const d of await this.deadlinesFor(policy, p)) {
       if (d.kind !== "nextHearing" || d.daysLeft < 0 || d.daysLeft > 7) continue;
       items.push({
@@ -262,7 +293,7 @@ export class OverviewService {
         });
       }
     }
-    // Pending case approvals (M2 slice 5) and overdue invoices (M4) join here.
+    // Overdue invoices join here with M4.
     return items.sort((a, b) => b.at.localeCompare(a.at));
   }
 

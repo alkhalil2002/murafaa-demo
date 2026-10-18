@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { AppointmentsCancelData, AppointmentsCancelErrors, AppointmentsCancelResponses, AppointmentsCreateData, AppointmentsCreateErrors, AppointmentsCreateResponses, AppointmentsListData, AppointmentsListErrors, AppointmentsListResponses, AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, BillingUsageData, BillingUsageErrors, BillingUsageResponses, CasesArchiveData, CasesArchiveErrors, CasesArchiveResponses, CasesAssignableData, CasesAssignableErrors, CasesAssignableResponses, CasesAssignData, CasesAssignErrors, CasesAssignResponses, CasesChecklistData, CasesChecklistErrors, CasesChecklistResponses, CasesCreateData, CasesCreateErrors, CasesCreateResponses, CasesDetailData, CasesDetailErrors, CasesDetailResponses, CasesEndProcedureData, CasesEndProcedureErrors, CasesEndProcedureResponses, CasesListData, CasesListErrors, CasesListResponses, CasesOutcomeData, CasesOutcomeErrors, CasesOutcomeResponses, CasesPromoteData, CasesPromoteErrors, CasesPromoteResponses, CasesReferralData, CasesReferralErrors, CasesReferralResponses, CasesRemandData, CasesRemandErrors, CasesRemandResponses, CasesReopenProcedureData, CasesReopenProcedureErrors, CasesReopenProcedureResponses, CasesSatisfactionData, CasesSatisfactionErrors, CasesSatisfactionResponses, CasesUnassignData, CasesUnassignErrors, CasesUnassignResponses, CasesUpdateData, CasesUpdateErrors, CasesUpdateResponses, CasesWaiveData, CasesWaiveErrors, CasesWaiveResponses, CrmClientsData, CrmClientsErrors, CrmClientsResponses, CrmConvertData, CrmConvertErrors, CrmConvertResponses, CrmCreateClientData, CrmCreateClientErrors, CrmCreateClientResponses, CrmCreateLeadData, CrmCreateLeadErrors, CrmCreateLeadResponses, CrmDeleteLeadData, CrmDeleteLeadErrors, CrmDeleteLeadResponses, CrmKpisData, CrmKpisErrors, CrmKpisResponses, CrmLeadsData, CrmLeadsErrors, CrmLeadsResponses, CrmMoveLeadData, CrmMoveLeadErrors, CrmMoveLeadResponses, CrmUpdateClientData, CrmUpdateClientErrors, CrmUpdateClientResponses, CrmUpdateLeadData, CrmUpdateLeadErrors, CrmUpdateLeadResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, HearingsAddReminderData, HearingsAddReminderErrors, HearingsAddReminderResponses, HearingsAddRequestData, HearingsAddRequestErrors, HearingsAddRequestResponses, HearingsAddTaskData, HearingsAddTaskErrors, HearingsAddTaskResponses, HearingsCancelReportData, HearingsCancelReportErrors, HearingsCancelReportResponses, HearingsCycleRequestData, HearingsCycleRequestErrors, HearingsCycleRequestResponses, HearingsDecideReportData, HearingsDecideReportErrors, HearingsDecideReportResponses, HearingsEscalateData, HearingsEscalateErrors, HearingsEscalateResponses, HearingsRecordData, HearingsRecordErrors, HearingsRecordResponses, HearingsRemoveData, HearingsRemoveErrors, HearingsRemoveReminderData, HearingsRemoveReminderErrors, HearingsRemoveReminderResponses, HearingsRemoveRequestData, HearingsRemoveRequestErrors, HearingsRemoveRequestResponses, HearingsRemoveResponses, HearingsRemoveTaskData, HearingsRemoveTaskErrors, HearingsRemoveTaskResponses, HearingsRequestReportData, HearingsRequestReportErrors, HearingsRequestReportResponses, HearingsSetNextData, HearingsSetNextErrors, HearingsSetNextResponses, HearingsUpdateData, HearingsUpdateErrors, HearingsUpdateReminderData, HearingsUpdateReminderErrors, HearingsUpdateReminderResponses, HearingsUpdateResponses, HearingsUpdateTaskData, HearingsUpdateTaskErrors, HearingsUpdateTaskResponses, OfficesBrandingData, OfficesBrandingErrors, OfficesBrandingResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, OfficesUpdateBrandingData, OfficesUpdateBrandingErrors, OfficesUpdateBrandingResponses, OverviewActivityData, OverviewActivityErrors, OverviewActivityResponses, OverviewAlertsData, OverviewAlertsErrors, OverviewAlertsResponses, OverviewDashboardData, OverviewDashboardErrors, OverviewDashboardResponses, OverviewJourneyData, OverviewJourneyErrors, OverviewJourneyResponses, OverviewListDeadlinesData, OverviewListDeadlinesErrors, OverviewListDeadlinesResponses, OverviewNotificationCountData, OverviewNotificationCountErrors, OverviewNotificationCountResponses, OverviewNotificationsData, OverviewNotificationsErrors, OverviewNotificationsResponses, OverviewSearchData, OverviewSearchErrors, OverviewSearchResponses, OverviewTodayData, OverviewTodayErrors, OverviewTodayResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses, RecycleListData, RecycleListErrors, RecycleListResponses, RecycleRestoreData, RecycleRestoreErrors, RecycleRestoreResponses, SecurityBeginData, SecurityBeginErrors, SecurityBeginResponses, SecurityConfirmData, SecurityConfirmErrors, SecurityConfirmResponses, SecurityDisableData, SecurityDisableErrors, SecurityDisableResponses, SecurityGetIpAllowlistData, SecurityGetIpAllowlistErrors, SecurityGetIpAllowlistResponses, SecuritySetIpAllowlistData, SecuritySetIpAllowlistErrors, SecuritySetIpAllowlistResponses, SecurityStatusData, SecurityStatusErrors, SecurityStatusResponses, TasksCreateData, TasksCreateErrors, TasksCreateResponses, TasksListData, TasksListErrors, TasksListResponses, TasksMoveData, TasksMoveErrors, TasksMoveResponses, TasksRemoveData, TasksRemoveErrors, TasksRemoveResponses } from './types.gen.js';
+import type { AppointmentsCancelData, AppointmentsCancelErrors, AppointmentsCancelResponses, AppointmentsCreateData, AppointmentsCreateErrors, AppointmentsCreateResponses, AppointmentsListData, AppointmentsListErrors, AppointmentsListResponses, AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, BillingUsageData, BillingUsageErrors, BillingUsageResponses, CasesArchiveData, CasesArchiveErrors, CasesArchiveResponses, CasesAssignableData, CasesAssignableErrors, CasesAssignableResponses, CasesAssignData, CasesAssignErrors, CasesAssignResponses, CasesChecklistData, CasesChecklistErrors, CasesChecklistResponses, CasesCreateData, CasesCreateErrors, CasesCreateResponses, CasesDetailData, CasesDetailErrors, CasesDetailResponses, CasesEndProcedureData, CasesEndProcedureErrors, CasesEndProcedureResponses, CasesListData, CasesListErrors, CasesListResponses, CasesOutcomeData, CasesOutcomeErrors, CasesOutcomeResponses, CasesPromoteData, CasesPromoteErrors, CasesPromoteResponses, CasesReferralData, CasesReferralErrors, CasesReferralResponses, CasesRemandData, CasesRemandErrors, CasesRemandResponses, CasesReopenProcedureData, CasesReopenProcedureErrors, CasesReopenProcedureResponses, CasesSatisfactionData, CasesSatisfactionErrors, CasesSatisfactionResponses, CasesUnassignData, CasesUnassignErrors, CasesUnassignResponses, CasesUpdateData, CasesUpdateErrors, CasesUpdateResponses, CasesWaiveData, CasesWaiveErrors, CasesWaiveResponses, CaseworkAddCommunicationData, CaseworkAddCommunicationErrors, CaseworkAddCommunicationResponses, CaseworkAddContractData, CaseworkAddContractErrors, CaseworkAddContractResponses, CaseworkAddExecutionProcedureData, CaseworkAddExecutionProcedureErrors, CaseworkAddExecutionProcedureResponses, CaseworkAdvanceApprovalData, CaseworkAdvanceApprovalErrors, CaseworkAdvanceApprovalResponses, CaseworkCreateApprovalData, CaseworkCreateApprovalErrors, CaseworkCreateApprovalResponses, CaseworkCycleExecutionProcedureData, CaseworkCycleExecutionProcedureErrors, CaseworkCycleExecutionProcedureResponses, CaseworkGetExecutionData, CaseworkGetExecutionErrors, CaseworkGetExecutionResponses, CaseworkListApprovalsData, CaseworkListApprovalsErrors, CaseworkListApprovalsResponses, CaseworkListClientApprovalsData, CaseworkListClientApprovalsErrors, CaseworkListClientApprovalsResponses, CaseworkListCommunicationsData, CaseworkListCommunicationsErrors, CaseworkListCommunicationsResponses, CaseworkListContractsData, CaseworkListContractsErrors, CaseworkListContractsResponses, CaseworkListMessagesData, CaseworkListMessagesErrors, CaseworkListMessagesResponses, CaseworkOpenExecutionData, CaseworkOpenExecutionErrors, CaseworkOpenExecutionResponses, CaseworkRecordCollectionData, CaseworkRecordCollectionErrors, CaseworkRecordCollectionResponses, CaseworkRejectApprovalData, CaseworkRejectApprovalErrors, CaseworkRejectApprovalResponses, CaseworkRemoveApprovalData, CaseworkRemoveApprovalErrors, CaseworkRemoveApprovalResponses, CaseworkRemoveCommunicationData, CaseworkRemoveCommunicationErrors, CaseworkRemoveCommunicationResponses, CaseworkRemoveContractData, CaseworkRemoveContractErrors, CaseworkRemoveContractResponses, CaseworkRemoveExecutionProcedureData, CaseworkRemoveExecutionProcedureErrors, CaseworkRemoveExecutionProcedureResponses, CaseworkRequestClientApprovalData, CaseworkRequestClientApprovalErrors, CaseworkRequestClientApprovalResponses, CaseworkSendMessageData, CaseworkSendMessageErrors, CaseworkSendMessageResponses, CaseworkSetExecutionStatusData, CaseworkSetExecutionStatusErrors, CaseworkSetExecutionStatusResponses, CaseworkToggleContractData, CaseworkToggleContractErrors, CaseworkToggleContractResponses, CaseworkUpdateExecutionData, CaseworkUpdateExecutionErrors, CaseworkUpdateExecutionProcedureData, CaseworkUpdateExecutionProcedureErrors, CaseworkUpdateExecutionProcedureResponses, CaseworkUpdateExecutionResponses, CrmClientsData, CrmClientsErrors, CrmClientsResponses, CrmConvertData, CrmConvertErrors, CrmConvertResponses, CrmCreateClientData, CrmCreateClientErrors, CrmCreateClientResponses, CrmCreateLeadData, CrmCreateLeadErrors, CrmCreateLeadResponses, CrmDeleteLeadData, CrmDeleteLeadErrors, CrmDeleteLeadResponses, CrmKpisData, CrmKpisErrors, CrmKpisResponses, CrmLeadsData, CrmLeadsErrors, CrmLeadsResponses, CrmMoveLeadData, CrmMoveLeadErrors, CrmMoveLeadResponses, CrmUpdateClientData, CrmUpdateClientErrors, CrmUpdateClientResponses, CrmUpdateLeadData, CrmUpdateLeadErrors, CrmUpdateLeadResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, HearingsAddReminderData, HearingsAddReminderErrors, HearingsAddReminderResponses, HearingsAddRequestData, HearingsAddRequestErrors, HearingsAddRequestResponses, HearingsAddTaskData, HearingsAddTaskErrors, HearingsAddTaskResponses, HearingsCancelReportData, HearingsCancelReportErrors, HearingsCancelReportResponses, HearingsCycleRequestData, HearingsCycleRequestErrors, HearingsCycleRequestResponses, HearingsDecideReportData, HearingsDecideReportErrors, HearingsDecideReportResponses, HearingsEscalateData, HearingsEscalateErrors, HearingsEscalateResponses, HearingsRecordData, HearingsRecordErrors, HearingsRecordResponses, HearingsRemoveData, HearingsRemoveErrors, HearingsRemoveReminderData, HearingsRemoveReminderErrors, HearingsRemoveReminderResponses, HearingsRemoveRequestData, HearingsRemoveRequestErrors, HearingsRemoveRequestResponses, HearingsRemoveResponses, HearingsRemoveTaskData, HearingsRemoveTaskErrors, HearingsRemoveTaskResponses, HearingsRequestReportData, HearingsRequestReportErrors, HearingsRequestReportResponses, HearingsSetNextData, HearingsSetNextErrors, HearingsSetNextResponses, HearingsUpdateData, HearingsUpdateErrors, HearingsUpdateReminderData, HearingsUpdateReminderErrors, HearingsUpdateReminderResponses, HearingsUpdateResponses, HearingsUpdateTaskData, HearingsUpdateTaskErrors, HearingsUpdateTaskResponses, OfficesBrandingData, OfficesBrandingErrors, OfficesBrandingResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, OfficesUpdateBrandingData, OfficesUpdateBrandingErrors, OfficesUpdateBrandingResponses, OverviewActivityData, OverviewActivityErrors, OverviewActivityResponses, OverviewAlertsData, OverviewAlertsErrors, OverviewAlertsResponses, OverviewDashboardData, OverviewDashboardErrors, OverviewDashboardResponses, OverviewJourneyData, OverviewJourneyErrors, OverviewJourneyResponses, OverviewListDeadlinesData, OverviewListDeadlinesErrors, OverviewListDeadlinesResponses, OverviewNotificationCountData, OverviewNotificationCountErrors, OverviewNotificationCountResponses, OverviewNotificationsData, OverviewNotificationsErrors, OverviewNotificationsResponses, OverviewSearchData, OverviewSearchErrors, OverviewSearchResponses, OverviewTodayData, OverviewTodayErrors, OverviewTodayResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses, RecycleListData, RecycleListErrors, RecycleListResponses, RecycleRestoreData, RecycleRestoreErrors, RecycleRestoreResponses, SecurityBeginData, SecurityBeginErrors, SecurityBeginResponses, SecurityConfirmData, SecurityConfirmErrors, SecurityConfirmResponses, SecurityDisableData, SecurityDisableErrors, SecurityDisableResponses, SecurityGetIpAllowlistData, SecurityGetIpAllowlistErrors, SecurityGetIpAllowlistResponses, SecuritySetIpAllowlistData, SecuritySetIpAllowlistErrors, SecuritySetIpAllowlistResponses, SecurityStatusData, SecurityStatusErrors, SecurityStatusResponses, TasksCreateData, TasksCreateErrors, TasksCreateResponses, TasksListData, TasksListErrors, TasksListResponses, TasksMoveData, TasksMoveErrors, TasksMoveResponses, TasksRemoveData, TasksRemoveErrors, TasksRemoveResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -144,6 +144,140 @@ export const casesWaive = <ThrowOnError extends boolean = false>(options: Option
         ...options.headers
     }
 });
+
+export const caseworkListApprovals = <ThrowOnError extends boolean = false>(options: Options<CaseworkListApprovalsData, ThrowOnError>): RequestResult<CaseworkListApprovalsResponses, CaseworkListApprovalsErrors, ThrowOnError> => (options.client ?? client).get<CaseworkListApprovalsResponses, CaseworkListApprovalsErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/approvals', ...options });
+
+export const caseworkCreateApproval = <ThrowOnError extends boolean = false>(options: Options<CaseworkCreateApprovalData, ThrowOnError>): RequestResult<CaseworkCreateApprovalResponses, CaseworkCreateApprovalErrors, ThrowOnError> => (options.client ?? client).post<CaseworkCreateApprovalResponses, CaseworkCreateApprovalErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/approvals',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkAdvanceApproval = <ThrowOnError extends boolean = false>(options: Options<CaseworkAdvanceApprovalData, ThrowOnError>): RequestResult<CaseworkAdvanceApprovalResponses, CaseworkAdvanceApprovalErrors, ThrowOnError> => (options.client ?? client).post<CaseworkAdvanceApprovalResponses, CaseworkAdvanceApprovalErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/approvals/{approvalId}/advance', ...options });
+
+export const caseworkRejectApproval = <ThrowOnError extends boolean = false>(options: Options<CaseworkRejectApprovalData, ThrowOnError>): RequestResult<CaseworkRejectApprovalResponses, CaseworkRejectApprovalErrors, ThrowOnError> => (options.client ?? client).post<CaseworkRejectApprovalResponses, CaseworkRejectApprovalErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/approvals/{approvalId}/reject',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkRemoveApproval = <ThrowOnError extends boolean = false>(options: Options<CaseworkRemoveApprovalData, ThrowOnError>): RequestResult<CaseworkRemoveApprovalResponses, CaseworkRemoveApprovalErrors, ThrowOnError> => (options.client ?? client).delete<CaseworkRemoveApprovalResponses, CaseworkRemoveApprovalErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/approvals/{approvalId}', ...options });
+
+export const caseworkListContracts = <ThrowOnError extends boolean = false>(options: Options<CaseworkListContractsData, ThrowOnError>): RequestResult<CaseworkListContractsResponses, CaseworkListContractsErrors, ThrowOnError> => (options.client ?? client).get<CaseworkListContractsResponses, CaseworkListContractsErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/contracts', ...options });
+
+export const caseworkAddContract = <ThrowOnError extends boolean = false>(options: Options<CaseworkAddContractData, ThrowOnError>): RequestResult<CaseworkAddContractResponses, CaseworkAddContractErrors, ThrowOnError> => (options.client ?? client).post<CaseworkAddContractResponses, CaseworkAddContractErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/contracts',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkToggleContract = <ThrowOnError extends boolean = false>(options: Options<CaseworkToggleContractData, ThrowOnError>): RequestResult<CaseworkToggleContractResponses, CaseworkToggleContractErrors, ThrowOnError> => (options.client ?? client).post<CaseworkToggleContractResponses, CaseworkToggleContractErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/contracts/{contractId}/toggle', ...options });
+
+export const caseworkRemoveContract = <ThrowOnError extends boolean = false>(options: Options<CaseworkRemoveContractData, ThrowOnError>): RequestResult<CaseworkRemoveContractResponses, CaseworkRemoveContractErrors, ThrowOnError> => (options.client ?? client).delete<CaseworkRemoveContractResponses, CaseworkRemoveContractErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/contracts/{contractId}', ...options });
+
+export const caseworkListCommunications = <ThrowOnError extends boolean = false>(options: Options<CaseworkListCommunicationsData, ThrowOnError>): RequestResult<CaseworkListCommunicationsResponses, CaseworkListCommunicationsErrors, ThrowOnError> => (options.client ?? client).get<CaseworkListCommunicationsResponses, CaseworkListCommunicationsErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/communications', ...options });
+
+export const caseworkAddCommunication = <ThrowOnError extends boolean = false>(options: Options<CaseworkAddCommunicationData, ThrowOnError>): RequestResult<CaseworkAddCommunicationResponses, CaseworkAddCommunicationErrors, ThrowOnError> => (options.client ?? client).post<CaseworkAddCommunicationResponses, CaseworkAddCommunicationErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/communications',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkRemoveCommunication = <ThrowOnError extends boolean = false>(options: Options<CaseworkRemoveCommunicationData, ThrowOnError>): RequestResult<CaseworkRemoveCommunicationResponses, CaseworkRemoveCommunicationErrors, ThrowOnError> => (options.client ?? client).delete<CaseworkRemoveCommunicationResponses, CaseworkRemoveCommunicationErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/communications/{communicationId}', ...options });
+
+export const caseworkListMessages = <ThrowOnError extends boolean = false>(options: Options<CaseworkListMessagesData, ThrowOnError>): RequestResult<CaseworkListMessagesResponses, CaseworkListMessagesErrors, ThrowOnError> => (options.client ?? client).get<CaseworkListMessagesResponses, CaseworkListMessagesErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/messages', ...options });
+
+export const caseworkSendMessage = <ThrowOnError extends boolean = false>(options: Options<CaseworkSendMessageData, ThrowOnError>): RequestResult<CaseworkSendMessageResponses, CaseworkSendMessageErrors, ThrowOnError> => (options.client ?? client).post<CaseworkSendMessageResponses, CaseworkSendMessageErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/messages',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkListClientApprovals = <ThrowOnError extends boolean = false>(options: Options<CaseworkListClientApprovalsData, ThrowOnError>): RequestResult<CaseworkListClientApprovalsResponses, CaseworkListClientApprovalsErrors, ThrowOnError> => (options.client ?? client).get<CaseworkListClientApprovalsResponses, CaseworkListClientApprovalsErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/client-approvals', ...options });
+
+export const caseworkRequestClientApproval = <ThrowOnError extends boolean = false>(options: Options<CaseworkRequestClientApprovalData, ThrowOnError>): RequestResult<CaseworkRequestClientApprovalResponses, CaseworkRequestClientApprovalErrors, ThrowOnError> => (options.client ?? client).post<CaseworkRequestClientApprovalResponses, CaseworkRequestClientApprovalErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/client-approvals',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkGetExecution = <ThrowOnError extends boolean = false>(options: Options<CaseworkGetExecutionData, ThrowOnError>): RequestResult<CaseworkGetExecutionResponses, CaseworkGetExecutionErrors, ThrowOnError> => (options.client ?? client).get<CaseworkGetExecutionResponses, CaseworkGetExecutionErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/execution', ...options });
+
+export const caseworkUpdateExecution = <ThrowOnError extends boolean = false>(options: Options<CaseworkUpdateExecutionData, ThrowOnError>): RequestResult<CaseworkUpdateExecutionResponses, CaseworkUpdateExecutionErrors, ThrowOnError> => (options.client ?? client).patch<CaseworkUpdateExecutionResponses, CaseworkUpdateExecutionErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/execution',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkOpenExecution = <ThrowOnError extends boolean = false>(options: Options<CaseworkOpenExecutionData, ThrowOnError>): RequestResult<CaseworkOpenExecutionResponses, CaseworkOpenExecutionErrors, ThrowOnError> => (options.client ?? client).post<CaseworkOpenExecutionResponses, CaseworkOpenExecutionErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/execution',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkSetExecutionStatus = <ThrowOnError extends boolean = false>(options: Options<CaseworkSetExecutionStatusData, ThrowOnError>): RequestResult<CaseworkSetExecutionStatusResponses, CaseworkSetExecutionStatusErrors, ThrowOnError> => (options.client ?? client).put<CaseworkSetExecutionStatusResponses, CaseworkSetExecutionStatusErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/execution/status',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkRecordCollection = <ThrowOnError extends boolean = false>(options: Options<CaseworkRecordCollectionData, ThrowOnError>): RequestResult<CaseworkRecordCollectionResponses, CaseworkRecordCollectionErrors, ThrowOnError> => (options.client ?? client).post<CaseworkRecordCollectionResponses, CaseworkRecordCollectionErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/execution/collections',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkAddExecutionProcedure = <ThrowOnError extends boolean = false>(options: Options<CaseworkAddExecutionProcedureData, ThrowOnError>): RequestResult<CaseworkAddExecutionProcedureResponses, CaseworkAddExecutionProcedureErrors, ThrowOnError> => (options.client ?? client).post<CaseworkAddExecutionProcedureResponses, CaseworkAddExecutionProcedureErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/execution/procedures',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkRemoveExecutionProcedure = <ThrowOnError extends boolean = false>(options: Options<CaseworkRemoveExecutionProcedureData, ThrowOnError>): RequestResult<CaseworkRemoveExecutionProcedureResponses, CaseworkRemoveExecutionProcedureErrors, ThrowOnError> => (options.client ?? client).delete<CaseworkRemoveExecutionProcedureResponses, CaseworkRemoveExecutionProcedureErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/execution/procedures/{procedureId}', ...options });
+
+export const caseworkUpdateExecutionProcedure = <ThrowOnError extends boolean = false>(options: Options<CaseworkUpdateExecutionProcedureData, ThrowOnError>): RequestResult<CaseworkUpdateExecutionProcedureResponses, CaseworkUpdateExecutionProcedureErrors, ThrowOnError> => (options.client ?? client).patch<CaseworkUpdateExecutionProcedureResponses, CaseworkUpdateExecutionProcedureErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/execution/procedures/{procedureId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const caseworkCycleExecutionProcedure = <ThrowOnError extends boolean = false>(options: Options<CaseworkCycleExecutionProcedureData, ThrowOnError>): RequestResult<CaseworkCycleExecutionProcedureResponses, CaseworkCycleExecutionProcedureErrors, ThrowOnError> => (options.client ?? client).post<CaseworkCycleExecutionProcedureResponses, CaseworkCycleExecutionProcedureErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/execution/procedures/{procedureId}/cycle', ...options });
 
 export const hearingsRecord = <ThrowOnError extends boolean = false>(options: Options<HearingsRecordData, ThrowOnError>): RequestResult<HearingsRecordResponses, HearingsRecordErrors, ThrowOnError> => (options.client ?? client).post<HearingsRecordResponses, HearingsRecordErrors, ThrowOnError>({
     url: '/api/v1/cases/{id}/hearings',

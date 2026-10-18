@@ -31,6 +31,7 @@ const OFFICE_F = "ffffffff-0000-4000-8000-00000000000f";
 const OFFICE_G = "99999999-0000-4000-8000-000000000009";
 const OFFICE_H = "88888888-0000-4000-8000-000000000008";
 const OFFICE_I = "77777777-0000-4000-8000-000000000007";
+const OFFICE_J = "66666666-0000-4000-8000-000000000006";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -68,6 +69,10 @@ const LAWYER_I1 = "0500000702";
 const LAWYER_I2 = "0500000703";
 const RECEPTION_I = "0500000704";
 
+const PARTNER_J = "0500000801";
+const LAWYER_J1 = "0500000802";
+const LAWYER_J2 = "0500000803";
+
 let app: NestFastifyApplication;
 
 const e164 = (local: string) => `+966${local.slice(1)}`;
@@ -104,7 +109,7 @@ const cookieOf = (res: { headers: Record<string, unknown> }) =>
 beforeAll(async () => {
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -150,6 +155,16 @@ beforeAll(async () => {
         [PARTNER_G, "PARTNER"],
         [LAWYER_G1, "LAWYER"],
         [LAWYER_G2, "LAWYER"],
+      ],
+    ],
+    [
+      OFFICE_J,
+      "Office J",
+      [],
+      [
+        [PARTNER_J, "PARTNER"],
+        [LAWYER_J1, "LAWYER"],
+        [LAWYER_J2, "LAWYER"],
       ],
     ],
     [
@@ -218,6 +233,7 @@ beforeAll(async () => {
     OFFICE_G,
     OFFICE_H,
     OFFICE_I,
+    OFFICE_J,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -1664,5 +1680,237 @@ describe("office overview: deadlines, alerts, notifications, search, today, repo
       byRec.rows.every((r: { actorName: string }) => r.actorName === `user ${RECEPTION_I}`),
     ).toBe(true);
     expect(byRec.rows.map((r: { action: string }) => r.action)).toContain("appointment.cancel");
+  });
+});
+
+describe("case work: approvals, contracts, contact log, chat, client approvals, execution", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let lawyer1 = "";
+  let lawyer2 = "";
+  let id = "";
+  const as = (
+    cookie: string,
+    method: "GET" | "PUT" | "POST" | "PATCH" | "DELETE",
+    url: string,
+    payload?: object,
+  ) => app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+  const get = async (cookie: string, url: string) => (await as(cookie, "GET", url)).json().data;
+  const base = () => `/api/v1/cases/${id}`;
+  const keys = async () =>
+    ((await get(lawyer1, base())).events as Array<{ message: { messageKey: string } | null }>).map(
+      (e) => e.message?.messageKey,
+    );
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_J));
+    lawyer1 = cookieOf(await login(LAWYER_J1));
+    lawyer2 = cookieOf(await login(LAWYER_J2));
+    id = (
+      await as(lawyer1, "POST", "/api/v1/cases", { number: "1447/60", title: "ملف التنفيذ" })
+    ).json().data.id;
+  });
+
+  it("walks the review pipeline; only the full level gives the partner approval", async () => {
+    await as(lawyer1, "POST", `${base()}/hearings`, {
+      hearingDate: "2026-05-01",
+      clientReport: "تقرير",
+    });
+    const h = (await get(lawyer1, base())).hearings[0];
+    await as(lawyer1, "POST", `${base()}/hearings/${h.id}/report/request`);
+    const aid = (
+      await as(lawyer1, "POST", `${base()}/approvals`, { title: "مذكرة الرد", hearingId: h.id })
+    ).json().data.id;
+    for (let i = 0; i < 4; i++) await as(lawyer1, "POST", `${base()}/approvals/${aid}/advance`);
+    let list = await get(lawyer1, `${base()}/approvals`);
+    expect(list[0].stage).toBe("PARTNER");
+
+    const today = await get(lawyer1, "/api/v1/today");
+    expect(today.approvals.items.map((a: { id: string }) => a.id)).toContain(aid);
+    expect((await get(lawyer2, "/api/v1/today")).approvals.items).toEqual([]); // out of scope
+    const notif = await get(lawyer1, "/api/v1/notifications");
+    expect(notif.some((n: { id: string }) => n.id === `approval:${aid}`)).toBe(true);
+
+    const denied = await as(lawyer1, "POST", `${base()}/approvals/${aid}/advance`);
+    expect(denied.statusCode).toBe(403);
+    expect(denied.json().error.messageKey).toBe("errors.APPROVAL_NEEDS_PARTNER");
+    expect((await as(partner, "POST", `${base()}/approvals/${aid}/advance`)).statusCode).toBe(200);
+    list = await get(lawyer1, `${base()}/approvals`);
+    expect(list[0].stage).toBe("APPROVED");
+    expect(list[0].log[0].message).toEqual({
+      messageKey: "event.approvalAdvanced",
+      params: { title: "مذكرة الرد", stage: "@approvalStage.APPROVED" },
+    });
+    expect((await get(lawyer1, base())).hearings[0]).toMatchObject({
+      reportApproved: true,
+      reportApprovalRequested: false,
+    });
+
+    await as(lawyer1, "POST", `${base()}/approvals/${aid}/reject`, { note: "إعادة صياغة" });
+    list = await get(lawyer1, `${base()}/approvals`);
+    expect(list[0].stage).toBe("DRAFT");
+    expect(list[0].log[0].message.messageKey).toBe("event.approvalRejectedWithNote");
+    expect((await as(lawyer1, "DELETE", `${base()}/approvals/${aid}`)).statusCode).toBe(403);
+    expect((await as(partner, "DELETE", `${base()}/approvals/${aid}`)).statusCode).toBe(200);
+    expect(await get(lawyer1, `${base()}/approvals`)).toEqual([]);
+    expect((await as(lawyer2, "GET", `${base()}/approvals`)).statusCode).toBe(404);
+  });
+
+  it("tracks contracts, the contact log, chat and client approval requests", async () => {
+    const cid = (await as(lawyer1, "POST", `${base()}/contracts`, { title: "عقد الأتعاب" })).json()
+      .data.id;
+    await as(lawyer1, "POST", `${base()}/contracts/${cid}/toggle`);
+    let contracts = await get(lawyer1, `${base()}/contracts`);
+    expect(contracts[0]).toMatchObject({ title: "عقد الأتعاب", isSigned: true });
+    expect(contracts[0].signedAt).not.toBeNull();
+    await as(lawyer1, "POST", `${base()}/contracts/${cid}/toggle`);
+    contracts = await get(lawyer1, `${base()}/contracts`);
+    expect(contracts[0]).toMatchObject({ isSigned: false, signedAt: null });
+    await as(lawyer1, "DELETE", `${base()}/contracts/${cid}`);
+    expect(await get(lawyer1, `${base()}/contracts`)).toEqual([]);
+
+    await as(lawyer1, "POST", `${base()}/communications`, { type: "CALL", note: "اتصال بالموكل" });
+    const comms = await get(lawyer1, `${base()}/communications`);
+    expect(comms[0]).toMatchObject({
+      type: "CALL",
+      note: "اتصال بالموكل",
+      authorName: `user ${LAWYER_J1}`,
+    });
+    await as(lawyer1, "DELETE", `${base()}/communications/${comms[0].id}`);
+    expect(await get(lawyer1, `${base()}/communications`)).toEqual([]);
+
+    await as(lawyer1, "POST", `${base()}/messages`, { body: "مرحباً" });
+    expect(await get(lawyer1, `${base()}/messages`)).toMatchObject([
+      { senderType: "STAFF", senderName: `user ${LAWYER_J1}`, body: "مرحباً" },
+    ]);
+    expect((await as(lawyer1, "POST", `${base()}/messages`, { body: "  " })).statusCode).toBe(400);
+
+    await as(lawyer1, "POST", `${base()}/client-approvals`, {
+      title: "مذكرة",
+      kind: "MEMO",
+      amount: 5000,
+    });
+    await as(lawyer1, "POST", `${base()}/client-approvals`, {
+      title: "عرض أتعاب",
+      kind: "FEE",
+      amount: 500000,
+    });
+    const reqs = await get(lawyer1, `${base()}/client-approvals`);
+    expect(
+      reqs.map((r: { kind: string; amount: number | null; status: string }) => [
+        r.kind,
+        r.amount,
+        r.status,
+      ]),
+    ).toEqual([
+      ["FEE", 500000, "PENDING"],
+      ["MEMO", null, "PENDING"],
+    ]);
+    expect(await keys()).toEqual(
+      expect.arrayContaining([
+        "event.contractAdded",
+        "event.contractSigned",
+        "event.contractUnsigned",
+        "event.contractDeleted",
+        "event.communicationAdded",
+        "event.clientApprovalCreated",
+      ]),
+    );
+  });
+
+  it("runs an execution file: one per case, collections move the status, follow-ups make reminders", async () => {
+    expect((await get(lawyer1, `${base()}/execution`)).execution).toBeNull();
+    expect(
+      (await as(lawyer1, "POST", `${base()}/execution/collections`, { amount: 1 })).json().error
+        .messageKey,
+    ).toBe("errors.EXECUTION_NOT_OPEN");
+    await as(lawyer1, "POST", `${base()}/execution`, {
+      court: "محكمة التنفيذ",
+      amount: 100000,
+      debtor: "شركة المدين",
+    });
+    const again = await as(lawyer1, "POST", `${base()}/execution`, {});
+    expect(again.json().error.messageKey).toBe("errors.EXECUTION_ALREADY_OPEN");
+
+    // Concurrent collections must not lose an amount.
+    await Promise.all(
+      [10000, 10000, 10000, 10000, 10000].map((amount) =>
+        as(lawyer1, "POST", `${base()}/execution/collections`, { amount }),
+      ),
+    );
+    let ex = (await get(lawyer1, `${base()}/execution`)).execution;
+    expect(ex).toMatchObject({
+      collected: 50000,
+      status: "PARTIALLY_COLLECTED",
+      court: "محكمة التنفيذ",
+    });
+    await as(lawyer1, "POST", `${base()}/execution/collections`, { amount: 50000 });
+    expect((await get(lawyer1, `${base()}/execution`)).execution.status).toBe("FULLY_COLLECTED");
+    await as(lawyer1, "PUT", `${base()}/execution/status`, { status: "STALLED" });
+    await as(lawyer1, "POST", `${base()}/execution/collections`, { amount: 1 });
+    expect((await get(lawyer1, `${base()}/execution`)).execution.status).toBe("STALLED");
+    expect(
+      (await as(lawyer1, "POST", `${base()}/execution/collections`, { amount: 0 })).statusCode,
+    ).toBe(400);
+    await as(lawyer1, "PATCH", `${base()}/execution`, {
+      court: "دائرة التنفيذ الأولى",
+      amount: 120000,
+    });
+
+    const users = (await get(lawyer1, "/api/v1/cases/assignable-users")) as Array<{
+      id: string;
+      name: string;
+    }>;
+    const l1 = users.find((u) => u.name === `user ${LAWYER_J1}`)!;
+    const bad = await as(lawyer1, "POST", `${base()}/execution/procedures`, {
+      type: "حجز حسابات بنكية",
+      followUpDate: "2026-12-01",
+      followUpAssigneeId: OFFICE_A,
+    });
+    expect(bad.json().error.details[0].path).toBe("followUpAssigneeId");
+    const pid = (
+      await as(lawyer1, "POST", `${base()}/execution/procedures`, {
+        type: "حجز حسابات بنكية",
+        party: "OURS",
+        followUpDate: "2026-12-01",
+        followUpAssigneeId: l1.id,
+      })
+    ).json().data.id;
+    await as(lawyer1, "POST", `${base()}/execution/procedures/${pid}/cycle`);
+    ex = (await get(lawyer1, `${base()}/execution`)).execution;
+    expect(ex).toMatchObject({ court: "دائرة التنفيذ الأولى", amount: 120000 });
+    expect(ex.procedures[0]).toMatchObject({
+      type: "حجز حسابات بنكية",
+      status: "IN_PROGRESS",
+      followUpAssigneeName: `user ${LAWYER_J1}`,
+    });
+    const deadlines = (await get(lawyer1, "/api/v1/deadlines")) as Array<{
+      kind: string;
+      label: string | null;
+    }>;
+    expect(deadlines.some((d) => d.label === "متابعة إجراء تنفيذ: حجز حسابات بنكية")).toBe(true);
+    const tasks = (await get(lawyer1, "/api/v1/tasks")) as Array<{ origin: string }>;
+    expect(tasks.some((tk) => tk.origin === "AUTO_EXECUTION_FOLLOWUP")).toBe(true);
+    expect(
+      (await as(lawyer1, "POST", `${base()}/execution/procedures`, { type: "نوع غير معروف" }))
+        .statusCode,
+    ).toBe(400);
+
+    expect((await as(lawyer1, "DELETE", `${base()}/execution/procedures/${pid}`)).statusCode).toBe(
+      403,
+    );
+    await as(partner, "DELETE", `${base()}/execution/procedures/${pid}`);
+    expect((await get(lawyer1, `${base()}/execution`)).execution.procedures).toEqual([]);
+    const after = (await get(lawyer1, "/api/v1/deadlines")) as Array<{ label: string | null }>;
+    expect(after.some((d) => d.label === "متابعة إجراء تنفيذ: حجز حسابات بنكية")).toBe(false);
+
+    await as(lawyer1, "PUT", `${base()}/execution/status`, { status: "CLOSED" });
+    expect(await keys()).toEqual(
+      expect.arrayContaining([
+        "event.executionOpened",
+        "event.executionCollected",
+        "event.executionClosed",
+      ]),
+    );
   });
 });

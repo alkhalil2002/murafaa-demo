@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { approvalStepNeedsPartner, clientApprovalAmount } from "../src/casework.js";
 import {
   APPROVAL_STAGES,
   leadConversionPct,
@@ -58,5 +59,18 @@ describe("lead KPIs", () => {
   it("rounds the conversion rate and handles no leads", () => {
     expect(leadConversionPct(3, 1)).toBe(33);
     expect(leadConversionPct(0, 0)).toBe(0);
+  });
+});
+
+describe("case work rules", () => {
+  it("a memo never carries an amount", () => {
+    expect(clientApprovalAmount("MEMO", 5000)).toBeNull();
+    expect(clientApprovalAmount("FEE", 5000)).toBe(5000);
+    expect(clientApprovalAmount("SETTLEMENT", undefined)).toBeNull();
+  });
+
+  it("only the step out of the partner stage needs the partner tier", () => {
+    expect(approvalStepNeedsPartner("PARTNER")).toBe(true);
+    expect(approvalStepNeedsPartner("PROOFREADING")).toBe(false);
   });
 });
