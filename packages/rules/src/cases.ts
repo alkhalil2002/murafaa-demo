@@ -64,3 +64,43 @@ export function winRate(countByOutcome: Partial<Record<CaseOutcome, number>>): n
   const partial = countByOutcome.PARTIAL ?? 0;
   return Math.round(((won + partial * 0.5) / total) * 100);
 }
+
+/** Our client's side in the case. Labels: cases.role.plaintiff / cases.role.defendant. */
+export const PARTY_ROLES = ["PLAINTIFF", "DEFENDANT"] as const;
+export type PartyRole = (typeof PARTY_ROLES)[number];
+
+/** The opponent is on the other side of our client. */
+export function opponentRole(role: PartyRole): PartyRole {
+  return role === "PLAINTIFF" ? "DEFENDANT" : "PLAINTIFF";
+}
+
+/** Case timeline event kinds. Labels: caseEventType.* */
+export const CASE_EVENT_TYPES = [
+  "STAGE",
+  "REQUEST",
+  "DOC",
+  "APPROVAL",
+  "OPENING",
+  "DEADLINE",
+  "MESSAGE",
+  "SYSTEM",
+] as const;
+export type CaseEventType = (typeof CASE_EVENT_TYPES)[number];
+
+/** Conflict flag lifecycle: WAIVED is a documented partner decision; RESOLVED means it stopped firing. */
+export const CONFLICT_STATUSES = ["ACTIVE", "WAIVED", "RESOLVED"] as const;
+export type ConflictStatus = (typeof CONFLICT_STATUSES)[number];
+
+/** The fixed closing checklist (legacy CLOSING_CHECKLIST_ITEMS). Labels: cases.closing.checklist.* */
+export const CLOSING_CHECKLIST_ITEMS = [
+  "finalSettlement",
+  "returnClientDocs",
+  "closeLinkedTasks",
+  "archiveFile",
+] as const;
+export type ClosingChecklistKey = (typeof CLOSING_CHECKLIST_ITEMS)[number];
+
+/** Client satisfaction is a whole number of stars from 1 to 5. */
+export function clampSatisfaction(score: number): number {
+  return Math.max(1, Math.min(5, Math.round(score)));
+}

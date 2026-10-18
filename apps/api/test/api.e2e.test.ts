@@ -27,6 +27,7 @@ const OFFICE_LOCKED = "cccccccc-0000-4000-8000-00000000000c";
 const OFFICE_D = "dddddddd-0000-4000-8000-00000000000d";
 const OFFICE_E = "eeeeeeee-0000-4000-8000-00000000000e";
 const OFFICE_F = "ffffffff-0000-4000-8000-00000000000f";
+const OFFICE_G = "99999999-0000-4000-8000-000000000009";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -50,6 +51,10 @@ const LAWYER_E = "0500000302";
 const PARTNER_F = "0500000401";
 const RECEPTION_F = "0500000402";
 const ACCOUNTANT_F = "0500000403";
+// Office G: cases, conflicts and row scope.
+const PARTNER_G = "0500000501";
+const LAWYER_G1 = "0500000502";
+const LAWYER_G2 = "0500000503";
 
 let app: NestFastifyApplication;
 
@@ -87,7 +92,7 @@ const cookieOf = (res: { headers: Record<string, unknown> }) =>
 beforeAll(async () => {
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -126,6 +131,16 @@ beforeAll(async () => {
       ],
     ],
     [
+      OFFICE_G,
+      "Office G",
+      [],
+      [
+        [PARTNER_G, "PARTNER"],
+        [LAWYER_G1, "LAWYER"],
+        [LAWYER_G2, "LAWYER"],
+      ],
+    ],
+    [
       OFFICE_F,
       "Office F",
       [],
@@ -160,7 +175,15 @@ beforeAll(async () => {
 
   // Every office starts from the docs/04 default policy, as a new office would.
   const seeder = createDb(OWNER_URL, { max: 1 });
-  for (const office of [OFFICE_A, OFFICE_B, OFFICE_LOCKED, OFFICE_D, OFFICE_E, OFFICE_F]) {
+  for (const office of [
+    OFFICE_A,
+    OFFICE_B,
+    OFFICE_LOCKED,
+    OFFICE_D,
+    OFFICE_E,
+    OFFICE_F,
+    OFFICE_G,
+  ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
   await seeder.close();
@@ -800,5 +823,309 @@ describe("clients and leads (CRM)", () => {
         .json()
         .data.some((l: { id: string }) => l.id === lead.id),
     ).toBe(true);
+  });
+});
+
+describe("cases, conflicts and row scope", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let lawyer1 = "";
+  let lawyer2 = "";
+  const as = (
+    cookie: string,
+    method: "GET" | "PUT" | "POST" | "PATCH" | "DELETE",
+    url: string,
+    payload?: object,
+  ) => app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+  const detail = async (cookie: string, id: string) =>
+    (await as(cookie, "GET", `/api/v1/cases/${id}`)).json().data;
+  const clientId = async (name: string) =>
+    (
+      (await as(partner, "GET", "/api/v1/clients")).json().data as Array<{
+        id: string;
+        name: string;
+      }>
+    ).find((c) => c.name === name)!.id;
+  const newCase = async (cookie: string, body: object) =>
+    (await as(cookie, "POST", "/api/v1/cases", { number: "1447/1", ...body })).json().data
+      .id as string;
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_G));
+    lawyer1 = cookieOf(await login(LAWYER_G1));
+    lawyer2 = cookieOf(await login(LAWYER_G2));
+    await as(partner, "POST", "/api/v1/clients", { name: "شركة الأمل" });
+    await as(partner, "POST", "/api/v1/clients", { name: "أحمد سالم" });
+    await as(partner, "POST", "/api/v1/leads", { name: "مؤسسة الندى" });
+  });
+
+  it("creates a case, assigns the creator and writes the timeline", async () => {
+    const id = await newCase(lawyer1, {
+      title: "مطالبة مالية",
+      clientId: await clientId("شركة الأمل"),
+      opposingParty: "شركة بعيدة",
+    });
+    const c = await detail(lawyer1, id);
+    expect(c).toMatchObject({
+      title: "مطالبة مالية",
+      stage: "FIRST_INSTANCE",
+      effectiveStage: "FIRST_INSTANCE",
+      status: "ACTIVE",
+      client: { name: "شركة الأمل" },
+    });
+    expect(c.assignees.map((a: { name: string }) => a.name)).toEqual([`user ${LAWYER_G1}`]);
+    expect(c.events[0]).toMatchObject({
+      type: "SYSTEM",
+      message: { messageKey: "event.caseCreated" },
+      actorName: `user ${LAWYER_G1}`,
+    });
+    expect(c.conflicts).toEqual([]);
+  });
+
+  it("hides cases outside an ASSIGNED role's scope (and audits the attempt)", async () => {
+    const id = await newCase(lawyer1, { title: "قضية خاصة" });
+    expect(
+      (await as(lawyer2, "GET", "/api/v1/cases"))
+        .json()
+        .data.some((c: { id: string }) => c.id === id),
+    ).toBe(false);
+    expect((await as(lawyer2, "GET", `/api/v1/cases/${id}`)).statusCode).toBe(404);
+    expect((await as(lawyer2, "POST", `/api/v1/cases/${id}/stage/promote`)).statusCode).toBe(404);
+    expect(
+      (await as(partner, "GET", "/api/v1/cases"))
+        .json()
+        .data.some((c: { id: string }) => c.id === id),
+    ).toBe(true);
+    const log = (await as(partner, "GET", "/api/v1/permissions/audit")).json().data as Array<{
+      action: string;
+    }>;
+    expect(log.some((e) => e.action === "access.case.scope")).toBe(true);
+  });
+
+  it("flags an opponent who is our client (HIGH) and a lead (MEDIUM), with Arabic-aware matching", async () => {
+    const high = await newCase(lawyer1, { title: "ضد عميل", opposingParty: "احمد سالم" }); // أحمد vs احمد
+    const c1 = await detail(lawyer1, high);
+    expect(c1.conflicts).toEqual([
+      expect.objectContaining({
+        severity: "HIGH",
+        status: "ACTIVE",
+        message: { messageKey: "conflict.opponentIsClient", params: { opponent: "احمد سالم" } },
+      }),
+    ]);
+    const medium = await newCase(lawyer1, { title: "ضد عميل محتمل", opposingParty: "مؤسسة الندى" });
+    expect((await detail(lawyer1, medium)).conflicts[0]).toMatchObject({
+      severity: "MEDIUM",
+      message: { messageKey: "conflict.opponentIsLead" },
+    });
+    const list = (await as(lawyer1, "GET", "/api/v1/cases")).json().data as Array<{
+      id: string;
+      conflictSeverity: string | null;
+    }>;
+    expect(list.find((c) => c.id === high)?.conflictSeverity).toBe("HIGH");
+  });
+
+  it("re-scans existing cases when a matching client is added later (reverse trigger)", async () => {
+    const id = await newCase(lawyer1, { title: "خصم جديد", opposingParty: "شركة الغد" });
+    expect((await detail(lawyer1, id)).conflicts).toEqual([]);
+    await as(partner, "POST", "/api/v1/clients", { name: "شركة الغد" });
+    expect((await detail(lawyer1, id)).conflicts[0]).toMatchObject({
+      severity: "HIGH",
+      message: { messageKey: "conflict.opponentIsClient" },
+    });
+  });
+
+  it("names other cases only to viewers who can see them", async () => {
+    const zaid = await (async () => {
+      await as(partner, "POST", "/api/v1/clients", { name: "زيد" });
+      return clientId("زيد");
+    })();
+    // Lawyer 1's case for client زيد; a partner-only case where زيد is the opponent.
+    const mine = await newCase(lawyer1, { title: "قضية زيد", clientId: zaid });
+    await newCase(partner, { title: "سرّية", opposingParty: "زيد" });
+    const forLawyer = (await detail(lawyer1, mine)).conflicts.find(
+      (f: { message: { messageKey: string } }) =>
+        f.message.messageKey.startsWith("conflict.ourClientIsOpponent"),
+    );
+    expect(forLawyer.message).toEqual({
+      messageKey: "conflict.ourClientIsOpponentOtherCaseGeneric",
+      params: { client: "زيد", count: 1 },
+    });
+    const forPartner = (await detail(partner, mine)).conflicts.find(
+      (f: { message: { messageKey: string } }) =>
+        f.message.messageKey.startsWith("conflict.ourClientIsOpponent"),
+    );
+    expect(forPartner.message).toEqual({
+      messageKey: "conflict.ourClientIsOpponentOtherCase",
+      params: { client: "زيد", cases: "سرّية" },
+    });
+  });
+
+  it("lets only partners waive; a waiver survives re-scans and a cleared conflict resolves", async () => {
+    const id = await newCase(lawyer1, { title: "تنازل", opposingParty: "شركة الأمل" });
+    // The opponent is both a client (rule 1) and our client in another case (rule 3).
+    const flags = (await detail(lawyer1, id)).conflicts as Array<{
+      id: string;
+      message: { messageKey: string };
+    }>;
+    expect(flags.map((f) => f.message.messageKey).sort()).toEqual([
+      "conflict.opponentIsClient",
+      "conflict.opponentIsOurClientOtherCase",
+    ]);
+    const flag = flags.find((f) => f.message.messageKey === "conflict.opponentIsClient")!;
+    expect(
+      (await as(lawyer1, "POST", `/api/v1/cases/${id}/conflicts/${flag.id}/waive`, { note: "x" }))
+        .statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await as(partner, "POST", `/api/v1/cases/${id}/conflicts/${flag.id}/waive`, {
+          note: "موافقة كتابية من العميلين",
+        })
+      ).statusCode,
+    ).toBe(200);
+    await as(partner, "PATCH", `/api/v1/clients/${await clientId("شركة الأمل")}`, { city: "جدة" }); // not a rename: no change
+    await as(lawyer1, "PATCH", `/api/v1/cases/${id}`, { entity: "المحكمة التجارية" }); // not a party change
+    let c = await detail(lawyer1, id);
+    expect(c.conflicts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: flag.id,
+          status: "WAIVED",
+          waiverNote: "موافقة كتابية من العميلين",
+        }),
+        expect.objectContaining({
+          status: "ACTIVE",
+          message: expect.objectContaining({ messageKey: "conflict.opponentIsOurClientOtherCase" }),
+        }),
+      ]),
+    );
+
+    const other = await newCase(lawyer1, { title: "يزول", opposingParty: "أحمد سالم" });
+    await as(lawyer1, "PATCH", `/api/v1/cases/${other}`, { opposingParty: "طرف آخر" });
+    c = await detail(lawyer1, other);
+    expect(c.conflicts).toEqual([]);
+    expect(
+      (
+        (await as(lawyer1, "GET", "/api/v1/cases")).json().data as Array<{
+          id: string;
+          conflictSeverity: string | null;
+        }>
+      ).find((x) => x.id === other)?.conflictSeverity,
+    ).toBeNull();
+  });
+
+  it("tracks stage, procedure, outcome, assignees and closing", async () => {
+    const id = await newCase(lawyer1, { title: "مراحل" });
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/stage/promote`);
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/stage/remand`);
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/stage/remand`);
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/stage/remand`); // already first: no-op
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/procedure/end`, { result: "صلح" });
+    await as(lawyer1, "PUT", `/api/v1/cases/${id}/outcome`, { outcome: "SETTLED" });
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/closing/checklist`, { key: "archiveFile" });
+    await as(lawyer1, "PUT", `/api/v1/cases/${id}/satisfaction`, { score: 5 });
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/referral`);
+
+    const users = (await as(lawyer1, "GET", "/api/v1/cases/assignable-users")).json()
+      .data as Array<{ id: string; name: string }>;
+    const l2 = users.find((u) => u.name === `user ${LAWYER_G2}`)!;
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/assignees`, { userId: l2.id });
+    expect((await as(lawyer2, "GET", `/api/v1/cases/${id}`)).statusCode).toBe(200);
+    await as(lawyer1, "DELETE", `/api/v1/cases/${id}/assignees/${l2.id}`);
+    expect((await as(lawyer2, "GET", `/api/v1/cases/${id}`)).statusCode).toBe(404);
+
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/archive`);
+    const c = await detail(lawyer1, id);
+    expect(c).toMatchObject({
+      stage: "RECONCILIATION",
+      procEnded: true,
+      procResult: "صلح",
+      outcome: "SETTLED",
+      closingChecklist: { archiveFile: true },
+      clientSatisfactionScore: 5,
+      referralRequested: true,
+      isArchived: true,
+      status: "CLOSED",
+    });
+    const keys = c.events.map(
+      (e: { message: { messageKey: string } | null }) => e.message?.messageKey,
+    );
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        "event.stagePromoted",
+        "event.stageRemanded",
+        "event.procEnded",
+        "event.outcomeSet",
+        "event.assigneeAdded",
+        "event.assigneeRemoved",
+        "event.caseArchived",
+      ]),
+    );
+    expect(
+      c.events.find(
+        (e: { message: { messageKey: string } | null }) =>
+          e.message?.messageKey === "event.stagePromoted",
+      ).message.params,
+    ).toEqual({ stage: "@case.stage.APPEAL" });
+    expect(
+      c.events.find(
+        (e: { message: { messageKey: string } | null }) =>
+          e.message?.messageKey === "event.assigneeRemoved",
+      ).message.params,
+    ).toEqual({ name: `user ${LAWYER_G2}` });
+  });
+
+  it("refuses a client from another office", async () => {
+    const res = await as(lawyer1, "POST", "/api/v1/cases", {
+      number: "1",
+      title: "x",
+      clientId: OFFICE_A,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.details[0].path).toBe("clientId");
+  });
+
+  it("converts a contracted lead into a client and a case, exactly once", async () => {
+    await as(lawyer1, "POST", "/api/v1/leads", { name: "مؤسسة الريان", phone: "0555777000" });
+    const lead = (
+      (await as(lawyer1, "GET", "/api/v1/leads")).json().data as Array<{ id: string; name: string }>
+    ).find((l) => l.name === "مؤسسة الريان")!;
+    const early = await as(lawyer1, "POST", `/api/v1/leads/${lead.id}/convert`);
+    expect(early.json().error).toMatchObject({
+      code: "CONFLICT",
+      messageKey: "errors.LEAD_NOT_CONTRACTED",
+    });
+
+    for (let i = 0; i < 3; i++)
+      await as(lawyer1, "POST", `/api/v1/leads/${lead.id}/move`, { direction: 1 });
+    const converted = (await as(lawyer1, "POST", `/api/v1/leads/${lead.id}/convert`)).json().data;
+    const again = await as(lawyer1, "POST", `/api/v1/leads/${lead.id}/convert`);
+    expect(again.json().error.messageKey).toBe("errors.LEAD_ALREADY_CONVERTED");
+
+    const c = await detail(lawyer1, converted.caseId); // the converter can see it
+    expect(c).toMatchObject({
+      title: "قضية مؤسسة الريان",
+      client: { name: "مؤسسة الريان", phone: "+966555777000" },
+    });
+    expect(c.events[0].message).toEqual({
+      messageKey: "event.leadConverted",
+      params: { name: "مؤسسة الريان" },
+    });
+
+    const clientsList = (await as(lawyer1, "GET", "/api/v1/clients")).json().data as Array<{
+      id: string;
+      casesCount: number;
+    }>;
+    expect(clientsList.find((x) => x.id === converted.clientId)?.casesCount).toBe(1);
+    expect(
+      (await as(lawyer1, "GET", "/api/v1/leads"))
+        .json()
+        .data.some((l: { id: string }) => l.id === lead.id),
+    ).toBe(false);
+    expect(
+      (await as(partner, "GET", "/api/v1/recycle"))
+        .json()
+        .data.some((i: { id: string }) => i.id === lead.id),
+    ).toBe(false);
   });
 });

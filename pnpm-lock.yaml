@@ -196,6 +196,9 @@ importers:
       '@murafaa/documents':
         specifier: workspace:*
         version: link:../../packages/documents
+      '@murafaa/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@murafaa/rules':
         specifier: workspace:*
         version: link:../../packages/rules

@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, BillingUsageData, BillingUsageErrors, BillingUsageResponses, CrmClientsData, CrmClientsErrors, CrmClientsResponses, CrmCreateClientData, CrmCreateClientErrors, CrmCreateClientResponses, CrmCreateLeadData, CrmCreateLeadErrors, CrmCreateLeadResponses, CrmDeleteLeadData, CrmDeleteLeadErrors, CrmDeleteLeadResponses, CrmKpisData, CrmKpisErrors, CrmKpisResponses, CrmLeadsData, CrmLeadsErrors, CrmLeadsResponses, CrmMoveLeadData, CrmMoveLeadErrors, CrmMoveLeadResponses, CrmUpdateClientData, CrmUpdateClientErrors, CrmUpdateClientResponses, CrmUpdateLeadData, CrmUpdateLeadErrors, CrmUpdateLeadResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesBrandingData, OfficesBrandingErrors, OfficesBrandingResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, OfficesUpdateBrandingData, OfficesUpdateBrandingErrors, OfficesUpdateBrandingResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses, RecycleListData, RecycleListErrors, RecycleListResponses, RecycleRestoreData, RecycleRestoreErrors, RecycleRestoreResponses, SecurityBeginData, SecurityBeginErrors, SecurityBeginResponses, SecurityConfirmData, SecurityConfirmErrors, SecurityConfirmResponses, SecurityDisableData, SecurityDisableErrors, SecurityDisableResponses, SecurityGetIpAllowlistData, SecurityGetIpAllowlistErrors, SecurityGetIpAllowlistResponses, SecuritySetIpAllowlistData, SecuritySetIpAllowlistErrors, SecuritySetIpAllowlistResponses, SecurityStatusData, SecurityStatusErrors, SecurityStatusResponses } from './types.gen.js';
+import type { AuthCurrentData, AuthCurrentErrors, AuthCurrentResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRequestOtpData, AuthRequestOtpErrors, AuthRequestOtpResponses, AuthVerifyData, AuthVerifyErrors, AuthVerifyResponses, BillingUsageData, BillingUsageErrors, BillingUsageResponses, CasesArchiveData, CasesArchiveErrors, CasesArchiveResponses, CasesAssignableData, CasesAssignableErrors, CasesAssignableResponses, CasesAssignData, CasesAssignErrors, CasesAssignResponses, CasesChecklistData, CasesChecklistErrors, CasesChecklistResponses, CasesCreateData, CasesCreateErrors, CasesCreateResponses, CasesDetailData, CasesDetailErrors, CasesDetailResponses, CasesEndProcedureData, CasesEndProcedureErrors, CasesEndProcedureResponses, CasesListData, CasesListErrors, CasesListResponses, CasesOutcomeData, CasesOutcomeErrors, CasesOutcomeResponses, CasesPromoteData, CasesPromoteErrors, CasesPromoteResponses, CasesReferralData, CasesReferralErrors, CasesReferralResponses, CasesRemandData, CasesRemandErrors, CasesRemandResponses, CasesReopenProcedureData, CasesReopenProcedureErrors, CasesReopenProcedureResponses, CasesSatisfactionData, CasesSatisfactionErrors, CasesSatisfactionResponses, CasesUnassignData, CasesUnassignErrors, CasesUnassignResponses, CasesUpdateData, CasesUpdateErrors, CasesUpdateResponses, CasesWaiveData, CasesWaiveErrors, CasesWaiveResponses, CrmClientsData, CrmClientsErrors, CrmClientsResponses, CrmConvertData, CrmConvertErrors, CrmConvertResponses, CrmCreateClientData, CrmCreateClientErrors, CrmCreateClientResponses, CrmCreateLeadData, CrmCreateLeadErrors, CrmCreateLeadResponses, CrmDeleteLeadData, CrmDeleteLeadErrors, CrmDeleteLeadResponses, CrmKpisData, CrmKpisErrors, CrmKpisResponses, CrmLeadsData, CrmLeadsErrors, CrmLeadsResponses, CrmMoveLeadData, CrmMoveLeadErrors, CrmMoveLeadResponses, CrmUpdateClientData, CrmUpdateClientErrors, CrmUpdateClientResponses, CrmUpdateLeadData, CrmUpdateLeadErrors, CrmUpdateLeadResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, OfficesBrandingData, OfficesBrandingErrors, OfficesBrandingResponses, OfficesCurrentData, OfficesCurrentErrors, OfficesCurrentResponses, OfficesUpdateBrandingData, OfficesUpdateBrandingErrors, OfficesUpdateBrandingResponses, PermissionsAuditData, PermissionsAuditErrors, PermissionsAuditResponses, PermissionsEndPreviewData, PermissionsEndPreviewErrors, PermissionsEndPreviewResponses, PermissionsMatrixData, PermissionsMatrixErrors, PermissionsMatrixResponses, PermissionsSetLevelData, PermissionsSetLevelErrors, PermissionsSetLevelResponses, PermissionsSetScopeData, PermissionsSetScopeErrors, PermissionsSetScopeResponses, PermissionsSetUserRoleData, PermissionsSetUserRoleErrors, PermissionsSetUserRoleResponses, PermissionsStartPreviewData, PermissionsStartPreviewErrors, PermissionsStartPreviewResponses, PermissionsUsersData, PermissionsUsersErrors, PermissionsUsersResponses, RecycleListData, RecycleListErrors, RecycleListResponses, RecycleRestoreData, RecycleRestoreErrors, RecycleRestoreResponses, SecurityBeginData, SecurityBeginErrors, SecurityBeginResponses, SecurityConfirmData, SecurityConfirmErrors, SecurityConfirmResponses, SecurityDisableData, SecurityDisableErrors, SecurityDisableResponses, SecurityGetIpAllowlistData, SecurityGetIpAllowlistErrors, SecurityGetIpAllowlistResponses, SecuritySetIpAllowlistData, SecuritySetIpAllowlistErrors, SecuritySetIpAllowlistResponses, SecurityStatusData, SecurityStatusErrors, SecurityStatusResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -41,6 +41,96 @@ export const authCurrent = <ThrowOnError extends boolean = false>(options?: Opti
 export const authLogout = <ThrowOnError extends boolean = false>(options?: Options<AuthLogoutData, ThrowOnError>): RequestResult<AuthLogoutResponses, AuthLogoutErrors, ThrowOnError> => (options?.client ?? client).post<AuthLogoutResponses, AuthLogoutErrors, ThrowOnError>({ url: '/api/v1/auth/logout', ...options });
 
 export const billingUsage = <ThrowOnError extends boolean = false>(options?: Options<BillingUsageData, ThrowOnError>): RequestResult<BillingUsageResponses, BillingUsageErrors, ThrowOnError> => (options?.client ?? client).get<BillingUsageResponses, BillingUsageErrors, ThrowOnError>({ url: '/api/v1/billing/usage', ...options });
+
+export const casesList = <ThrowOnError extends boolean = false>(options?: Options<CasesListData, ThrowOnError>): RequestResult<CasesListResponses, CasesListErrors, ThrowOnError> => (options?.client ?? client).get<CasesListResponses, CasesListErrors, ThrowOnError>({ url: '/api/v1/cases', ...options });
+
+export const casesCreate = <ThrowOnError extends boolean = false>(options: Options<CasesCreateData, ThrowOnError>): RequestResult<CasesCreateResponses, CasesCreateErrors, ThrowOnError> => (options.client ?? client).post<CasesCreateResponses, CasesCreateErrors, ThrowOnError>({
+    url: '/api/v1/cases',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const casesAssignable = <ThrowOnError extends boolean = false>(options?: Options<CasesAssignableData, ThrowOnError>): RequestResult<CasesAssignableResponses, CasesAssignableErrors, ThrowOnError> => (options?.client ?? client).get<CasesAssignableResponses, CasesAssignableErrors, ThrowOnError>({ url: '/api/v1/cases/assignable-users', ...options });
+
+export const casesDetail = <ThrowOnError extends boolean = false>(options: Options<CasesDetailData, ThrowOnError>): RequestResult<CasesDetailResponses, CasesDetailErrors, ThrowOnError> => (options.client ?? client).get<CasesDetailResponses, CasesDetailErrors, ThrowOnError>({ url: '/api/v1/cases/{id}', ...options });
+
+export const casesUpdate = <ThrowOnError extends boolean = false>(options: Options<CasesUpdateData, ThrowOnError>): RequestResult<CasesUpdateResponses, CasesUpdateErrors, ThrowOnError> => (options.client ?? client).patch<CasesUpdateResponses, CasesUpdateErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const casesOutcome = <ThrowOnError extends boolean = false>(options: Options<CasesOutcomeData, ThrowOnError>): RequestResult<CasesOutcomeResponses, CasesOutcomeErrors, ThrowOnError> => (options.client ?? client).put<CasesOutcomeResponses, CasesOutcomeErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/outcome',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const casesAssign = <ThrowOnError extends boolean = false>(options: Options<CasesAssignData, ThrowOnError>): RequestResult<CasesAssignResponses, CasesAssignErrors, ThrowOnError> => (options.client ?? client).post<CasesAssignResponses, CasesAssignErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/assignees',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const casesUnassign = <ThrowOnError extends boolean = false>(options: Options<CasesUnassignData, ThrowOnError>): RequestResult<CasesUnassignResponses, CasesUnassignErrors, ThrowOnError> => (options.client ?? client).delete<CasesUnassignResponses, CasesUnassignErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/assignees/{userId}', ...options });
+
+export const casesPromote = <ThrowOnError extends boolean = false>(options: Options<CasesPromoteData, ThrowOnError>): RequestResult<CasesPromoteResponses, CasesPromoteErrors, ThrowOnError> => (options.client ?? client).post<CasesPromoteResponses, CasesPromoteErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/stage/promote', ...options });
+
+export const casesRemand = <ThrowOnError extends boolean = false>(options: Options<CasesRemandData, ThrowOnError>): RequestResult<CasesRemandResponses, CasesRemandErrors, ThrowOnError> => (options.client ?? client).post<CasesRemandResponses, CasesRemandErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/stage/remand', ...options });
+
+export const casesEndProcedure = <ThrowOnError extends boolean = false>(options: Options<CasesEndProcedureData, ThrowOnError>): RequestResult<CasesEndProcedureResponses, CasesEndProcedureErrors, ThrowOnError> => (options.client ?? client).post<CasesEndProcedureResponses, CasesEndProcedureErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/procedure/end',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const casesReopenProcedure = <ThrowOnError extends boolean = false>(options: Options<CasesReopenProcedureData, ThrowOnError>): RequestResult<CasesReopenProcedureResponses, CasesReopenProcedureErrors, ThrowOnError> => (options.client ?? client).post<CasesReopenProcedureResponses, CasesReopenProcedureErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/procedure/reopen', ...options });
+
+export const casesChecklist = <ThrowOnError extends boolean = false>(options: Options<CasesChecklistData, ThrowOnError>): RequestResult<CasesChecklistResponses, CasesChecklistErrors, ThrowOnError> => (options.client ?? client).post<CasesChecklistResponses, CasesChecklistErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/closing/checklist',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const casesSatisfaction = <ThrowOnError extends boolean = false>(options: Options<CasesSatisfactionData, ThrowOnError>): RequestResult<CasesSatisfactionResponses, CasesSatisfactionErrors, ThrowOnError> => (options.client ?? client).put<CasesSatisfactionResponses, CasesSatisfactionErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/satisfaction',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const casesReferral = <ThrowOnError extends boolean = false>(options: Options<CasesReferralData, ThrowOnError>): RequestResult<CasesReferralResponses, CasesReferralErrors, ThrowOnError> => (options.client ?? client).post<CasesReferralResponses, CasesReferralErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/referral', ...options });
+
+export const casesArchive = <ThrowOnError extends boolean = false>(options: Options<CasesArchiveData, ThrowOnError>): RequestResult<CasesArchiveResponses, CasesArchiveErrors, ThrowOnError> => (options.client ?? client).post<CasesArchiveResponses, CasesArchiveErrors, ThrowOnError>({ url: '/api/v1/cases/{id}/archive', ...options });
+
+export const casesWaive = <ThrowOnError extends boolean = false>(options: Options<CasesWaiveData, ThrowOnError>): RequestResult<CasesWaiveResponses, CasesWaiveErrors, ThrowOnError> => (options.client ?? client).post<CasesWaiveResponses, CasesWaiveErrors, ThrowOnError>({
+    url: '/api/v1/cases/{id}/conflicts/{flagId}/waive',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 export const crmClients = <ThrowOnError extends boolean = false>(options?: Options<CrmClientsData, ThrowOnError>): RequestResult<CrmClientsResponses, CrmClientsErrors, ThrowOnError> => (options?.client ?? client).get<CrmClientsResponses, CrmClientsErrors, ThrowOnError>({ url: '/api/v1/clients', ...options });
 
@@ -94,6 +184,8 @@ export const crmMoveLead = <ThrowOnError extends boolean = false>(options: Optio
         ...options.headers
     }
 });
+
+export const crmConvert = <ThrowOnError extends boolean = false>(options: Options<CrmConvertData, ThrowOnError>): RequestResult<CrmConvertResponses, CrmConvertErrors, ThrowOnError> => (options.client ?? client).post<CrmConvertResponses, CrmConvertErrors, ThrowOnError>({ url: '/api/v1/leads/{id}/convert', ...options });
 
 export const healthCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthCheckData, ThrowOnError>): RequestResult<HealthCheckResponses, HealthCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthCheckResponses, HealthCheckErrors, ThrowOnError>({ url: '/api/v1/health', ...options });
 

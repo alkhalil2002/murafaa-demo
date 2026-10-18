@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { effectiveStage, isJudgment, prevProcStage, winRate } from "../src/cases.js";
+import {
+  clampSatisfaction,
+  effectiveStage,
+  isJudgment,
+  opponentRole,
+  prevProcStage,
+  winRate,
+} from "../src/cases.js";
 
 describe("isJudgment (starts the 30-day objection deadline)", () => {
   it("trusts an explicit hearing kind over the text", () => {
@@ -44,5 +51,18 @@ describe("winRate", () => {
 
   it("is null with no outcomes", () => {
     expect(winRate({})).toBeNull();
+  });
+});
+
+describe("case helpers", () => {
+  it("puts the opponent on the other side", () => {
+    expect(opponentRole("PLAINTIFF")).toBe("DEFENDANT");
+    expect(opponentRole("DEFENDANT")).toBe("PLAINTIFF");
+  });
+
+  it("clamps satisfaction to 1–5 whole stars", () => {
+    expect(clampSatisfaction(0)).toBe(1);
+    expect(clampSatisfaction(3.6)).toBe(4);
+    expect(clampSatisfaction(9)).toBe(5);
   });
 });

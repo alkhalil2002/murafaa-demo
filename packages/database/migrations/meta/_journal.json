@@ -64,6 +64,20 @@
       "when": 1792335001840,
       "tag": "0008_crm_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792335969614,
+      "tag": "0009_cases",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792335970183,
+      "tag": "0010_cases_hardening",
+      "breakpoints": true
     }
   ]
 }

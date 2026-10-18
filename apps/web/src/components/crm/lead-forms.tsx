@@ -1,7 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { crmCreateLead, crmDeleteLead, crmMoveLead, crmUpdateLead } from "@murafaa/sdk";
+import { crmConvert, crmCreateLead, crmDeleteLead, crmMoveLead, crmUpdateLead } from "@murafaa/sdk";
 import { halalasToRiyals, riyalsToHalalas } from "@murafaa/rules";
 import { t, type MessageKey } from "@murafaa/i18n";
 import { browserApi } from "@/lib/browser-api";
@@ -109,7 +110,7 @@ export function LeadCreateForm() {
   );
 }
 
-/** Back / advance buttons on a pipeline card. Converting arrives with the cases module. */
+/** Back / advance buttons on a pipeline card; at the last stage, convert into a client and a case (legacy). */
 export function LeadMoveControls({
   id,
   canBack,
@@ -119,10 +120,16 @@ export function LeadMoveControls({
   canBack: boolean;
   canAdvance: boolean;
 }) {
-  const { run, pending } = useApiAction();
+  const router = useRouter();
+  const { run, pending, error } = useApiAction();
   const move = (direction: 1 | -1) =>
     run(() => crmMoveLead({ client: browserApi, path: { id }, body: { direction } }));
-  if (!canBack && !canAdvance) return null;
+  const convert = () =>
+    run(async () => {
+      const res = await crmConvert({ client: browserApi, path: { id } });
+      if (res.data) router.push(`/cases/${res.data.data.caseId}`);
+      return res;
+    });
   return (
     <div className="lctrl">
       {canBack && (
@@ -130,11 +137,16 @@ export function LeadMoveControls({
           {t("leads.back")}
         </button>
       )}
-      {canAdvance && (
+      {canAdvance ? (
         <button type="button" className="fwd" disabled={pending} onClick={() => move(1)}>
           {t("leads.advance")}
         </button>
+      ) : (
+        <button type="button" className="conv" disabled={pending} onClick={convert}>
+          {t("leads.convert")}
+        </button>
       )}
+      {error && <div className="lerr">{t(error)}</div>}
     </div>
   );
 }

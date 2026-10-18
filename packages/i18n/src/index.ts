@@ -67,3 +67,24 @@ export function formatWhen(value: Date | string, locale: Locale = defaultLocale)
     timeStyle: "short",
   }).format(new Date(value));
 }
+
+/**
+ * Translate a stored message: param values written as "@some.key" are message
+ * keys themselves and are translated first (e.g. a stage name inside a
+ * timeline event), so stored events stay language-neutral.
+ */
+export function tStored(
+  key: string,
+  params: Record<string, string | number> | null | undefined,
+  locale: Locale = defaultLocale,
+): string {
+  const resolved = Object.fromEntries(
+    Object.entries(params ?? {}).map(([k, v]) => [
+      k,
+      typeof v === "string" && v.startsWith("@")
+        ? t(v.slice(1) as MessageKey, undefined, locale)
+        : v,
+    ]),
+  );
+  return t(key as MessageKey, resolved, locale);
+}

@@ -70,6 +70,150 @@ export type BillingUsage = {
     memberSince: string;
 };
 
+export type CaseList = Array<CaseListItem>;
+
+export type CaseListItem = {
+    id: string;
+    number: string;
+    title: string;
+    clientName: string | null;
+    opposingParty: string | null;
+    city: string | null;
+    najizMainClass: string | null;
+    stage: 'RECONCILIATION' | 'FIRST_INSTANCE' | 'APPEAL' | 'CASSATION' | 'EXECUTION';
+    status: 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
+    conflictSeverity: 'HIGH' | 'MEDIUM' | null;
+};
+
+export type AssignableUsers = Array<{
+    id: string;
+    name: string;
+}>;
+
+export type CreatedCase = {
+    id: string;
+};
+
+export type CreateCaseBody = {
+    number: string;
+    title: string;
+    clientRole?: 'PLAINTIFF' | 'DEFENDANT';
+    clientId?: string | null;
+    opposingParty?: string | null;
+    entity?: string | null;
+    najizMainClass?: string | null;
+    najizSubClass?: string | null;
+    najizCaseType?: string | null;
+    city?: string | null;
+    stage?: 'RECONCILIATION' | 'FIRST_INSTANCE' | 'APPEAL' | 'CASSATION' | 'EXECUTION';
+    status?: 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
+    assigneeIds?: Array<string>;
+};
+
+export type CaseDetail = {
+    id: string;
+    number: string;
+    title: string;
+    clientRole: 'PLAINTIFF' | 'DEFENDANT';
+    client: {
+        id: string;
+        name: string;
+        phone: string | null;
+    } | null;
+    opposingParty: string | null;
+    entity: string | null;
+    najizMainClass: string | null;
+    najizSubClass: string | null;
+    najizCaseType: string | null;
+    city: string | null;
+    stage: 'RECONCILIATION' | 'FIRST_INSTANCE' | 'APPEAL' | 'CASSATION' | 'EXECUTION';
+    effectiveStage: 'RECONCILIATION' | 'FIRST_INSTANCE' | 'APPEAL' | 'CASSATION' | 'EXECUTION';
+    status: 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
+    outcome: 'WON' | 'PARTIAL' | 'SETTLED' | 'LOST' | null;
+    judgmentDate: string | null;
+    objectionDueAt: string | null;
+    procEnded: boolean;
+    procResult: string | null;
+    closingChecklist: {
+        [key: string]: boolean;
+    };
+    clientSatisfactionScore: number | null;
+    referralRequested: boolean;
+    isArchived: boolean;
+    assignees: Array<{
+        userId: string;
+        name: string;
+    }>;
+    conflicts: Array<ConflictFlag>;
+    events: Array<CaseEvent>;
+};
+
+export type ConflictFlag = {
+    id: string;
+    severity: 'HIGH' | 'MEDIUM';
+    status: 'ACTIVE' | 'WAIVED' | 'RESOLVED';
+    message: {
+        messageKey: string;
+        params: {
+            [key: string]: string | number;
+        };
+    };
+    waiverNote: string | null;
+};
+
+export type CaseEvent = {
+    id: string;
+    type: 'STAGE' | 'REQUEST' | 'DOC' | 'APPROVAL' | 'OPENING' | 'DEADLINE' | 'MESSAGE' | 'SYSTEM';
+    message: {
+        messageKey: string;
+        params: {
+            [key: string]: string | number;
+        };
+    } | null;
+    text: string | null;
+    actorName: string | null;
+    occurredAt: string;
+};
+
+export type UpdateCaseBody = {
+    number?: string;
+    title?: string;
+    clientRole?: 'PLAINTIFF' | 'DEFENDANT';
+    clientId?: string | null;
+    opposingParty?: string | null;
+    entity?: string | null;
+    najizMainClass?: string | null;
+    najizSubClass?: string | null;
+    najizCaseType?: string | null;
+    city?: string | null;
+    stage?: 'RECONCILIATION' | 'FIRST_INSTANCE' | 'APPEAL' | 'CASSATION' | 'EXECUTION';
+    status?: 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
+};
+
+export type SetOutcomeBody = {
+    outcome: 'WON' | 'PARTIAL' | 'SETTLED' | 'LOST' | null;
+};
+
+export type AssigneeBody = {
+    userId: string;
+};
+
+export type EndProcedureBody = {
+    result?: string | null;
+};
+
+export type ChecklistBody = {
+    key: 'finalSettlement' | 'returnClientDocs' | 'closeLinkedTasks' | 'archiveFile';
+};
+
+export type SatisfactionBody = {
+    score: number;
+};
+
+export type WaiveConflictBody = {
+    note: string;
+};
+
 export type ClientList = Array<Client>;
 
 export type Client = {
@@ -136,6 +280,11 @@ export type UpdateLeadBody = {
 
 export type MoveLeadBody = {
     direction: 1 | -1;
+};
+
+export type ConvertedLead = {
+    clientId: string;
+    caseId: string;
 };
 
 export type Health = {
@@ -376,6 +525,512 @@ export type BillingUsageResponses = {
 };
 
 export type BillingUsageResponse = BillingUsageResponses[keyof BillingUsageResponses];
+
+export type CasesListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/cases';
+};
+
+export type CasesListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesListError = CasesListErrors[keyof CasesListErrors];
+
+export type CasesListResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: CaseList;
+        error: null;
+    };
+};
+
+export type CasesListResponse = CasesListResponses[keyof CasesListResponses];
+
+export type CasesCreateData = {
+    body: CreateCaseBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/cases';
+};
+
+export type CasesCreateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesCreateError = CasesCreateErrors[keyof CasesCreateErrors];
+
+export type CasesCreateResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type CasesCreateResponse = CasesCreateResponses[keyof CasesCreateResponses];
+
+export type CasesAssignableData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/cases/assignable-users';
+};
+
+export type CasesAssignableErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesAssignableError = CasesAssignableErrors[keyof CasesAssignableErrors];
+
+export type CasesAssignableResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: AssignableUsers;
+        error: null;
+    };
+};
+
+export type CasesAssignableResponse = CasesAssignableResponses[keyof CasesAssignableResponses];
+
+export type CasesDetailData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}';
+};
+
+export type CasesDetailErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesDetailError = CasesDetailErrors[keyof CasesDetailErrors];
+
+export type CasesDetailResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: CaseDetail;
+        error: null;
+    };
+};
+
+export type CasesDetailResponse = CasesDetailResponses[keyof CasesDetailResponses];
+
+export type CasesUpdateData = {
+    body: UpdateCaseBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}';
+};
+
+export type CasesUpdateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesUpdateError = CasesUpdateErrors[keyof CasesUpdateErrors];
+
+export type CasesUpdateResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesUpdateResponse = CasesUpdateResponses[keyof CasesUpdateResponses];
+
+export type CasesOutcomeData = {
+    body: SetOutcomeBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/outcome';
+};
+
+export type CasesOutcomeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesOutcomeError = CasesOutcomeErrors[keyof CasesOutcomeErrors];
+
+export type CasesOutcomeResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesOutcomeResponse = CasesOutcomeResponses[keyof CasesOutcomeResponses];
+
+export type CasesAssignData = {
+    body: AssigneeBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/assignees';
+};
+
+export type CasesAssignErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesAssignError = CasesAssignErrors[keyof CasesAssignErrors];
+
+export type CasesAssignResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesAssignResponse = CasesAssignResponses[keyof CasesAssignResponses];
+
+export type CasesUnassignData = {
+    body?: never;
+    path: {
+        id: string;
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/assignees/{userId}';
+};
+
+export type CasesUnassignErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesUnassignError = CasesUnassignErrors[keyof CasesUnassignErrors];
+
+export type CasesUnassignResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesUnassignResponse = CasesUnassignResponses[keyof CasesUnassignResponses];
+
+export type CasesPromoteData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/stage/promote';
+};
+
+export type CasesPromoteErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesPromoteError = CasesPromoteErrors[keyof CasesPromoteErrors];
+
+export type CasesPromoteResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesPromoteResponse = CasesPromoteResponses[keyof CasesPromoteResponses];
+
+export type CasesRemandData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/stage/remand';
+};
+
+export type CasesRemandErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesRemandError = CasesRemandErrors[keyof CasesRemandErrors];
+
+export type CasesRemandResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesRemandResponse = CasesRemandResponses[keyof CasesRemandResponses];
+
+export type CasesEndProcedureData = {
+    body: EndProcedureBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/procedure/end';
+};
+
+export type CasesEndProcedureErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesEndProcedureError = CasesEndProcedureErrors[keyof CasesEndProcedureErrors];
+
+export type CasesEndProcedureResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesEndProcedureResponse = CasesEndProcedureResponses[keyof CasesEndProcedureResponses];
+
+export type CasesReopenProcedureData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/procedure/reopen';
+};
+
+export type CasesReopenProcedureErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesReopenProcedureError = CasesReopenProcedureErrors[keyof CasesReopenProcedureErrors];
+
+export type CasesReopenProcedureResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesReopenProcedureResponse = CasesReopenProcedureResponses[keyof CasesReopenProcedureResponses];
+
+export type CasesChecklistData = {
+    body: ChecklistBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/closing/checklist';
+};
+
+export type CasesChecklistErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesChecklistError = CasesChecklistErrors[keyof CasesChecklistErrors];
+
+export type CasesChecklistResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesChecklistResponse = CasesChecklistResponses[keyof CasesChecklistResponses];
+
+export type CasesSatisfactionData = {
+    body: SatisfactionBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/satisfaction';
+};
+
+export type CasesSatisfactionErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesSatisfactionError = CasesSatisfactionErrors[keyof CasesSatisfactionErrors];
+
+export type CasesSatisfactionResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesSatisfactionResponse = CasesSatisfactionResponses[keyof CasesSatisfactionResponses];
+
+export type CasesReferralData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/referral';
+};
+
+export type CasesReferralErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesReferralError = CasesReferralErrors[keyof CasesReferralErrors];
+
+export type CasesReferralResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesReferralResponse = CasesReferralResponses[keyof CasesReferralResponses];
+
+export type CasesArchiveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/archive';
+};
+
+export type CasesArchiveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesArchiveError = CasesArchiveErrors[keyof CasesArchiveErrors];
+
+export type CasesArchiveResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesArchiveResponse = CasesArchiveResponses[keyof CasesArchiveResponses];
+
+export type CasesWaiveData = {
+    body: WaiveConflictBody;
+    path: {
+        id: string;
+        flagId: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/conflicts/{flagId}/waive';
+};
+
+export type CasesWaiveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CasesWaiveError = CasesWaiveErrors[keyof CasesWaiveErrors];
+
+export type CasesWaiveResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type CasesWaiveResponse = CasesWaiveResponses[keyof CasesWaiveResponses];
 
 export type CrmClientsData = {
     body?: never;
@@ -636,6 +1291,36 @@ export type CrmMoveLeadResponses = {
 };
 
 export type CrmMoveLeadResponse = CrmMoveLeadResponses[keyof CrmMoveLeadResponses];
+
+export type CrmConvertData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/leads/{id}/convert';
+};
+
+export type CrmConvertErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type CrmConvertError = CrmConvertErrors[keyof CrmConvertErrors];
+
+export type CrmConvertResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: ConvertedLead;
+        error: null;
+    };
+};
+
+export type CrmConvertResponse = CrmConvertResponses[keyof CrmConvertResponses];
 
 export type HealthCheckData = {
     body?: never;

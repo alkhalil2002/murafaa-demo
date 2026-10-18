@@ -27,6 +27,8 @@ export const ar = {
   "common.underConstruction": "هذه الشاشة قيد الإنشاء.",
   "errors.LAST_PARTNER": "لا يمكن تغيير دور آخر شريك في المكتب.",
   "errors.CLIENT_PHONE_TAKEN": "رقم الجوال مسجّل لعميل آخر في المكتب.",
+  "errors.LEAD_NOT_CONTRACTED": "لا يمكن تحويل العميل المحتمل قبل مرحلة «متعاقد».",
+  "errors.LEAD_ALREADY_CONVERTED": "تم تحويل هذا العميل المحتمل مسبقاً.",
   "errors.IP_LOCKOUT":
     "هذه القائمة لا تشمل عنوانك الحالي، وحفظها سيمنعك من الدخول. أضف عنوانك أولاً.",
   "security.ip.invalidEntry": "عنوان غير صالح. استخدم عنوان IP أو نطاق IPv4 مثل 203.0.113.0/24.",
@@ -311,6 +313,9 @@ export const ar = {
   "conflict.banner.footer":
     "راجع قواعد تعارض المصالح المهنية قبل المتابعة، ووثّق موافقة الأطراف/التنازل إن وُجد.",
   "conflict.badge": "تعارض مصالح",
+  "conflict.waive.button": "توثيق الموافقة",
+  "conflict.waive.notePlaceholder": "مرجع موافقة الطرفين (مطلوب)",
+  "conflict.waived": "موافقة موثّقة",
   "conflict.severity.high": "مرتفع",
   "conflict.severity.medium": "متوسط",
 

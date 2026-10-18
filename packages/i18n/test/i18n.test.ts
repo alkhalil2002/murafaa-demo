@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { ar, dirOf, formatSar, formatWhen, messagesFor, roleLabel, t } from "../src/index.js";
+import {
+  ar,
+  dirOf,
+  formatSar,
+  formatWhen,
+  messagesFor,
+  roleLabel,
+  t,
+  tStored,
+} from "../src/index.js";
 
 describe("i18n", () => {
   it("interpolates params and leaves unknown placeholders", () => {
@@ -32,5 +41,14 @@ describe("i18n", () => {
   it("formats audit times in Riyadh", () => {
     // 21:30 UTC is 00:30 the next day in Riyadh (UTC+3).
     expect(formatWhen("2026-01-01T21:30:00Z", "en")).toContain("Jan 2, 2026");
+  });
+
+  it("translates @key params inside stored messages", () => {
+    expect(tStored("event.stagePromoted", { stage: "@case.stage.APPEAL" })).toBe(
+      t("event.stagePromoted", { stage: ar["case.stage.APPEAL"] }),
+    );
+    expect(tStored("event.leadConverted", { name: "@not-a-key-but-literal".slice(1) })).toContain(
+      "not-a-key",
+    );
   });
 });

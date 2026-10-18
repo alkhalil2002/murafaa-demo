@@ -4,18 +4,18 @@ Every file, screen, route and model in `legacy/` with where it went or which mil
 
 Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP login, TOTP 2FA, editable permissions (all three layers), office IP allowlist enforcement, and audit writers.
 
-## Summary (2026-10-18, M2 slice 1: clients and leads)
+## Summary (2026-10-18, M2 slice 2: cases and conflicts)
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 30 | 21 |
+| `src/lib` files | 51 | 33 | 18 |
 | Business rules inside services/components | 37 | 26 | 11 |
-| Services | 54 | 6 | 48 |
-| Service capabilities | 225 | 26 | 199 |
-| Screens | 63 | 10 | 53 |
-| Components | 20 | 8 | 12 |
+| Services | 54 | 8 | 46 |
+| Service capabilities | 225 | 44 | 181 |
+| Screens | 63 | 13 | 50 |
+| Components | 20 | 12 | 8 |
 | Route handlers | 9 | 2 (+1 replaced) | 6 |
-| Models | 56 | 9 (+ `outbox`, `sessions` new) | 47 |
+| Models | 56 | 13 (+ `outbox`, `sessions` new) | 43 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -45,10 +45,10 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `auth/session.ts` | ✅ Ported | apps/api/src/modules/auth/session.service.ts | DB sessions: httpOnly cookie (web) or bearer (mobile); 20-min idle + 30-day limit enforced server-side |
 | `auth/totp.ts` | ✅ Ported | apps/api/src/modules/auth/totp.ts | RFC 6238 tests added; encrypt the secret at rest (legacy stored it in plaintext) |
 | `auth/types.ts` | ✅ Ported | apps/api/src/common/tenancy/principal.ts |  |
-| `case-events.ts` | ⏳ Pending | M2 Core ops | case timeline writer |
+| `case-events.ts` | ✅ Ported | apps/api/src/modules/cases/case-events.ts | stores i18n key + params ("@key" values translated at read), not Arabic text |
 | `cities.ts` | ✅ Ported | packages/rules/src/reference/cities.ts |  |
 | `conflict/engine.ts` | ✅ Ported | packages/rules/src/conflict.ts | 11 tests |
-| `conflict/service.ts` | ⏳ Pending | M2 Core ops | loads office candidates, persists ConflictFlag |
+| `conflict/service.ts` | ✅ Ported | apps/api/src/modules/cases/conflicts.service.ts | stale flags become RESOLVED (not deleted); re-scan also on a case's own new parties |
 | `dates.ts` | ✅ Ported | packages/rules/src/dates.ts | 5 tests |
 | `db.ts` | ✅ Ported | packages/database createDb/withTenant (RLS) |  |
 | `documents/render.ts` | ✅ Ported | packages/documents/src/render.ts | 7 tests (with templates) |
@@ -69,7 +69,7 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `permissions/guard.ts` | ✅ Ported | apps/api PermissionsGuard | layer 1 + partner-only + view-only preview, audited; layers 2–3 apply in the cases module (M2) via PolicyService |
 | `permissions/matrix.ts` | ✅ Ported | packages/auth/src/matrix.ts + policy.ts (seedPolicy) |  |
 | `permissions/policy.ts` | ✅ Ported | apps/api PolicyService + packages/auth policyFromRows | read from the office's rows on every request; no stale cache |
-| `permissions/scope.ts` | ⏳ Pending | M2 Core ops | row scope (ALL/ASSIGNED) as a Drizzle where-clause |
+| `permissions/scope.ts` | ✅ Ported | apps/api/src/modules/cases/case-scope.ts | EXISTS(case_assignees) condition on every case query |
 | `security/ip.ts` | ✅ Ported | apps/api/src/common/security/ip-allowlist.ts | enforced by the API on login and on every request (legacy enforced it only in the page shell) |
 | `storage/gcs.ts` | ⏳ Pending | M3 Documents | GCS me-central2 |
 | `storage/index.ts` | ⏳ Pending | M3 Documents |  |
@@ -89,7 +89,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `approvals` | ⏳ Pending | M2 Core ops | approval chain order ported (packages/rules workflows.ts) |
 | `billing-usage` | ✅ Ported | apps/api/src/modules/billing (GET /billing/usage; case/client/document counts join with their modules) |  |
 | `case-profitability` | ⏳ Pending | M4 Finance |  |
-| `cases` | ⏳ Pending | M2 Core ops | rules ported: effectiveStage, prevProcStage/nextProcStage (packages/rules cases.ts, procedural.ts) |
+| `cases` | ✅ Ported | apps/api/src/modules/cases (effectiveStage follows held hearings once hearings land) |  |
 | `client-approvals` | ⏳ Pending | M8 Portals |  |
 | `clients` | ✅ Ported | apps/api/src/modules/crm (conflict re-scan on rename joins with cases, M2 slice 2) |  |
 | `communications` | ⏳ Pending | M2 Core ops |  |
@@ -119,7 +119,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `hr/wps` | ⏳ Pending | M6 HR | WPS file generation |
 | `invoices` | ⏳ Pending | M4 Finance | ZATCA e-invoicing still missing (M7) |
 | `journey` | ⏳ Pending | M2 Core ops |  |
-| `leads` | ⏳ Pending | M2 Core ops | list/KPIs/create/update/move/delete done (apps/api/src/modules/crm); convertLead + conflict re-scan with cases (M2 slice 2) |
+| `leads` | ✅ Ported | apps/api/src/modules/crm (incl. convertLead) |  |
 | `ledger-reports` | ⏳ Pending | M4 Finance | normal-side balance ported (packages/rules ledger.ts) |
 | `messages` | ⏳ Pending | M2 Core ops |  |
 | `notifications` | ⏳ Pending | M2 Core ops |  |
@@ -152,9 +152,9 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/alerts` | ⏳ Pending | M2 Core ops |  |
 | `/appointments` | ⏳ Pending | M2 Core ops |  |
 | `/billing` | ✅ Ported | apps/web/src/app/(app)/billing |  |
-| `/cases` | ⏳ Pending | M2 Core ops |  |
-| `/cases/[id]` | ⏳ Pending | M2 Core ops |  |
-| `/cases/new` | ⏳ Pending | M2 Core ops |  |
+| `/cases` | ✅ Ported | apps/web/src/app/(app)/cases (list + filters) |  |
+| `/cases/[id]` | ✅ Ported | apps/web/src/app/(app)/cases/[id] — overview, parties, events, closing tabs; other tabs with their slices |  |
+| `/cases/new` | ✅ Ported | apps/web/src/app/(app)/cases/new |  |
 | `/clients` | ✅ Ported | apps/web/src/app/(app)/clients (+ CRM KPIs) |  |
 | `/dashboard` | ⏳ Pending | M2 Core ops |  |
 | `/deadlines` | ⏳ Pending | M2 Core ops |  |
@@ -189,7 +189,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `/hr/requests` | ⏳ Pending | M6 HR |  |
 | `/hr/saudization` | ⏳ Pending | M6 HR |  |
 | `/journey` | ⏳ Pending | M2 Core ops |  |
-| `/leads` | ✅ Ported | apps/web/src/app/(app)/leads (pipeline; convert button with cases) |  |
+| `/leads` | ✅ Ported | apps/web/src/app/(app)/leads (pipeline incl. convert) |  |
 | `/login` | ✅ Ported | apps/web/src/app/login (+ components/auth/login-form.tsx) |  |
 | `/notifications` | ⏳ Pending | M2 Core ops |  |
 | `/perms` | ✅ Ported | apps/web/src/app/(app)/perms (matrix + role preview) |  |
@@ -234,16 +234,16 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `FieldPermission` | ✅ Ported | packages/database field_permissions |  |
 | `RoleCaseScope` | ✅ Ported | packages/database role_case_scopes |  |
 | `Client` | ✅ Ported | packages/database clients |  |
-| `Case` | ⏳ Pending | M2 Core ops |  |
-| `CaseAssignee` | ⏳ Pending | M2 Core ops |  |
+| `Case` | ✅ Ported | packages/database cases |  |
+| `CaseAssignee` | ✅ Ported | packages/database case_assignees (the only DELETE grant: join table) |  |
 | `AuditLog` | ✅ Ported | packages/database audit_log (append-only) |  |
 | `Hearing` | ⏳ Pending | M2 Core ops |  |
-| `CaseEvent` | ⏳ Pending | M2 Core ops |  |
+| `CaseEvent` | ✅ Ported | packages/database case_events (i18n key + params) |  |
 | `CaseReminder` | ⏳ Pending | M2 Core ops |  |
 | `Lead` | ✅ Ported | packages/database leads (expected_value bigint halalas) |  |
 | `Task` | ⏳ Pending | M2 Core ops |  |
 | `Appointment` | ⏳ Pending | M2 Core ops |  |
-| `ConflictFlag` | ⏳ Pending | M2 Core ops |  |
+| `ConflictFlag` | ✅ Ported | packages/database conflict_flags (+ RESOLVED status) |  |
 | `NajizClassification` | ⏳ Pending | M2 Core ops |  |
 | `DocumentTemplate` | ⏳ Pending | M3 Documents |  |
 | `Document` | ⏳ Pending | M3 Documents |  |
@@ -311,11 +311,11 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | `auth/login-form.tsx` | ✅ Ported | apps/web/src/components/auth/login-form.tsx |  |
 | `auto-submit-select.tsx` | ✅ Ported | apps/web/src/components/auto-submit-select.tsx |  |
 | `cases/ai-draft-hearing-button.tsx` | ⏳ Pending | M2 Core ops |  |
-| `cases/case-list.tsx` | ⏳ Pending | M2 Core ops |  |
+| `cases/case-list.tsx` | ✅ Ported | apps/web/src/components/cases/case-list.tsx |  |
 | `cases/hearing-wizard.tsx` | ⏳ Pending | M2 Core ops |  |
-| `cases/najiz-picker.tsx` | ⏳ Pending | M2 Core ops |  |
-| `cases/role-picker.tsx` | ⏳ Pending | M2 Core ops |  |
-| `conflict-badge.tsx` | ⏳ Pending | M2 Core ops |  |
+| `cases/najiz-picker.tsx` | ✅ Ported | apps/web/src/components/cases/case-form.tsx |  |
+| `cases/role-picker.tsx` | ✅ Ported | apps/web/src/components/cases/case-form.tsx |  |
+| `conflict-badge.tsx` | ✅ Ported | apps/web/src/components/cases/conflict-badge.tsx |  |
 | `emp-portal/emp-portal-login-form.tsx` | ⏳ Pending | M8 Portals |  |
 | `finance-tabs.tsx` | ⏳ Pending | M4 Finance |  |
 | `hr-tabs.tsx` | ⏳ Pending | M6 HR |  |
@@ -400,23 +400,23 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 **cases** (M2 Core ops)
 
-- [ ] `effectiveStage`
-- [ ] `listCases`
-- [ ] `listAssignableUsers`
-- [ ] `getCase`
-- [ ] `createCase`
-- [ ] `updateCase`
-- [ ] `setCaseOutcome`
-- [ ] `assignUser`
-- [ ] `unassignUser`
-- [ ] `promoteStage`
-- [ ] `remandStage`
-- [ ] `endProcedure`
-- [ ] `reopenProcedure`
-- [ ] `toggleClosingChecklistItem`
-- [ ] `setClientSatisfaction`
-- [ ] `requestReferral`
-- [ ] `archiveCase`
+- [x] `effectiveStage`
+- [x] `listCases`
+- [x] `listAssignableUsers`
+- [x] `getCase`
+- [x] `createCase`
+- [x] `updateCase`
+- [x] `setCaseOutcome`
+- [x] `assignUser`
+- [x] `unassignUser`
+- [x] `promoteStage`
+- [x] `remandStage`
+- [x] `endProcedure`
+- [x] `reopenProcedure`
+- [x] `toggleClosingChecklistItem`
+- [x] `setClientSatisfaction`
+- [x] `requestReferral`
+- [x] `archiveCase`
 
 **client-approvals** (M8 Portals)
 
@@ -621,7 +621,7 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 - [x] `updateLead`
 - [x] `deleteLead`
 - [x] `moveLead`
-- [ ] `convertLead`
+- [x] `convertLead`
 
 **ledger-reports** (M4 Finance)
 
@@ -829,7 +829,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 |---|---|---|---|
 | `account/actions.ts` | ✅ Ported | apps/api /security endpoints |  |
 | `ai/actions.ts` | ⏳ Pending | M5 AI gate |  |
-| `cases/actions.ts` | ⏳ Pending | M2 Core ops |  |
+| `cases/actions.ts` | ✅ Ported | apps/api /cases endpoints |  |
 | `cases/approvals-actions.ts` | ⏳ Pending | M2 Core ops |  |
 | `cases/client-approvals-actions.ts` | ⏳ Pending | M2 Core ops |  |
 | `cases/closing-actions.ts` | ⏳ Pending | M2 Core ops |  |
@@ -850,7 +850,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `finance/trust/actions.ts` | ⏳ Pending | M4 Finance |  |
 | `hr/actions.ts` | ⏳ Pending | M6 HR |  |
 | `hr/recruitment/actions.ts` | ⏳ Pending | M6 HR |  |
-| `leads/actions.ts` | ⏳ Pending | M2 Core ops |  |
+| `leads/actions.ts` | ✅ Ported | apps/api /leads endpoints |  |
 | `perms/actions.ts` | ✅ Ported | apps/api /permissions endpoints |  |
 | `portal/actions.ts` | ⏳ Pending | M8 Portals |  |
 | `pulse/actions.ts` | ⏳ Pending | M6 HR |  |
@@ -976,5 +976,10 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | IP allowlist saved without validation; a partner could lock the office out with one save | server/security.ts | ✅ fixed: entries validated, and a list excluding the caller's own address is refused |
 | Recycle bin listed every deleted case/lead/document/employee to every user | server/settings.ts | ✅ fixed by design: each kind filtered by its module's view permission |
 | Converted leads showed up in the recycle bin (conversion soft-deletes them) | server/settings.ts | ✅ fixed: converted leads excluded |
+| Creating case B whose opponent is case A's client never flagged case A (only the saved case was checked) | server/cases.ts createCase | ✅ fixed: re-scan by the new case's opponent and client names |
+| A converted lead's case had no assignee, so an ASSIGNED-scope converter couldn't see it | server/leads.ts convertLead | ✅ fixed: converter assigned |
+| Unassigning took the removed user's name from the form (spoofable timeline text) | app/cases/actions.ts | ✅ fixed: name read from the database |
+| Timeline events stored Arabic display text | lib/case-events.ts | ✅ fixed: i18n key + params |
+| An out-of-scope case view was audited inside the failing request transaction | lib/permissions/scope.ts | ✅ fixed: audited in its own transaction (access.case.scope) |
 | An invalid client/lead phone was silently dropped; a duplicate client phone crashed the page (unique violation) | server/clients.ts, leads.ts | ✅ fixed: field error auth.error.phoneInvalid; 409 errors.CLIENT_PHONE_TAKEN |
 

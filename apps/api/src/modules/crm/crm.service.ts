@@ -7,14 +7,17 @@ import type {
   updateClientBody,
   updateLeadBody,
 } from "@murafaa/contracts";
-import { clients, leads } from "@murafaa/database";
-import { leadConversionPct, LEAD_STAGES, stepStage } from "@murafaa/rules";
+import { clients, leads, type Tx } from "@murafaa/database";
+import { t } from "@murafaa/i18n";
+import { leadConversionPct, LEAD_STAGES, NAJIZ, stepStage } from "@murafaa/rules";
 import { and, count, desc, eq, isNotNull, isNull, sum } from "drizzle-orm";
 import { writeAudit } from "../../common/audit/audit.js";
 import { isUniqueViolation } from "../../common/db/pg-errors.js";
 import { ApiException } from "../../common/http/api.exception.js";
 import type { Principal } from "../../common/tenancy/principal.js";
 import { TenantDb } from "../../database/tenant-db.service.js";
+import { CasesService } from "../cases/cases.service.js";
+import { ConflictsService } from "../cases/conflicts.service.js";
 
 type Meta = { ip: string; requestId: string };
 
@@ -23,26 +26,35 @@ const phoneTaken = () =>
 
 /**
  * Clients and the leads pipeline (legacy server/clients.ts, server/leads.ts),
- * gated by the العملاء module. Converting a lead and re-running conflict
- * detection when a name changes arrive with the cases module.
+ * gated by the العملاء module. A new or renamed client/lead re-runs conflict
+ * detection on existing cases (reverse trigger).
  */
 @Injectable()
 export class CrmService {
-  constructor(private readonly tenantDb: TenantDb) {}
+  constructor(
+    private readonly tenantDb: TenantDb,
+    private readonly cases: CasesService,
+    private readonly conflicts: ConflictsService,
+  ) {}
 
   async listClients() {
-    const rows = await this.tenantDb.run((tx) =>
-      tx.select().from(clients).where(isNull(clients.deletedAt)).orderBy(desc(clients.createdAt)),
-    );
-    return rows.map((c) => ({
-      id: c.id,
-      name: c.name,
-      phone: c.phone,
-      city: c.city,
-      type: c.type,
-      status: c.status,
-      casesCount: 0,
-    }));
+    return this.tenantDb.run(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(clients)
+        .where(isNull(clients.deletedAt))
+        .orderBy(desc(clients.createdAt));
+      const counts = await this.cases.activeCaseCountsByClient(tx);
+      return rows.map((c) => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        city: c.city,
+        type: c.type,
+        status: c.status,
+        casesCount: counts.get(c.id) ?? 0,
+      }));
+    });
   }
 
   async createClient(p: Principal, input: z.infer<typeof createClientBody>, meta: Meta) {
@@ -60,6 +72,7 @@ export class CrmService {
           entityId: created!.id,
           ...meta,
         });
+        await this.conflicts.rescanForName(tx, p.officeId, created!.name, p.userId);
         return created!;
       });
     } catch (e) {
@@ -85,16 +98,20 @@ export class CrmService {
           .update(clients)
           .set({ ...input, updatedBy: p.userId })
           .where(eq(clients.id, id));
+        const renamed = Boolean(input.name && input.name !== before.name);
         await writeAudit(tx, {
           officeId: p.officeId,
           actorId: p.userId,
           action: "client.update",
           entity: "clients",
           entityId: id,
-          after:
-            input.name && input.name !== before.name ? { renamedFrom: before.name } : undefined,
+          after: renamed ? { renamedFrom: before.name } : undefined,
           ...meta,
         });
+        if (renamed) {
+          await this.conflicts.rescanForName(tx, p.officeId, before.name, p.userId);
+          await this.conflicts.rescanForName(tx, p.officeId, input.name, p.userId);
+        }
       });
     } catch (e) {
       if (isUniqueViolation(e, "clients_office_phone_key")) throw phoneTaken();
@@ -156,6 +173,7 @@ export class CrmService {
         entityId: created!.id,
         ...meta,
       });
+      await this.conflicts.rescanForName(tx, p.officeId, input.name, p.userId);
     });
   }
 
@@ -179,6 +197,10 @@ export class CrmService {
         entityId: id,
         ...meta,
       });
+      if (input.name !== lead.name) {
+        await this.conflicts.rescanForName(tx, p.officeId, lead.name, p.userId);
+        await this.conflicts.rescanForName(tx, p.officeId, input.name, p.userId);
+      }
     });
   }
 
@@ -222,9 +244,107 @@ export class CrmService {
     });
   }
 
-  private activeLead(tx: Parameters<Parameters<TenantDb["run"]>[0]>[0], id: string) {
+  /**
+   * Convert a CONTRACTED lead into a client and a new case, atomically
+   * (docs BR-CRM-CONVERT). Claiming the lead first makes a double submit
+   * create exactly one pair. The phone moves to the client unless another
+   * client already has it. Unlike legacy, the converter is assigned to the
+   * new case, so an ASSIGNED-scope user can see what they created.
+   */
+  convertLead(p: Principal, id: string, meta: Meta) {
+    return this.tenantDb.run(async (tx) => {
+      const [claimed] = await tx
+        .update(leads)
+        .set({ deletedAt: new Date(), updatedBy: p.userId })
+        .where(
+          and(
+            eq(leads.id, id),
+            eq(leads.stage, "CONTRACTED"),
+            isNull(leads.convertedClientId),
+            isNull(leads.deletedAt),
+          ),
+        )
+        .returning();
+      if (!claimed) {
+        const [lead] = await tx
+          .select({ converted: leads.convertedClientId })
+          .from(leads)
+          .where(eq(leads.id, id));
+        if (!lead) throw new ApiException(ErrorCode.NOT_FOUND);
+        throw new ApiException(
+          ErrorCode.CONFLICT,
+          undefined,
+          lead.converted ? "errors.LEAD_ALREADY_CONVERTED" : "errors.LEAD_NOT_CONTRACTED",
+        );
+      }
+
+      let phone = claimed.phone;
+      if (phone) {
+        const [taken] = await tx
+          .select({ id: clients.id })
+          .from(clients)
+          .where(eq(clients.phone, phone));
+        if (taken) phone = null;
+      }
+      const [client] = await tx
+        .insert(clients)
+        .values({
+          officeId: p.officeId,
+          name: claimed.name,
+          type: claimed.type,
+          status: "ACTIVE",
+          phone,
+          createdBy: p.userId,
+        })
+        .returning({ id: clients.id, name: clients.name });
+
+      // Najiz defaults: first main class → first sub class → first case type (legacy parity).
+      const mainClass = Object.keys(NAJIZ)[0]!;
+      const subs = NAJIZ[mainClass as keyof typeof NAJIZ] as Record<string, readonly string[]>;
+      const subClass = Object.keys(subs)[0]!;
+      const { id: caseId } = await this.cases.insertCase(
+        tx,
+        p,
+        {
+          number: "—",
+          title: t("case.autoTitleFromLead", { name: claimed.name }),
+          clientRole: "PLAINTIFF",
+          clientId: client!.id,
+          opposingParty: null,
+          entity: null,
+          najizMainClass: mainClass,
+          najizSubClass: subClass,
+          najizCaseType: subs[subClass]![0]!,
+          city: null,
+          stage: "FIRST_INSTANCE",
+          status: "ACTIVE",
+        },
+        [p.userId],
+        meta,
+        { messageKey: "event.leadConverted", params: { name: claimed.name } },
+      );
+
+      await tx
+        .update(leads)
+        .set({ convertedClientId: client!.id, convertedCaseId: caseId })
+        .where(eq(leads.id, id));
+      await writeAudit(tx, {
+        officeId: p.officeId,
+        actorId: p.userId,
+        action: "lead.convert",
+        entity: "leads",
+        entityId: id,
+        after: { clientId: client!.id, caseId },
+        ...meta,
+      });
+      await this.conflicts.rescanForName(tx, p.officeId, client!.name, p.userId);
+      return { clientId: client!.id, caseId };
+    });
+  }
+
+  private activeLead(tx: Tx, id: string) {
     return tx
-      .select({ stage: leads.stage, expectedValue: leads.expectedValue })
+      .select({ name: leads.name, stage: leads.stage, expectedValue: leads.expectedValue })
       .from(leads)
       .where(and(eq(leads.id, id), isNull(leads.deletedAt), isNull(leads.convertedClientId)));
   }

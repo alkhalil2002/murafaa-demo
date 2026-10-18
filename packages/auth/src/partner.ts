@@ -15,6 +15,7 @@ export const PARTNER_ONLY_ACTIONS = [
   "billing.view",
   "office.branding.update",
   "rolePreview.start",
+  "conflict.waive", // documented consent to act despite a conflict (docs/06 §4)
 ] as const;
 export type PartnerOnlyAction = (typeof PARTNER_ONLY_ACTIONS)[number];
 

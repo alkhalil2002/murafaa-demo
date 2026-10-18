@@ -10,6 +10,7 @@ import { ENV, type Env } from "./config/env.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { BillingModule } from "./modules/billing/billing.module.js";
+import { CasesModule } from "./modules/cases/cases.module.js";
 import { CrmModule } from "./modules/crm/crm.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { OfficesModule } from "./modules/offices/offices.module.js";
@@ -46,6 +47,7 @@ export class AppModule {
         DatabaseModule,
         AuthModule,
         BillingModule,
+        CasesModule,
         CrmModule,
         HealthModule,
         OfficesModule,

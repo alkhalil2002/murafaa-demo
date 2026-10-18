@@ -3,6 +3,7 @@ import { PermModule } from "@murafaa/auth";
 import {
   client,
   clientList,
+  convertedLead,
   createClientBody,
   createLeadBody,
   ErrorCode,
@@ -119,6 +120,15 @@ export class CrmController {
     const { principal, meta } = caller(req);
     await this.crm.moveLead(principal, params.id, body.direction, meta);
     return null;
+  }
+
+  @RequirePermission(PermModule.CLIENTS, "edit")
+  @Post("leads/:id/convert")
+  @HttpCode(200)
+  @ZodResponse(convertedLead)
+  convert(@ZodParams(idParams) params: z.infer<typeof idParams>, @Req() req: FastifyRequest) {
+    const { principal, meta } = caller(req);
+    return this.crm.convertLead(principal, params.id, meta);
   }
 
   @RequirePermission(PermModule.CLIENTS, "delete")
