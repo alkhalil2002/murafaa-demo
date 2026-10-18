@@ -17,6 +17,7 @@
   "dependencies": {
     "@fastify/helmet": "13.2.0",
     "@fastify/static": "10.1.6",
+    "@google-cloud/storage": "8.4.0",
     "@murafaa/auth": "workspace:*",
     "@murafaa/contracts": "workspace:*",
     "@murafaa/database": "workspace:*",

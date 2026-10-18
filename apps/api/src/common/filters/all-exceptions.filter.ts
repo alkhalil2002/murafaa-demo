@@ -38,7 +38,20 @@ export function toApiError(exception: unknown): { status: number; error: ApiErro
       },
     };
   }
-  const status = exception instanceof HttpException ? exception.getStatus() : 500;
+  const status =
+    exception instanceof HttpException
+      ? exception.getStatus()
+      : ((exception as { statusCode?: number } | null)?.statusCode ?? 500);
+  // Body-parsing refusals keep their HTTP status and get an upload message.
+  if (status === 413 || status === 415) {
+    return {
+      status,
+      error: {
+        code: ErrorCode.VALIDATION_FAILED,
+        messageKey: status === 413 ? "errors.UPLOAD_TOO_LARGE" : "errors.UPLOAD_TYPE",
+      },
+    };
+  }
   const code = codeForStatus(status);
   return {
     status: statusOf(code) === status ? status : statusOf(code),

@@ -25,10 +25,22 @@ const envSchema = z
       .refine((v) => Buffer.from(v, "base64").length === 32, "must be 32 bytes, base64-encoded"),
     /** console = dev only (code returned to the client and logged); unifonic = real SMS/WhatsApp. */
     OTP_PROVIDER: z.enum(["console", "unifonic"]).default("console"),
+    /** Document bytes: local disk for development, Google Cloud Storage (me-central2) in production. */
+    STORAGE_DRIVER: z.enum(["local", "gcs"]).default("local"),
+    STORAGE_LOCAL_DIR: z.string().default(".storage"),
+    GCS_BUCKET: z.string().optional(),
   })
   .refine((e) => e.NODE_ENV !== "production" || e.RBAC_ENFORCEMENT === "strict", {
     message: "RBAC_ENFORCEMENT must be 'strict' in production",
     path: ["RBAC_ENFORCEMENT"],
+  })
+  .refine((e) => e.NODE_ENV !== "production" || e.STORAGE_DRIVER === "gcs", {
+    message: "documents must be stored in GCS (Dammam) in production, not on local disk",
+    path: ["STORAGE_DRIVER"],
+  })
+  .refine((e) => e.STORAGE_DRIVER !== "gcs" || Boolean(e.GCS_BUCKET), {
+    message: "GCS_BUCKET is required when STORAGE_DRIVER=gcs",
+    path: ["GCS_BUCKET"],
   })
   .refine((e) => e.NODE_ENV !== "production" || e.OTP_PROVIDER !== "console", {
     message:

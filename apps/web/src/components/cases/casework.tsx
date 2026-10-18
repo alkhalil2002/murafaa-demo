@@ -294,6 +294,24 @@ export function ApprovalCreateForm({
   );
 }
 
+/** Opening package → a new review item with a fixed title (legacy). */
+export function SendForApprovalButton({
+  caseId,
+  title,
+  label,
+}: {
+  caseId: string;
+  title: string;
+  label: string;
+}) {
+  return (
+    <ActionButton
+      label={label}
+      call={() => caseworkCreateApproval({ client: c, path: { id: caseId }, body: { title } })}
+    />
+  );
+}
+
 export function ApprovalControls({
   caseId,
   id,

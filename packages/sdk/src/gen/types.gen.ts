@@ -604,6 +604,32 @@ export type ConvertedLead = {
     caseId: string;
 };
 
+export type DocumentList = Array<DocumentItem>;
+
+export type DocumentItem = {
+    id: string;
+    fileName: string;
+    kind: 'DOCUMENT' | 'IMAGE' | 'TEXT' | 'FILE' | 'LETTER';
+    source: 'OPENING' | 'PROCEDURAL_REQUEST' | 'HEARING' | 'CLIENT' | 'TEMPLATE' | 'UPLOAD';
+    party: 'OURS' | 'OPPONENT' | 'COURT' | null;
+    docType: string | null;
+    sessionLabel: string | null;
+    hearingId: string | null;
+    procedureRequestId: string | null;
+    procedureDocRole: 'REQUEST' | 'RESULT' | null;
+    mimeType: string;
+    sizeBytes: number;
+    templateKey: string | null;
+    needsOcr: boolean;
+    extractedText: string | null;
+    clientVisible: boolean;
+    createdAt: string;
+};
+
+export type ClearedCount = {
+    count: number;
+};
+
 export type Health = {
     status: 'ok' | 'degraded';
     db: 'up' | 'down';
@@ -3238,6 +3264,196 @@ export type CrmConvertResponses = {
 };
 
 export type CrmConvertResponse = CrmConvertResponses[keyof CrmConvertResponses];
+
+export type DocumentsListData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/documents';
+};
+
+export type DocumentsListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type DocumentsListError = DocumentsListErrors[keyof DocumentsListErrors];
+
+export type DocumentsListResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: DocumentList;
+        error: null;
+    };
+};
+
+export type DocumentsListResponse = DocumentsListResponses[keyof DocumentsListResponses];
+
+export type DocumentsUploadData = {
+    body: Blob | File;
+    path: {
+        id: string;
+    };
+    query: {
+        fileName: string;
+        mimeType: 'application/pdf' | 'image/jpeg' | 'image/png' | 'image/webp' | 'text/plain' | 'application/msword' | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        source?: 'UPLOAD' | 'OPENING' | 'PROCEDURAL_REQUEST' | 'HEARING';
+        party?: 'OURS' | 'OPPONENT' | 'COURT';
+        docType?: string | null;
+        sessionLabel?: string | null;
+        hearingId?: string;
+        procedureRequestId?: string;
+        procedureDocRole?: 'REQUEST' | 'RESULT';
+    };
+    url: '/api/v1/cases/{id}/documents';
+};
+
+export type DocumentsUploadErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type DocumentsUploadError = DocumentsUploadErrors[keyof DocumentsUploadErrors];
+
+export type DocumentsUploadResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: DocumentItem;
+        error: null;
+    };
+};
+
+export type DocumentsUploadResponse = DocumentsUploadResponses[keyof DocumentsUploadResponses];
+
+export type DocumentsClearOpeningData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/cases/{id}/documents/clear-opening';
+};
+
+export type DocumentsClearOpeningErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type DocumentsClearOpeningError = DocumentsClearOpeningErrors[keyof DocumentsClearOpeningErrors];
+
+export type DocumentsClearOpeningResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: ClearedCount;
+        error: null;
+    };
+};
+
+export type DocumentsClearOpeningResponse = DocumentsClearOpeningResponses[keyof DocumentsClearOpeningResponses];
+
+export type DocumentsDownloadData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{id}/download';
+};
+
+export type DocumentsDownloadErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type DocumentsDownloadError = DocumentsDownloadErrors[keyof DocumentsDownloadErrors];
+
+export type DocumentsDownloadResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type DocumentsDownloadResponse = DocumentsDownloadResponses[keyof DocumentsDownloadResponses];
+
+export type DocumentsShareData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{id}/share';
+};
+
+export type DocumentsShareErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type DocumentsShareError = DocumentsShareErrors[keyof DocumentsShareErrors];
+
+export type DocumentsShareResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type DocumentsShareResponse = DocumentsShareResponses[keyof DocumentsShareResponses];
+
+export type DocumentsRemoveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{id}';
+};
+
+export type DocumentsRemoveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type DocumentsRemoveError = DocumentsRemoveErrors[keyof DocumentsRemoveErrors];
+
+export type DocumentsRemoveResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type DocumentsRemoveResponse = DocumentsRemoveResponses[keyof DocumentsRemoveResponses];
 
 export type HealthCheckData = {
     body?: never;

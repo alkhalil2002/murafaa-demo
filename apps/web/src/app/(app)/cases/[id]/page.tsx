@@ -11,8 +11,10 @@ import {
   caseworkListContracts,
   caseworkListMessages,
   crmClients,
+  documentsList,
 } from "@murafaa/sdk";
-import { daysLeft, opponentRole, PROC_STAGES } from "@murafaa/rules";
+import { DOC_PARTIES, daysLeft, opponentRole, PROC_STAGES } from "@murafaa/rules";
+import { DOC_SOURCES } from "@murafaa/documents";
 import { formatSar, t, tStored, type MessageKey } from "@murafaa/i18n";
 import {
   AssigneeManager,
@@ -24,6 +26,7 @@ import {
   WaiveConflictForm,
 } from "@/components/cases/case-actions";
 import { CaseForm } from "@/components/cases/case-form";
+import { DeniedPanel } from "@/components/denied-panel";
 import {
   ApprovalControls,
   ApprovalCreateForm,
@@ -39,7 +42,14 @@ import {
   ProcedureControls,
   ProcedureForm,
   RemoveCommunicationButton,
+  SendForApprovalButton,
 } from "@/components/cases/casework";
+import {
+  ClearOpeningButton,
+  DocumentControls,
+  OpeningUploadForm,
+  UploadForm,
+} from "@/components/documents/document-controls";
 import {
   AddRequestForm,
   HearingActions,
@@ -76,6 +86,7 @@ const BUILT: ReadonlySet<Tab> = new Set([
   "contracts",
   "approvals",
   "execution",
+  "documents",
   "events",
   "closing",
 ]);
@@ -130,10 +141,16 @@ export default async function CaseDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; evf?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    evf?: string;
+    docsrc?: string;
+    docparty?: string;
+    docgroup?: string;
+  }>;
 }) {
   const { id } = await params;
-  const { tab: tabParam, evf } = await searchParams;
+  const { tab: tabParam, evf, docsrc, docparty, docgroup } = await searchParams;
   const tab: Tab = TABS.find((x) => x === tabParam) ?? "overview";
   const api = await serverApi();
   const [res, meRes] = await Promise.all([
@@ -155,6 +172,16 @@ export default async function CaseDetailPage({
   const waivedFlags = c.conflicts.filter((f) => f.status === "WAIVED");
   const anyHigh = activeFlags.some((f) => f.severity === "HIGH");
   const stageIdx = PROC_STAGES.indexOf(c.stage);
+  const docLevel = me.modules.DOCUMENTS;
+  const canEditDocs = (docLevel === "EDIT" || docLevel === "FULL") && !me.user.previewRole;
+  const canDeleteDocs = docLevel === "FULL" && !me.user.previewRole;
+  // Documents feed the overview (opening package, request attachments), hearings and documents tabs.
+  const docs =
+    docLevel !== "NONE" && (tab === "overview" || tab === "hearings" || tab === "documents")
+      ? ((await documentsList({ client: api, path: { id } })).data?.data ?? null)
+      : null;
+  const sessionLabel = (no: number | null) =>
+    t("cases.hearings.sessionNo", { no: (no ?? 0).toLocaleString("ar-SA") });
 
   let body: React.ReactNode;
   if (!BUILT.has(tab)) {
@@ -256,6 +283,63 @@ export default async function CaseDetailPage({
                     {canEdit && (
                       <RequestControls caseId={c.id} requestId={r.id} canDelete={canDelete} />
                     )}
+                    {docs && (
+                      <div
+                        style={{
+                          width: "100%",
+                          fontSize: 15,
+                          display: "flex",
+                          gap: 6,
+                          flexWrap: "wrap",
+                          alignItems: "center",
+                        }}
+                      >
+                        {docs.filter((d) => d.procedureRequestId === r.id).length === 0 ? (
+                          <span className="sub">{t("cases.procRequests.noAttachments")}</span>
+                        ) : (
+                          docs
+                            .filter((d) => d.procedureRequestId === r.id)
+                            .map((d) => (
+                              <span className="chip" key={d.id}>
+                                📎 {d.fileName} ·{" "}
+                                {d.procedureDocRole === "RESULT"
+                                  ? t("cases.procRequests.resultDoc")
+                                  : t("cases.procRequests.requestDoc")}{" "}
+                                <DocumentControls
+                                  id={d.id}
+                                  shared={d.clientVisible}
+                                  canEdit={false}
+                                  canDelete={canDeleteDocs}
+                                />
+                              </span>
+                            ))
+                        )}
+                        {canEditDocs && (
+                          <>
+                            <UploadForm
+                              caseId={c.id}
+                              fixed={{
+                                source: "PROCEDURAL_REQUEST",
+                                procedureRequestId: r.id,
+                                procedureDocRole: "REQUEST",
+                              }}
+                              submitLabel={t("cases.procRequests.attachRequest")}
+                              style={{ display: "inline-flex", gap: 4, alignItems: "center" }}
+                            />
+                            <UploadForm
+                              caseId={c.id}
+                              fixed={{
+                                source: "PROCEDURAL_REQUEST",
+                                procedureRequestId: r.id,
+                                procedureDocRole: "RESULT",
+                              }}
+                              submitLabel={t("cases.procRequests.attachResult")}
+                              style={{ display: "inline-flex", gap: 4, alignItems: "center" }}
+                            />
+                          </>
+                        )}
+                      </div>
+                    )}
                     {r.log.length > 0 && (
                       <div style={{ width: "100%", fontSize: 14.375, color: "var(--ink-soft)" }}>
                         {r.log.map((ev) => (
@@ -276,6 +360,62 @@ export default async function CaseDetailPage({
           )}
           {canEdit && <AddRequestForm caseId={c.id} stageIdx={stageIdx} />}
         </Panel>
+        {docs &&
+          (() => {
+            const opening = docs.filter((d) => d.source === "OPENING");
+            return (
+              <Panel
+                n={t("cases.tag.documents")}
+                title={`${t("cases.openingPackage.title")} — ${t("cases.openingPackage.itemCount", { n: opening.length.toLocaleString("ar-SA") })}`}
+              >
+                <div className="sub" style={{ marginBottom: 10 }}>
+                  {t("cases.openingPackage.hint")}
+                </div>
+                {opening.length === 0 ? (
+                  <Empty>{t("documents.empty")}</Empty>
+                ) : (
+                  opening.map((d) => (
+                    <div className="approve-row" key={d.id}>
+                      <span className="ndot" style={{ background: "var(--bench)" }} />
+                      <span className="at">
+                        📄 {d.fileName}
+                        <span className="chip">
+                          {" "}
+                          {t(`docParty.${d.party ?? "OURS"}` as MessageKey)}
+                        </span>
+                        {d.needsOcr && <span className="chip"> OCR</span>}
+                        {d.extractedText && (
+                          <span className="chip st">
+                            {" "}
+                            {t("cases.openingPackage.viewExtractedText")}
+                          </span>
+                        )}
+                      </span>
+                      <DocumentControls
+                        id={d.id}
+                        shared={d.clientVisible}
+                        canEdit={canEditDocs}
+                        canDelete={canDeleteDocs}
+                      />
+                    </div>
+                  ))
+                )}
+                {canEditDocs && <OpeningUploadForm caseId={c.id} />}
+                {opening.length > 0 && (
+                  <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {canEdit && (
+                      <SendForApprovalButton
+                        caseId={c.id}
+                        title={t("cases.openingPackage.sendForApprovalTitle")}
+                        label={t("cases.openingPackage.sendForApproval")}
+                      />
+                    )}
+                    {canDeleteDocs && <ClearOpeningButton caseId={c.id} />}
+                  </div>
+                )}
+              </Panel>
+            );
+          })()}
         {canEdit && (
           <div className="panel">
             <h2 style={{ marginTop: 0 }}>
@@ -438,6 +578,36 @@ export default async function CaseDetailPage({
                       </div>
                     )}
                     <HearingActions caseId={c.id} h={h} users={users} canEdit={canEdit} />
+                    {canEditDocs && (
+                      <details style={{ marginTop: 12 }}>
+                        <summary
+                          style={{
+                            cursor: "pointer",
+                            fontSize: 15.625,
+                            color: "var(--bench)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {t("cases.hearings.attachDoc")}
+                        </summary>
+                        <div className="sub" style={{ fontWeight: 600, marginTop: 10 }}>
+                          {t("cases.hearings.attachTitle", {
+                            no: (h.sequenceNo ?? 0).toLocaleString("ar-SA"),
+                          })}
+                        </div>
+                        <UploadForm
+                          caseId={c.id}
+                          fixed={{
+                            source: "HEARING",
+                            hearingId: h.id,
+                            sessionLabel: sessionLabel(h.sequenceNo),
+                          }}
+                          fields={["party"]}
+                          submitLabel={t("cases.hearings.attachSubmit")}
+                          style={{ marginTop: 10 }}
+                        />
+                      </details>
+                    )}
                     {canEdit && <HearingEditor caseId={c.id} h={h} canDelete={canDelete} />}
                   </div>
                 </details>
@@ -747,6 +917,152 @@ export default async function CaseDetailPage({
                   {canEdit && <ProcedureControls caseId={c.id} proc={pr} canDelete={canDelete} />}
                 </div>
               ))
+            )}
+          </Panel>
+        </>
+      );
+    }
+  } else if (tab === "documents") {
+    if (!docs) {
+      body = <DeniedPanel />;
+    } else {
+      const heldLabel = new Map(c.hearings.map((h) => [h.id, sessionLabel(h.sequenceNo)]));
+      const activeSrc = DOC_SOURCES.find((x) => x === docsrc) ?? null;
+      const activeParty = DOC_PARTIES.find((x) => x === docparty) ?? null;
+      const bySession = docgroup === "session";
+      const srcCount = (x: string) => docs.filter((d) => d.source === x).length;
+      const partyCount = (x: string) => docs.filter((d) => d.party === x).length;
+      const shown = docs.filter(
+        (d) => (!activeSrc || d.source === activeSrc) && (!activeParty || d.party === activeParty),
+      );
+      const qs = (over: {
+        docsrc?: string | null;
+        docparty?: string | null;
+        docgroup?: string | null;
+      }) => {
+        const q = new URLSearchParams({ tab: "documents" });
+        const src = "docsrc" in over ? over.docsrc : activeSrc;
+        const party = "docparty" in over ? over.docparty : activeParty;
+        const grp = "docgroup" in over ? over.docgroup : bySession ? "session" : null;
+        if (src) q.set("docsrc", src);
+        if (party) q.set("docparty", party);
+        if (grp) q.set("docgroup", grp);
+        return `/cases/${id}?${q.toString()}`;
+      };
+      const row = (d: (typeof docs)[number]) => (
+        <div className="approve-row" key={d.id} style={{ flexWrap: "wrap" }}>
+          <span className="ndot" style={{ background: "var(--bench)" }} />
+          <span className="at">
+            📄 {d.fileName}
+            <span className="chip"> {t(`docSource.${d.source}` as MessageKey)}</span>
+            {d.party && <span className="chip"> {t(`docParty.${d.party}` as MessageKey)}</span>}
+            {d.clientVisible && <span className="chip st"> {t("documents.shared")}</span>}
+          </span>
+          <DocumentControls
+            id={d.id}
+            shared={d.clientVisible}
+            canEdit={canEditDocs}
+            canDelete={canDeleteDocs}
+          />
+          {d.extractedText && (
+            <details style={{ width: "100%", marginTop: 6 }}>
+              <summary style={{ cursor: "pointer", fontSize: 15, color: "var(--bench)" }}>
+                {t("documents.extractedText")}
+              </summary>
+              <div className="sub" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
+                {d.extractedText}
+              </div>
+            </details>
+          )}
+        </div>
+      );
+      const groups = () => {
+        const keys = [...c.hearings.map((h) => h.id), "none"];
+        return keys
+          .map((key) => [key, shown.filter((d) => (d.hearingId ?? "none") === key)] as const)
+          .filter(([, list]) => list.length > 0)
+          .map(([key, list]) => (
+            <div key={key} style={{ marginBottom: 14 }}>
+              <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>
+                {key === "none" ? t("documents.noSession") : heldLabel.get(key)} (
+                {list.length.toLocaleString("ar-SA")})
+              </div>
+              {list.map(row)}
+            </div>
+          ));
+      };
+      body = (
+        <>
+          {canEditDocs && (
+            <div className="panel">
+              <h2 style={{ marginTop: 0 }}>
+                <span className="n">{t("cases.tag.documents")}</span> {t("documents.upload")}
+              </h2>
+              <UploadForm
+                caseId={c.id}
+                fields={["party", "docType", "source", "hearing"]}
+                hearings={c.hearings.map((h) => ({
+                  id: h.id,
+                  label: `${sessionLabel(h.sequenceNo)} · ${fmtDate(h.hearingDate)}`,
+                }))}
+                submitLabel={t("documents.uploadSubmit")}
+              />
+            </div>
+          )}
+          <Panel n={t("cases.tag.documents")} title={t("documents.caseDocs")}>
+            <div style={{ marginBottom: 12 }}>
+              <Link href={`/documents?caseId=${c.id}`} className="mini">
+                {t("documents.create")}
+              </Link>
+            </div>
+            <div className="chips" style={{ marginBottom: 8 }}>
+              <Link href={qs({ docsrc: null })} className={`chip${!activeSrc ? " st done" : ""}`}>
+                {t("events.filterAll")} ({docs.length.toLocaleString("ar-SA")})
+              </Link>
+              {DOC_SOURCES.filter((x) => srcCount(x) > 0).map((x) => (
+                <Link
+                  key={x}
+                  href={qs({ docsrc: x })}
+                  className={`chip${activeSrc === x ? " st done" : ""}`}
+                >
+                  {t(`docSource.${x}` as MessageKey)} ({srcCount(x).toLocaleString("ar-SA")})
+                </Link>
+              ))}
+            </div>
+            <div className="chips" style={{ marginBottom: 8 }}>
+              <Link
+                href={qs({ docparty: null })}
+                className={`chip${!activeParty ? " st done" : ""}`}
+              >
+                {t("events.filterAll")}
+              </Link>
+              {DOC_PARTIES.filter((x) => partyCount(x) > 0).map((x) => (
+                <Link
+                  key={x}
+                  href={qs({ docparty: x })}
+                  className={`chip${activeParty === x ? " st done" : ""}`}
+                >
+                  {t(`docParty.${x}` as MessageKey)} ({partyCount(x).toLocaleString("ar-SA")})
+                </Link>
+              ))}
+            </div>
+            <div className="chips" style={{ marginBottom: 12 }}>
+              <Link href={qs({ docgroup: null })} className={`chip${!bySession ? " st done" : ""}`}>
+                {t("documents.flatView")}
+              </Link>
+              <Link
+                href={qs({ docgroup: "session" })}
+                className={`chip${bySession ? " st done" : ""}`}
+              >
+                {t("documents.groupBySession")}
+              </Link>
+            </div>
+            {shown.length === 0 ? (
+              <Empty>{t("documents.empty")}</Empty>
+            ) : bySession ? (
+              groups()
+            ) : (
+              shown.map(row)
             )}
           </Panel>
         </>

@@ -6,6 +6,7 @@ import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fa
 import { SwaggerModule } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
 import { AppModule } from "./app.module.js";
+import { MAX_UPLOAD_BYTES } from "@murafaa/documents";
 import { buildOpenApi } from "./common/zod/openapi.js";
 import { readCookie, SESSION_COOKIE } from "./modules/auth/cookies.js";
 import { SessionService } from "./modules/auth/session.service.js";
@@ -34,6 +35,7 @@ export async function createApp(env: Env): Promise<NestFastifyApplication> {
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: API_VERSION });
   app.enableShutdownHooks();
   attachSessions(app, env);
+  acceptBinaryUploads(app);
   return app;
 }
 
@@ -92,4 +94,19 @@ function attachSessions(app: NestFastifyApplication, env: Env): void {
       request.principal = resolved.principal;
       request.sessionId = resolved.sessionId;
     });
+}
+
+/**
+ * File uploads arrive as raw bytes (application/octet-stream) with their
+ * metadata in the query string, read by @BinaryBody. Only this content type
+ * gets the larger limit; JSON bodies keep Fastify's 1 MB default. A body
+ * over the limit reaches AllExceptionsFilter as a 413.
+ */
+function acceptBinaryUploads(app: NestFastifyApplication): void {
+  const fastify = app.getHttpAdapter().getInstance();
+  fastify.addContentTypeParser(
+    "application/octet-stream",
+    { parseAs: "buffer", bodyLimit: MAX_UPLOAD_BYTES },
+    (_req, body, done) => done(null, body),
+  );
 }

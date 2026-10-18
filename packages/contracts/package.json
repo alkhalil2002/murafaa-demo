@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@murafaa/auth": "workspace:*",
+    "@murafaa/documents": "workspace:*",
     "@murafaa/rules": "workspace:*",
     "zod": "4.6.7"
   }

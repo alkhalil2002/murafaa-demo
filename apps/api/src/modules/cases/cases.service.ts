@@ -729,6 +729,12 @@ export class CasesService {
 
   // ── Read models for the office overview (today, dashboard, journey, alerts, search) ──
 
+  /** Every live case (billing usage). */
+  async liveCount(tx: Tx) {
+    const [r] = await tx.select({ n: count() }).from(cases).where(isNull(cases.deletedAt));
+    return r?.n ?? 0;
+  }
+
   /** Office-wide case aggregates (legacy dashboard/journey count every case, not the caller's scope). */
   async stats(tx: Tx) {
     const live = isNull(cases.deletedAt);

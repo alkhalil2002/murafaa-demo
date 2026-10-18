@@ -28,6 +28,7 @@ import { ApprovalsService } from "../cases/approvals.service.js";
 import { CasesService } from "../cases/cases.service.js";
 import { type DeadlineItem, DeadlinesService } from "../cases/deadlines.service.js";
 import { CrmService } from "../crm/crm.service.js";
+import { DocumentsService } from "../documents/documents.service.js";
 import { TasksService } from "../tasks/tasks.service.js";
 
 type Message = { messageKey: string; params: Record<string, string | number> };
@@ -47,7 +48,7 @@ const ACTIVITY_COUNT_WINDOW = 2000;
  * throwing, so a shared landing page does not log expected denials).
  *
  * Sources whose modules are not rebuilt yet (invoices, HR requests,
- * documents, employees, Team Pulse, WhatsApp) contribute nothing
+ * employees, Team Pulse, WhatsApp) contribute nothing
  * until they land; nothing is fabricated in their place.
  */
 @Injectable()
@@ -61,6 +62,7 @@ export class OverviewService {
     private readonly appointments: AppointmentsService,
     private readonly deadlines: DeadlinesService,
     private readonly approvals: ApprovalsService,
+    private readonly documents: DocumentsService,
   ) {}
 
   private can(policy: OfficePolicy, p: Principal, module: PermModule, action: PermAction = "view") {
@@ -309,6 +311,7 @@ export class OverviewService {
         ? await this.crm.search(tx, q, take)
         : { clients: [], leads: [] };
       const tasks = allowed("tasks") ? await this.tasks.search(tx, policy, p, q, take) : [];
+      const docs = allowed("documents") ? await this.documents.search(tx, policy, p, q, take) : [];
       return {
         cases: found.map((c) => ({
           id: c.id,
@@ -323,7 +326,12 @@ export class OverviewService {
           href: "/clients",
         })),
         leads: people.leads.map((l) => ({ id: l.id, label: l.name, sub: l.phone, href: "/leads" })),
-        documents: [], // M3
+        documents: docs.map((d) => ({
+          id: d.id,
+          label: d.fileName,
+          sub: null,
+          href: d.caseId ? `/cases/${d.caseId}?tab=documents` : "/documents",
+        })),
         invoices: [], // M4
         tasks: tasks.map((tk) => ({ id: tk.id, label: tk.title, sub: null, href: "/tasks" })),
         employees: [], // M6

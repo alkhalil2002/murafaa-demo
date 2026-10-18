@@ -32,9 +32,18 @@ describe("loadEnv", () => {
     expect(() => loadEnv({ ...base, NODE_ENV: "production", OTP_PROVIDER: "console" })).toThrow(
       /OTP_PROVIDER/,
     );
+    const prodStorage = { STORAGE_DRIVER: "gcs", GCS_BUCKET: "murafaa-docs" };
     expect(
-      loadEnv({ ...base, NODE_ENV: "production", OTP_PROVIDER: "unifonic" }).OTP_PROVIDER,
+      loadEnv({ ...base, ...prodStorage, NODE_ENV: "production", OTP_PROVIDER: "unifonic" })
+        .OTP_PROVIDER,
     ).toBe("unifonic");
+  });
+
+  it("keeps production documents in GCS and needs a bucket for it", () => {
+    const prod = { ...base, NODE_ENV: "production", OTP_PROVIDER: "unifonic" };
+    expect(() => loadEnv({ ...prod, STORAGE_DRIVER: "local" })).toThrow(/STORAGE_DRIVER/);
+    expect(() => loadEnv({ ...base, STORAGE_DRIVER: "gcs" })).toThrow(/GCS_BUCKET/);
+    expect(loadEnv(base).STORAGE_DRIVER).toBe("local");
   });
 
   it("splits CORS origins", () => {

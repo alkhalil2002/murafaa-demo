@@ -1,5 +1,8 @@
 import { createDb, runMigrations, seedOfficePolicy, withTenant } from "@murafaa/database";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import postgres from "postgres";
 import { dateInDays } from "@murafaa/rules";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -32,6 +35,7 @@ const OFFICE_G = "99999999-0000-4000-8000-000000000009";
 const OFFICE_H = "88888888-0000-4000-8000-000000000008";
 const OFFICE_I = "77777777-0000-4000-8000-000000000007";
 const OFFICE_J = "66666666-0000-4000-8000-000000000006";
+const OFFICE_K = "55555555-0000-4000-8000-000000000005";
 
 // Local digits; the API normalizes to +9665XXXXXXXX.
 const PARTNER_A = "0500000101";
@@ -73,6 +77,11 @@ const PARTNER_J = "0500000801";
 const LAWYER_J1 = "0500000802";
 const LAWYER_J2 = "0500000803";
 
+const PARTNER_K = "0500000901";
+const LAWYER_K1 = "0500000902";
+const LAWYER_K2 = "0500000903";
+const RECEPTION_K = "0500000904";
+
 let app: NestFastifyApplication;
 
 const e164 = (local: string) => `+966${local.slice(1)}`;
@@ -109,7 +118,7 @@ const cookieOf = (res: { headers: Record<string, unknown> }) =>
 beforeAll(async () => {
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -155,6 +164,17 @@ beforeAll(async () => {
         [PARTNER_G, "PARTNER"],
         [LAWYER_G1, "LAWYER"],
         [LAWYER_G2, "LAWYER"],
+      ],
+    ],
+    [
+      OFFICE_K,
+      "Office K",
+      [],
+      [
+        [PARTNER_K, "PARTNER"],
+        [LAWYER_K1, "LAWYER"],
+        [LAWYER_K2, "LAWYER"],
+        [RECEPTION_K, "RECEPTION"],
       ],
     ],
     [
@@ -234,6 +254,7 @@ beforeAll(async () => {
     OFFICE_H,
     OFFICE_I,
     OFFICE_J,
+    OFFICE_K,
   ]) {
     await withTenant(seeder.db, office, (tx) => seedOfficePolicy(tx, office));
   }
@@ -248,6 +269,8 @@ beforeAll(async () => {
     AUTH_SECRET: "e2e-auth-secret-0123456789abcdefghijkl",
     ENCRYPTION_KEY,
     OTP_PROVIDER: "console",
+    STORAGE_DRIVER: "local",
+    STORAGE_LOCAL_DIR: mkdtempSync(join(tmpdir(), "murafaa-e2e-storage-")),
   });
   app = await createApp(env);
   mountDocs(app, env);
@@ -1912,5 +1935,249 @@ describe("case work: approvals, contracts, contact log, chat, client approvals, 
         "event.executionClosed",
       ]),
     );
+  });
+});
+
+describe("documents: upload, download, share, delete, recycle", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  let partner = "";
+  let lawyer1 = "";
+  let lawyer2 = "";
+  let reception = "";
+  let id = "";
+  const PDF = Buffer.from("%PDF-1.7\n1 0 obj << >> endobj\n%%EOF\n");
+  const as = (cookie: string, method: "GET" | "POST" | "DELETE", url: string, payload?: object) =>
+    app.inject({ method, url, headers: { cookie, ...WEB }, ...(payload ? { payload } : {}) });
+  const upload = (cookie: string, query: Record<string, string>, body: Buffer, caseId = id) =>
+    app.inject({
+      method: "POST",
+      url: `/api/v1/cases/${caseId}/documents?${new URLSearchParams(query)}`,
+      headers: { cookie, ...WEB, "content-type": "application/octet-stream" },
+      payload: body,
+    });
+  const list = async (cookie: string) =>
+    (await as(cookie, "GET", `/api/v1/cases/${id}/documents`)).json().data;
+
+  beforeAll(async () => {
+    partner = cookieOf(await login(PARTNER_K));
+    lawyer1 = cookieOf(await login(LAWYER_K1));
+    lawyer2 = cookieOf(await login(LAWYER_K2));
+    reception = cookieOf(await login(RECEPTION_K));
+    id = (
+      await as(lawyer1, "POST", "/api/v1/cases", { number: "1447/70", title: "قضية المستندات" })
+    ).json().data.id;
+  });
+
+  it("stores an upload and streams it back to an authorized caller, audited", async () => {
+    const res = await upload(
+      lawyer1,
+      {
+        fileName: "صحيفة الدعوى.pdf",
+        mimeType: "application/pdf",
+        party: "OURS",
+        docType: "صحيفة",
+      },
+      PDF,
+    );
+    expect(res.statusCode).toBe(201);
+    const doc = res.json().data;
+    expect(doc).toMatchObject({
+      fileName: "صحيفة الدعوى.pdf",
+      kind: "DOCUMENT",
+      source: "UPLOAD",
+      party: "OURS",
+      sizeBytes: PDF.length,
+    });
+
+    const dl = await as(lawyer1, "GET", `/api/v1/documents/${doc.id}/download`);
+    expect(dl.statusCode).toBe(200);
+    expect(dl.headers["content-type"]).toContain("application/pdf");
+    expect(String(dl.headers["content-disposition"])).toContain(
+      `filename*=UTF-8''${encodeURIComponent("صحيفة الدعوى.pdf")}`,
+    );
+    expect(dl.rawPayload.equals(PDF)).toBe(true);
+
+    expect((await as(lawyer2, "GET", `/api/v1/documents/${doc.id}/download`)).statusCode).toBe(404);
+    expect((await as(lawyer2, "GET", `/api/v1/cases/${id}/documents`)).statusCode).toBe(404);
+    expect((await as(reception, "GET", `/api/v1/documents/${doc.id}/download`)).statusCode).toBe(
+      403,
+    );
+
+    const log = (await as(partner, "GET", "/api/v1/activity?type=other")).json().data
+      .rows as Array<{ action: string }>;
+    expect(log.map((r) => r.action)).toEqual(
+      expect.arrayContaining(["document.upload", "document.download"]),
+    );
+    const c = (await as(lawyer1, "GET", `/api/v1/cases/${id}`)).json().data;
+    expect(
+      c.events.some(
+        (e: { message: { messageKey: string } | null }) =>
+          e.message?.messageKey === "event.docUploaded",
+      ),
+    ).toBe(true);
+  });
+
+  it("refuses wrong content, wrong types, empty and oversized files", async () => {
+    const fake = await upload(
+      lawyer1,
+      { fileName: "x.pdf", mimeType: "application/pdf" },
+      Buffer.from("MZ\x90\x00 not a pdf"),
+    );
+    expect(fake.json().error.messageKey).toBe("errors.UPLOAD_CONTENT_MISMATCH");
+    expect(
+      (await upload(lawyer1, { fileName: "x.exe", mimeType: "application/x-msdownload" }, PDF))
+        .statusCode,
+    ).toBe(400);
+    const empty = await upload(
+      lawyer1,
+      { fileName: "x.pdf", mimeType: "application/pdf" },
+      Buffer.alloc(0),
+    );
+    expect(empty.json().error.messageKey).toBe("errors.UPLOAD_EMPTY");
+    const big = await upload(
+      lawyer1,
+      { fileName: "big.pdf", mimeType: "application/pdf" },
+      Buffer.concat([PDF, Buffer.alloc(26 * 1024 * 1024)]),
+    );
+    expect(big.statusCode).toBe(413);
+    expect(big.json().error).toMatchObject({
+      code: "VALIDATION_FAILED",
+      messageKey: "errors.UPLOAD_TOO_LARGE",
+    });
+    const foreign = await upload(
+      lawyer1,
+      { fileName: "x.pdf", mimeType: "application/pdf", hearingId: OFFICE_A },
+      PDF,
+    );
+    expect(foreign.json().error.details[0].path).toBe("hearingId");
+  });
+
+  it("links attachments to a procedural request and a hearing", async () => {
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/procedure-requests`, {
+      stageIndex: 1,
+      party: "OURS",
+      text: "طلب ندب خبير",
+    });
+    const req = (await as(lawyer1, "GET", `/api/v1/cases/${id}`)).json().data.procedureRequests[0];
+    await upload(
+      lawyer1,
+      {
+        fileName: "الطلب.pdf",
+        mimeType: "application/pdf",
+        source: "PROCEDURAL_REQUEST",
+        procedureRequestId: req.id,
+      },
+      PDF,
+    );
+    await upload(
+      lawyer1,
+      {
+        fileName: "النتيجة.pdf",
+        mimeType: "application/pdf",
+        source: "PROCEDURAL_REQUEST",
+        procedureRequestId: req.id,
+        procedureDocRole: "RESULT",
+      },
+      PDF,
+    );
+    await as(lawyer1, "POST", `/api/v1/cases/${id}/hearings`, { hearingDate: "2026-06-01" });
+    const h = (await as(lawyer1, "GET", `/api/v1/cases/${id}`)).json().data.hearings[0];
+    await upload(
+      lawyer1,
+      {
+        fileName: "محضر.txt",
+        mimeType: "text/plain",
+        source: "HEARING",
+        hearingId: h.id,
+        sessionLabel: "جلسة ١",
+      },
+      Buffer.from("محضر الجلسة"),
+    );
+    const docs = (await list(lawyer1)) as Array<{
+      fileName: string;
+      procedureDocRole: string | null;
+      hearingId: string | null;
+      kind: string;
+    }>;
+    expect(docs.find((d) => d.fileName === "الطلب.pdf")?.procedureDocRole).toBe("REQUEST");
+    expect(docs.find((d) => d.fileName === "النتيجة.pdf")?.procedureDocRole).toBe("RESULT");
+    expect(docs.find((d) => d.fileName === "محضر.txt")).toMatchObject({
+      hearingId: h.id,
+      kind: "TEXT",
+    });
+  });
+
+  it("shares, deletes into the recycle bin (full level), restores, and clears the opening package", async () => {
+    const doc = (
+      await upload(lawyer1, { fileName: "عقد.pdf", mimeType: "application/pdf" }, PDF)
+    ).json().data;
+    await as(lawyer1, "POST", `/api/v1/documents/${doc.id}/share`);
+    expect(
+      ((await list(lawyer1)) as Array<{ id: string; clientVisible: boolean }>).find(
+        (d) => d.id === doc.id,
+      )?.clientVisible,
+    ).toBe(true);
+
+    expect((await as(lawyer1, "DELETE", `/api/v1/documents/${doc.id}`)).statusCode).toBe(403);
+    expect((await as(partner, "DELETE", `/api/v1/documents/${doc.id}`)).statusCode).toBe(200);
+    expect(((await list(lawyer1)) as Array<{ id: string }>).some((d) => d.id === doc.id)).toBe(
+      false,
+    );
+    const bin = (await as(partner, "GET", "/api/v1/recycle")).json().data as Array<{
+      kind: string;
+      id: string;
+    }>;
+    expect(bin.some((i) => i.kind === "document" && i.id === doc.id)).toBe(true);
+    expect(
+      ((await as(lawyer2, "GET", "/api/v1/recycle")).json().data as Array<{ id: string }>).some(
+        (i) => i.id === doc.id,
+      ),
+    ).toBe(false);
+    expect(
+      (await as(partner, "POST", `/api/v1/recycle/document/${doc.id}/restore`)).statusCode,
+    ).toBe(200);
+    expect(((await list(lawyer1)) as Array<{ id: string }>).some((d) => d.id === doc.id)).toBe(
+      true,
+    );
+
+    await upload(
+      lawyer1,
+      {
+        fileName: "مستند افتتاحي ١.pdf",
+        mimeType: "application/pdf",
+        source: "OPENING",
+        party: "OPPONENT",
+      },
+      PDF,
+    );
+    await upload(
+      lawyer1,
+      { fileName: "مستند افتتاحي ٢.png", mimeType: "image/png", source: "OPENING" },
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]),
+    );
+    const png = (
+      (await list(lawyer1)) as Array<{ fileName: string; needsOcr: boolean; kind: string }>
+    ).find((d) => d.fileName.endsWith(".png"));
+    expect(png).toMatchObject({ needsOcr: true, kind: "IMAGE" });
+    expect(
+      (await as(partner, "POST", `/api/v1/cases/${id}/documents/clear-opening`)).json().data,
+    ).toEqual({ count: 2 });
+    expect(
+      ((await list(lawyer1)) as Array<{ source: string }>).some((d) => d.source === "OPENING"),
+    ).toBe(false);
+  });
+
+  it("finds documents in search and counts them in billing usage", async () => {
+    const hits = (
+      await as(lawyer1, "GET", `/api/v1/search?q=${encodeURIComponent("صحيفة")}`)
+    ).json().data;
+    expect(hits.documents.map((d: { label: string }) => d.label)).toContain("صحيفة الدعوى.pdf");
+    expect(
+      (await as(lawyer2, "GET", `/api/v1/search?q=${encodeURIComponent("صحيفة")}`)).json().data
+        .documents,
+    ).toEqual([]);
+    const usage = (await as(partner, "GET", "/api/v1/billing/usage")).json().data;
+    expect(usage).toMatchObject({ cases: 1 });
+    expect(usage.documents).toBe(((await list(lawyer1)) as unknown[]).length);
   });
 });

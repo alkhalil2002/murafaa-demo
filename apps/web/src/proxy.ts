@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 const SESSION_COOKIE = "murafaa_session";
-const PUBLIC_PATHS = ["/login", "/auth/expired", "/api/"];
+const PUBLIC_PATHS = ["/login", "/auth/expired"];
 
 /**
  * Navigation only (Next 16 proxy, formerly middleware): send signed-out
@@ -20,5 +20,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // /api is rewritten straight to the API, which checks the session itself.
+  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico).*)"],
 };

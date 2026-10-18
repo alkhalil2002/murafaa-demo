@@ -4,7 +4,7 @@ import { DiscoveryService, MetadataScanner } from "@nestjs/core";
 import { errorEnvelope } from "@murafaa/contracts";
 import { z } from "zod";
 import { IS_PUBLIC } from "../permissions/permission.decorators.js";
-import { ZOD_BODY, ZOD_PARAMS, ZOD_QUERY, ZOD_RESPONSE } from "./zod.decorators.js";
+import { BINARY_BODY, ZOD_BODY, ZOD_PARAMS, ZOD_QUERY, ZOD_RESPONSE } from "./zod.decorators.js";
 
 type JsonSchema = Record<string, unknown>;
 type Operation = Record<string, unknown>;
@@ -141,7 +141,12 @@ export function buildOpenApi(
         },
         ...(isPublic ? { security: [] } : {}),
       };
-      if (body) {
+      if (Reflect.getMetadata(BINARY_BODY, handler)) {
+        operation.requestBody = {
+          required: true,
+          content: { "application/octet-stream": { schema: { type: "string", format: "binary" } } },
+        };
+      } else if (body) {
         operation.requestBody = {
           required: true,
           content: { "application/json": { schema: toSchema(body, "input") } },

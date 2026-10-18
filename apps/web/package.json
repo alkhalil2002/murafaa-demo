@@ -14,6 +14,7 @@
   "dependencies": {
     "@murafaa/auth": "workspace:*",
     "@murafaa/contracts": "workspace:*",
+    "@murafaa/documents": "workspace:*",
     "@murafaa/i18n": "workspace:*",
     "@murafaa/rules": "workspace:*",
     "@murafaa/sdk": "workspace:*",

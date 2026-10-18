@@ -8,14 +8,14 @@ Milestones follow `docs/02` §13. **M1 Foundation** now also includes: staff OTP
 
 | Area | Legacy | ✅ Done | Remaining |
 |---|---|---|---|
-| `src/lib` files | 51 | 34 | 17 |
+| `src/lib` files | 51 | 38 | 13 |
 | Business rules inside services/components | 37 | 30 | 7 |
-| Services | 54 | 26 | 28 |
-| Service capabilities | 225 | 109 | 116 |
+| Services | 54 | 27 | 27 |
+| Service capabilities | 225 | 115 | 110 |
 | Screens | 63 | 24 | 39 |
 | Components | 20 | 13 | 7 |
-| Route handlers | 9 | 3 (+1 replaced) | 5 |
-| Models | 56 | 26 (+ `outbox`, `sessions` new) | 30 |
+| Route handlers | 9 | 4 (+1 replaced) | 4 |
+| Models | 56 | 27 (+ `outbox`, `sessions` new) | 29 |
 | Legacy test cases | 115 | 108 | 7 (`portal` 5 rewrite in M8, `hearing-draft` 2 not ported) |
 
 Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (design changes, reason given) · ⛔ Not ported (reason given)
@@ -71,10 +71,10 @@ Legend: ✅ Ported (with tests) · ⏳ Pending (milestone) · 🔁 Rebuild (desi
 | `permissions/policy.ts` | ✅ Ported | apps/api PolicyService + packages/auth policyFromRows | read from the office's rows on every request; no stale cache |
 | `permissions/scope.ts` | ✅ Ported | apps/api/src/modules/cases/case-scope.ts | EXISTS(case_assignees) condition on every case query |
 | `security/ip.ts` | ✅ Ported | apps/api/src/common/security/ip-allowlist.ts | enforced by the API on login and on every request (legacy enforced it only in the page shell) |
-| `storage/gcs.ts` | ⏳ Pending | M3 Documents | GCS me-central2 |
-| `storage/index.ts` | ⏳ Pending | M3 Documents |  |
-| `storage/local.ts` | ⏳ Pending | M3 Documents | dev storage |
-| `storage/types.ts` | ⏳ Pending | M3 Documents |  |
+| `storage/gcs.ts` | ✅ Ported | apps/api/src/common/storage/storage.ts GcsStorage (me-central2 bucket; production refuses local disk) |  |
+| `storage/index.ts` | ✅ Ported | apps/api/src/common/storage/storage.ts storageFor (STORAGE_DRIVER) |  |
+| `storage/local.ts` | ✅ Ported | apps/api/src/common/storage/storage.ts LocalStorage (dev, traversal-safe) |  |
+| `storage/types.ts` | ✅ Ported | apps/api/src/common/storage/storage.ts DocumentStorage + documentKey |  |
 
 ## `src/server` services (54 files)
 
@@ -87,7 +87,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `alerts` | ✅ Ported | apps/api/src/modules/overview (row-scoped; overdue invoices join with M4) |  |
 | `appointments` | ✅ Ported | apps/api/src/modules/appointments (+ booking/cancel UI legacy lacked) |  |
 | `approvals` | ✅ Ported | apps/api/src/modules/cases/approvals.service.ts (partner step needs CASES at FULL; pending list row-scoped) |  |
-| `billing-usage` | ✅ Ported | apps/api/src/modules/billing (GET /billing/usage; case/client/document counts join with their modules) |  |
+| `billing-usage` | ✅ Ported | apps/api/src/modules/billing (GET /billing/usage; live seats, cases, clients, documents) |  |
 | `case-profitability` | ⏳ Pending | M4 Finance |  |
 | `cases` | ✅ Ported | apps/api/src/modules/cases (effectiveStage follows held hearings) |  |
 | `client-approvals` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts (client decides on the portal, M8) |  |
@@ -96,7 +96,7 @@ All pending: each becomes a NestJS module in `apps/api/src/modules/` that uses `
 | `contracts` | ✅ Ported | apps/api/src/modules/cases/casework.service.ts |  |
 | `dashboard` | ✅ Ported | apps/api/src/modules/overview |  |
 | `deadlines` | ✅ Ported | apps/api/src/modules/cases/deadlines.service.ts (GET /deadlines) |  |
-| `documents` | ⏳ Pending | M3 Documents | upload limits + MIME allowlist ported (packages/documents uploads.ts) |
+| `documents` | ✅ Ported | apps/api/src/modules/documents (uploads checked against file content; generate + hearing report PDF with M3 slice 2) |  |
 | `emp-portal` | ⏳ Pending | M8 Portals |  |
 | `execution` | ✅ Ported | apps/api/src/modules/cases/execution.service.ts (row-locked collections; office-checked follow-up assignee) |  |
 | `expenses` | ⏳ Pending | M4 Finance |  |
@@ -214,7 +214,7 @@ All pending in `apps/web` (and later `apps/mobile`), built on the API through `@
 | `api/auth/2fa-status` | ⛔ Not ported | — | replaced by the TOTP_REQUIRED answer after a correct OTP, so 2FA status is not exposed before the code |
 | `api/auth/[...nextauth]` | ✅ Ported | POST /api/v1/auth/verify, GET /auth/me, POST /auth/logout |  |
 | `api/auth/otp` | ✅ Ported | POST /api/v1/auth/otp |  |
-| `api/documents/[id]/download` | ⏳ Pending | M3 Documents | signed GCS URL |
+| `api/documents/[id]/download` | ✅ Ported | GET /api/v1/documents/:id/download (streamed through the API, audited; no bucket URL) |  |
 | `api/emp-portal-auth/otp` | ⏳ Pending | M8 Portals |  |
 | `api/emp-portal-auth/verify` | ⏳ Pending | M8 Portals |  |
 | `api/portal-auth/otp` | ⏳ Pending | M8 Portals |  |
@@ -246,7 +246,7 @@ New tables need `office_id` + RLS policy + FORCE RLS + grants (see `docs/DEVELOP
 | `ConflictFlag` | ✅ Ported | packages/database conflict_flags (+ RESOLVED status) |  |
 | `NajizClassification` | ✅ Ported | packages/rules reference/najiz.ts (static reference data, not a table) |  |
 | `DocumentTemplate` | ⏳ Pending | M3 Documents |  |
-| `Document` | ⏳ Pending | M3 Documents |  |
+| `Document` | ✅ Ported | packages/database documents (+ sha256; template key instead of a template row) |  |
 | `CaseFeeAgreement` | ⏳ Pending | M4 Finance |  |
 | `Invoice` | ⏳ Pending | M4 Finance |  |
 | `InvoiceItem` | ⏳ Pending | M4 Finance |  |
@@ -455,12 +455,12 @@ Every capability the legacy services expose. Tick each one when its API endpoint
 
 - [ ] `prepareGenerateForm`
 - [ ] `generateFromTemplate`
-- [ ] `uploadDocument`
-- [ ] `listDocuments`
-- [ ] `getDocumentForDownload`
-- [ ] `toggleShare`
-- [ ] `softDeleteDocument`
-- [ ] `clearOpeningPackage`
+- [x] `uploadDocument`
+- [x] `listDocuments`
+- [x] `getDocumentForDownload`
+- [x] `toggleShare`
+- [x] `softDeleteDocument`
+- [x] `clearOpeningPackage`
 - [ ] `generateHearingReportPdf`
 
 **emp-portal** (M8 Portals)
@@ -844,7 +844,7 @@ The form-handling layer between legacy pages and services. Each becomes API endp
 | `cases/procedure-request-actions.ts` | ✅ Ported | apps/api /cases/:id/procedure-requests endpoints |  |
 | `clients/actions.ts` | ✅ Ported | apps/api /clients endpoints |  |
 | `documents/actions.ts` | ⏳ Pending | M3 Documents |  |
-| `documents/upload-actions.ts` | ⏳ Pending | M3 Documents |  |
+| `documents/upload-actions.ts` | ✅ Ported | apps/api POST /cases/:id/documents (raw bytes + query metadata) |  |
 | `emp-portal/actions.ts` | ⏳ Pending | M8 Portals |  |
 | `finance/actions.ts` | ⏳ Pending | M4 Finance |  |
 | `finance/trust/actions.ts` | ⏳ Pending | M4 Finance |  |
@@ -991,4 +991,6 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | Deleting an execution procedure left its follow-up reminder on the calendar | server/execution.ts | ✅ fixed: the linked reminder is removed with it |
 | The report-approved event said the report was sent to the client portal before any sending exists | lib/i18n event.hearingReportApproved | ✅ fixed: says approved only; "sent" waits for the portal (M8) |
 | Global search passed % and _ through as wildcards | server/search.ts | ✅ fixed: matched literally |
+| Uploads trusted the browser-declared MIME type | app/documents/upload-actions.ts | ✅ fixed: file signature checked against the declared type (errors.UPLOAD_CONTENT_MISMATCH) |
+| Deleted documents of out-of-scope cases were listed in the recycle bin | server/settings.ts | ✅ fixed: recycle bin applies the case row scope to documents |
 
