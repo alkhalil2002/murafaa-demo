@@ -133,6 +133,7 @@ export const ar = {
   "platform.action.platform.login.failed": "محاولة دخول فاشلة",
   "platform.action.platform.otp.sent": "إرسال رمز تحقق",
   "platform.action.platform.admin.create": "إنشاء مدير منصة",
+  "platform.action.platform.admin.resetTotp": "إعادة إصدار مفتاح المصادقة",
   "platform.action.platform.office.create": "إنشاء مكتب",
   "platform.action.platform.office.update": "تحديث الاشتراك",
   "platform.action.platform.office.suspend": "إيقاف مكتب",
