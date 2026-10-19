@@ -6,9 +6,10 @@ import { formatSar, t } from "@murafaa/i18n";
 import { zatcaQrPayload } from "@murafaa/rules";
 import { asc, and, eq, isNull } from "drizzle-orm";
 import { writeAudit } from "../../common/audit/audit.js";
+import { type PortalMeta, portalAudit } from "../../common/audit/portal-audit.js";
 import { ApiException } from "../../common/http/api.exception.js";
 import { PdfClient } from "../../common/pdf/pdf.client.js";
-import type { Principal } from "../../common/tenancy/principal.js";
+import type { PortalPrincipal, Principal } from "../../common/tenancy/principal.js";
 import { TenantDb } from "../../database/tenant-db.service.js";
 import type { Meta } from "../cases/case-access.service.js";
 import { OfficesService } from "../offices/offices.service.js";
@@ -28,6 +29,34 @@ export class InvoicePdfService {
   ) {}
 
   async render(p: Principal, id: string, meta: Meta) {
+    const file = await this.build(id);
+    await this.tenantDb.run((tx) =>
+      writeAudit(tx, {
+        officeId: p.officeId,
+        actorId: p.userId,
+        action: "invoice.pdf",
+        entity: "invoices",
+        entityId: id,
+        ...meta,
+      }),
+    );
+    return file;
+  }
+
+  /** بوابة العميل: the same invoice, only when it was issued to this client (404 otherwise). */
+  async clientRender(who: PortalPrincipal, id: string, meta: PortalMeta) {
+    const file = await this.build(id, who.subjectId);
+    await this.tenantDb.run((tx) =>
+      portalAudit(tx, who, meta, {
+        action: "portal.invoice.pdf",
+        entity: "invoices",
+        entityId: id,
+      }),
+    );
+    return file;
+  }
+
+  private async build(id: string, clientId?: string) {
     const tax = await this.offices.taxProfile();
     if (!tax.vatNumber)
       throw new ApiException(ErrorCode.CONFLICT, undefined, "errors.TAX_PROFILE_MISSING");
@@ -37,7 +66,13 @@ export class InvoicePdfService {
         .select({ inv: invoices, buyerName: clients.name, buyerVat: clients.vatNumber })
         .from(invoices)
         .innerJoin(clients, eq(clients.id, invoices.clientId))
-        .where(and(eq(invoices.id, id), isNull(invoices.deletedAt)));
+        .where(
+          and(
+            eq(invoices.id, id),
+            isNull(invoices.deletedAt),
+            clientId ? eq(invoices.clientId, clientId) : undefined,
+          ),
+        );
       if (!row) throw new ApiException(ErrorCode.NOT_FOUND);
       const lines = await tx
         .select()
@@ -100,16 +135,6 @@ export class InvoicePdfService {
       },
     });
     const bytes = await this.pdf.render(html);
-    await this.tenantDb.run((tx) =>
-      writeAudit(tx, {
-        officeId: p.officeId,
-        actorId: p.userId,
-        action: "invoice.pdf",
-        entity: "invoices",
-        entityId: id,
-        ...meta,
-      }),
-    );
     return { bytes, fileName: `${inv.number}.pdf` };
   }
 }

@@ -7,7 +7,7 @@ import { serverApi } from "@/lib/api";
 const TIER_ICON: Record<string, string> = { critical: "🔴", important: "🟡", info: "📂" };
 const TIER_COLOR: Record<string, string> = {
   critical: "var(--advocate)",
-  important: "var(--gold)",
+  important: "var(--amber-600)",
   info: "var(--ink-soft)",
 };
 

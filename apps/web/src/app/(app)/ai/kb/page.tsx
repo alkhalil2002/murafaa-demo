@@ -44,7 +44,7 @@ export default async function KbPage() {
                   <div className="chips">
                     <span
                       className="chip"
-                      style={{ color: "var(--warn)", borderColor: "var(--gold)" }}
+                      style={{ color: "var(--warn)", borderColor: "var(--amber-400)" }}
                     >
                       {t(`kbType.${s.type}` as MessageKey)}
                     </span>

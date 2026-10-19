@@ -49,7 +49,7 @@ export default async function TrustLedgerPage({
             <tbody>
               {l.movements.map((m) => {
                 const deposit = m.type === "DEPOSIT";
-                const color = deposit ? "var(--ok)" : "var(--gold)";
+                const color = deposit ? "var(--ok)" : "var(--amber-600)";
                 return (
                   <tr key={m.id} className="border-b border-line last:border-0">
                     <td className="p-3 text-ink-soft">{m.date}</td>

@@ -10,7 +10,8 @@ export default function PortalLoginPage() {
           <BrandMark withBase />
         </div>
         <h1>{t("app.name")}</h1>
-        <div className="tag">{t("empPortal.login.tagline")}</div>
+        <span className="portalbadge">{t("empPortal.login.tagline")}</span>
+        <div className="tag">{t("app.tagline")}</div>
         <PortalLoginForm kind="EMPLOYEE" />
       </div>
     </div>

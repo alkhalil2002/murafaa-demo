@@ -27,7 +27,7 @@ export function PortalLogoutButton({ kind }: { kind: "CLIENT" | "EMPLOYEE" }) {
   return (
     <button
       type="button"
-      className="mini"
+      className="logout"
       onClick={async () => {
         await (kind === "CLIENT" ? clientPortalLogout : employeePortalLogout)({ client: c });
         router.replace(kind === "CLIENT" ? "/portal/login" : "/emp-portal/login");
@@ -46,7 +46,13 @@ export function PortalMessageForm({ caseId }: { caseId: string }) {
     <>
       <form
         key={key}
-        style={{ display: "flex", gap: 6, marginTop: 10 }}
+        style={{
+          display: "flex",
+          gap: 12,
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: "1px solid var(--divider)",
+        }}
         action={(fd) => {
           const body = String(fd.get("body") ?? "").trim();
           if (!body) return;
@@ -61,9 +67,10 @@ export function PortalMessageForm({ caseId }: { caseId: string }) {
           name="body"
           placeholder={t("cases.chat.placeholder")}
           required
+          className="input"
           style={{ flex: 1 }}
         />
-        <button type="submit" className="act b-add" disabled={pending}>
+        <button type="submit" className="act b-primary" disabled={pending}>
           {t("cases.chat.send")}
         </button>
       </form>
@@ -77,7 +84,7 @@ export function PortalDecideForm({ caseId, approvalId }: { caseId: string; appro
   return (
     <>
       <form
-        style={{ display: "flex", gap: 6, marginTop: 10 }}
+        style={{ marginTop: 16 }}
         action={(fd) => {
           const note = String(fd.get("note") ?? "").trim() || null;
           const approve = fd.get("decision") === "approve";
@@ -90,30 +97,38 @@ export function PortalDecideForm({ caseId, approvalId }: { caseId: string; appro
           );
         }}
       >
-        <input
-          type="text"
-          name="note"
-          placeholder={t("portal.approvals.decisionPlaceholder")}
-          style={{ flex: 1 }}
-        />
-        <button
-          type="submit"
-          name="decision"
-          value="approve"
-          className="act b-add"
-          disabled={pending}
-        >
-          {t("portal.approvals.approve")}
-        </button>
-        <button
-          type="submit"
-          name="decision"
-          value="reject"
-          className="tinybtn del"
-          disabled={pending}
-        >
-          {t("portal.approvals.reject")}
-        </button>
+        <div className="field">
+          <label>
+            {t("portal.approvals.decisionNote")}{" "}
+            <span className="hint">{t("portal.approvals.optional")}</span>
+          </label>
+          <input
+            type="text"
+            name="note"
+            className="input"
+            placeholder={t("portal.approvals.decisionPlaceholder")}
+          />
+        </div>
+        <div className="actions">
+          <button
+            type="submit"
+            name="decision"
+            value="approve"
+            className="act b-primary"
+            disabled={pending}
+          >
+            {t("portal.approvals.approve")}
+          </button>
+          <button
+            type="submit"
+            name="decision"
+            value="reject"
+            className="act b-danger"
+            disabled={pending}
+          >
+            {t("portal.approvals.reject")}
+          </button>
+        </div>
       </form>
       <ErrorLine error={error} />
     </>
@@ -123,7 +138,14 @@ export function PortalDecideForm({ caseId, approvalId }: { caseId: string; appro
 type Mime = ClientPortalUploadData["query"]["mimeType"];
 
 /** Client upload (legacy: 20 MB); type and size checked here first, the API checks again with the content. */
-export function PortalUploadForm({ caseId }: { caseId: string }) {
+export function PortalUploadForm({
+  caseId,
+  cases,
+}: {
+  caseId?: string;
+  /** Without a fixed caseId the client picks one of these. */
+  cases?: Array<{ id: string; title: string }>;
+}) {
   const { run, pending, error } = useApiAction();
   const [localError, setLocalError] = useState<MessageKey | null>(null);
   const [key, setKey] = useState(0);
@@ -131,9 +153,10 @@ export function PortalUploadForm({ caseId }: { caseId: string }) {
     <>
       <form
         key={key}
-        style={{ display: "flex", gap: 6, marginTop: 10 }}
+        style={{ marginTop: 16 }}
         action={(fd) => {
           setLocalError(null);
+          const target = caseId ?? String(fd.get("caseId") ?? "");
           const file = fd.get("file");
           if (!(file instanceof File) || file.size === 0)
             return setLocalError("errors.UPLOAD_EMPTY");
@@ -143,7 +166,7 @@ export function PortalUploadForm({ caseId }: { caseId: string }) {
             () =>
               clientPortalUpload({
                 client: c,
-                path: { id: caseId },
+                path: { id: target },
                 query: { fileName: file.name, mimeType: file.type as Mime },
                 body: file,
               }),
@@ -151,8 +174,23 @@ export function PortalUploadForm({ caseId }: { caseId: string }) {
           );
         }}
       >
-        <input type="file" name="file" required style={{ flex: 1 }} />
-        <button type="submit" className="act b-add" disabled={pending}>
+        {!caseId && cases && (
+          <div className="field">
+            <label>{t("portal.invoices.case")}</label>
+            <select name="caseId" className="input" required>
+              {cases.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="field">
+          <label>{t("portal.upload.file")}</label>
+          <input type="file" name="file" required className="input" />
+        </div>
+        <button type="submit" className="act b-primary" disabled={pending}>
           {t("portal.upload.submit")}
         </button>
       </form>
@@ -170,7 +208,7 @@ export function EmpRequestForm() {
     <>
       <form
         key={key}
-        style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end" }}
+        style={{ display: "flex", flexWrap: "wrap", columnGap: 16, alignItems: "flex-end" }}
         action={(fd) => {
           const days = String(fd.get("days") ?? "").trim();
           run(
@@ -187,25 +225,30 @@ export function EmpRequestForm() {
           );
         }}
       >
-        <label className="field" style={{ minWidth: 160 }}>
-          <span>{t("empPortal.form.kind")}</span>
-          <select name="kind" defaultValue="LEAVE">
+        <div className="field" style={{ flex: "1 1 180px" }}>
+          <label>{t("empPortal.form.kind")}</label>
+          <select name="kind" defaultValue="LEAVE" className="input">
             {REQUEST_KINDS.map((k) => (
               <option key={k} value={k}>
                 {t(`reqKind.${k}` as MessageKey)}
               </option>
             ))}
           </select>
-        </label>
-        <label className="field" style={{ width: 100 }}>
-          <span>{t("empPortal.form.days")}</span>
-          <input type="number" name="days" min={1} step={1} />
-        </label>
-        <label className="field" style={{ flex: 1, minWidth: 200 }}>
-          <span>{t("empPortal.form.detail")}</span>
-          <input type="text" name="detail" />
-        </label>
-        <button type="submit" className="act b-add" disabled={pending}>
+        </div>
+        <div className="field" style={{ flex: "2 1 220px" }}>
+          <label>{t("empPortal.form.detail")}</label>
+          <input type="text" name="detail" className="input" />
+        </div>
+        <div className="field" style={{ flex: "0 1 140px" }}>
+          <label>{t("empPortal.form.days")}</label>
+          <input type="number" name="days" min={1} step={1} className="input" />
+        </div>
+        <button
+          type="submit"
+          className="act b-primary"
+          disabled={pending}
+          style={{ marginBottom: 20 }}
+        >
           {t("empPortal.form.submit")}
         </button>
       </form>

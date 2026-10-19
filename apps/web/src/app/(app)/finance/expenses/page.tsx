@@ -47,7 +47,7 @@ export default async function ExpensesPage() {
                     {!e.approved && (
                       <span
                         className="chip"
-                        style={{ color: "var(--gold)", borderColor: "var(--gold)" }}
+                        style={{ color: "var(--amber-600)", borderColor: "var(--amber-400)" }}
                       >
                         {" "}
                         {t("exp.pendingApproval")}

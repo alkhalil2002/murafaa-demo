@@ -7,7 +7,7 @@ import { serverApi } from "@/lib/api";
 const URGENCY_COLOR: Record<string, string> = {
   overdue: "var(--advocate)",
   critical: "var(--advocate)",
-  soon: "var(--gold)",
+  soon: "var(--amber-600)",
   upcoming: "var(--ok)",
   normal: "var(--ink-soft)",
 };

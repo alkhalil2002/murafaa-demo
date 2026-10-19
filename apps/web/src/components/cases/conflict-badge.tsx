@@ -7,7 +7,9 @@ export function ConflictBadge({ severity }: { severity: "HIGH" | "MEDIUM" | null
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-        high ? "bg-advocate/15 text-advocate" : "bg-gold/20 text-warn"
+        high
+          ? "bg-advocate/15 text-advocate"
+          : "bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]"
       }`}
     >
       ⚠ {t("conflict.badge")}

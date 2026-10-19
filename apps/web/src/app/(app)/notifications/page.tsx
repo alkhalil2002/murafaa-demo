@@ -23,7 +23,7 @@ export default async function NotificationsPage() {
         ) : (
           items.map((n) => (
             <Link key={n.id} href={n.href} className="approve-row" style={{ cursor: "pointer" }}>
-              <span className="ndot" style={{ background: "var(--gold)" }} />
+              <span className="ndot" style={{ background: "var(--amber-400)" }} />
               <span className="at">{tStored(n.message.messageKey, n.message.params)}</span>
               <span className="chip">{formatWhen(n.at)}</span>
             </Link>

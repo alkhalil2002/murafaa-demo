@@ -103,7 +103,7 @@ export default async function GovernancePage() {
           <>
             {pending.payments.map((x) => (
               <div className="approve-row" key={x.id}>
-                <span className="ndot" style={{ background: "var(--gold)" }} />
+                <span className="ndot" style={{ background: "var(--amber-400)" }} />
                 <span className="at">
                   {t("finGov.pending.payment", {
                     number: x.number,
@@ -118,7 +118,7 @@ export default async function GovernancePage() {
             ))}
             {pending.expenses.map((e) => (
               <div className="approve-row" key={e.id}>
-                <span className="ndot" style={{ background: "var(--gold)" }} />
+                <span className="ndot" style={{ background: "var(--amber-400)" }} />
                 <span className="at">
                   {t(`expCat.${e.category}` as MessageKey)}
                   {e.vendor ? ` — ${e.vendor}` : ""}

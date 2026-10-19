@@ -1,0 +1,44 @@
+/* Murafaa spacing, sizing, radius, border, elevation. */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --control-h: 44px; /* input, button, nav item, tab, search */
+  --control-h-lg: 48px; /* login input + button */
+  --control-h-sm: 36px; /* mini button, stepper, stage bar — dense rows only */
+  --chip-h: 28px;
+
+  --panel-pad: 28px;
+  --card-pad-y: 20px;
+  --card-pad-x: 24px;
+  --gap-grid: 16px;
+  --content-pad: 32px 40px 80px;
+
+  --radius-chip: 8px;
+  --radius-control: 10px;
+  --radius-card: 14px; /* panels, cards, KPI — one radius */
+  --radius-dialog: 20px;
+  --radius-pill: 999px;
+
+  --border-width: 1px; /* the only border width; selected = +1px inset ring */
+  --stripe-width: 4px; /* record-card stripe */
+
+  --shadow-dialog: 0 30px 60px rgb(0 0 0 / 0.25);
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  --sidebar-width: 248px;
+  --sidebar-drawer-width: 262px;
+  --portal-max-width: 900px;
+
+  --dur-fast: 0.12s; /* @kind other */
+  --dur-base: 0.15s; /* @kind other */
+  --dur-slow: 0.25s; /* @kind other */
+}

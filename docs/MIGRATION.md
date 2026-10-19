@@ -344,7 +344,7 @@ Pending in `apps/web/src/components` with shadcn/ui; the app shell and nav come 
 | Item | Status | Where / milestone | Notes |
 |---|---|---|---|
 | `src/middleware.ts` | ✅ Ported | apps/web/src/proxy.ts | navigation redirects only; the API authorizes |
-| `src/app/globals.css (component classes)` | ✅ Ported | apps/web/src/app/globals.css | prototype 1:1 classes ported verbatim; tokens in @theme |
+| `src/app/globals.css (component classes)` | ✅ Ported | apps/web/src/app/globals.css | Design System v2 component classes (mf- prefix dropped, same names); tokens in src/styles/tokens, fonts self-hosted (owner decision 2026-10-19) |
 | `prisma/seed.ts` | ✅ Ported | packages/database/src/seed.ts (`pnpm db:seed`, runs as the app role) |  |
 | `src/app/layout.tsx (root: fonts, RTL, metadata)` | ✅ Ported | apps/web/src/app/layout.tsx |  |
 | `src/app/portal/(app)/layout.tsx (client-portal shell)` | ✅ Ported | apps/web/src/app/portal/(app)/layout.tsx |  |
@@ -918,6 +918,7 @@ These were written into legacy code comments and commits, not the docs. They are
 | 2026-07-24 | The prototype is the binding visual reference for the product chrome and screens (1:1 sizes, radii, colours, spacing); docs stay binding for behaviour and rules | app/globals.css, server/today.ts |
 | 2026-07-24 | PDFs are rendered with headless Chrome (puppeteer), an approved stack addition, because server PDF libraries can't shape Arabic/RTL like the preview | lib/pdf/render.ts, commit e77f010 |
 | — | No fabricated integrations: show them disconnected rather than mocked | commit dbfc200 |
+| 2026-10-19 | Murafaa Design System v2 replaces the prototype as the binding visual reference (tokens, type scale, gold limited to 3 uses, shared portal frame); docs stay binding for behaviour | ADR 0002, CLAUDE.md (new rebuild decision) |
 
 ## AUDIT.md open questions (first-session audit)
 
@@ -934,6 +935,11 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | new | WPS bank / Mudad file format | on-screen records only | **Open** — the export file is built with the Mudad integration (M7); which bank format first? |
 | new | Knowledge base per office or shared | one global KB | **Open** — built per office under RLS (each office curates its own); a shared official corpus would need a reviewed global table |
 | 3 | users vs employees | employees link to an optional user (grantEmployeeAccount) | Implemented; confirm |
+| new | Design v2: client portal online payment («دفع الآن») | none | **Open** — no payment gateway; the button is left out until one is contracted (no fabricated integrations) |
+| new | Design v2: employee performance criteria, quarterly reviews and manager notes | a single performance score | **Open** — needs the review rules; the employee portal shows only the score until then |
+| new | Design v2: employee documents (payslip PDF, contract, GOSI certificate) | none | **Open** — payslip PDF can come from payroll lines; GOSI certificate needs the GOSI integration |
+| new | Design v2: sick-leave balance (labour law art. 117) | annual balance only | **Open** — needs the rule in docs/06 before it is shown |
+| new | Design v2: platform admin portal (offices, subscriptions, usage, audit) | none (offices only from the seed) | **Decided 2026-10-19** — its own milestone later; needs a cross-office role outside RLS |
 | 4 | Sentry vs PDPL | no Sentry | **Open** — new stack uses Cloud Logging only |
 | 5 | OTP provider | console + Unifonic | **Open** — Unifonic vs WhatsApp Business (Buraq/Meta from Alkhalil) |
 | 6 | 30-day objection for every case type | fixed 30 days | As documented; confirm urgent tracks |

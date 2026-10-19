@@ -118,7 +118,7 @@ export default async function PulsePage({
                   <div className="approve-row">
                     <span
                       className="ndot"
-                      style={{ background: i === 0 ? "var(--gold)" : "var(--ink-soft)" }}
+                      style={{ background: i === 0 ? "var(--amber-600)" : "var(--ink-soft)" }}
                     />
                     <span className="at">
                       {row.name}
@@ -126,7 +126,7 @@ export default async function PulsePage({
                     </span>
                     <span
                       className="chip"
-                      style={{ color: "var(--gold)", borderColor: "var(--gold)" }}
+                      style={{ color: "var(--amber-600)", borderColor: "var(--amber-400)" }}
                     >
                       {n(row.points)} {t("pulse.points")}
                     </span>

@@ -96,7 +96,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 {!x.isApproved && (
                   <span
                     className="chip"
-                    style={{ color: "var(--gold)", borderColor: "var(--gold)" }}
+                    style={{ color: "var(--amber-600)", borderColor: "var(--amber-400)" }}
                   >
                     {" "}
                     {t("inv.pendingApproval")}

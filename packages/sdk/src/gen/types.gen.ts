@@ -7480,6 +7480,36 @@ export type ClientPortalListInvoicesResponses = {
 
 export type ClientPortalListInvoicesResponse = ClientPortalListInvoicesResponses[keyof ClientPortalListInvoicesResponses];
 
+export type ClientPortalInvoicePdfData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/portal/invoices/{id}/pdf';
+};
+
+export type ClientPortalInvoicePdfErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type ClientPortalInvoicePdfError = ClientPortalInvoicePdfErrors[keyof ClientPortalInvoicePdfErrors];
+
+export type ClientPortalInvoicePdfResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type ClientPortalInvoicePdfResponse = ClientPortalInvoicePdfResponses[keyof ClientPortalInvoicePdfResponses];
+
 export type EmployeePortalRequestOtpData = {
     body: RequestOtpBody;
     path?: never;
@@ -7675,6 +7705,62 @@ export type EmployeePortalSubmitResponses = {
 };
 
 export type EmployeePortalSubmitResponse = EmployeePortalSubmitResponses[keyof EmployeePortalSubmitResponses];
+
+export type EmployeePortalLeavesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/emp-portal/leaves';
+};
+
+export type EmployeePortalLeavesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type EmployeePortalLeavesError = EmployeePortalLeavesErrors[keyof EmployeePortalLeavesErrors];
+
+export type EmployeePortalLeavesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: LeaveList;
+        error: null;
+    };
+};
+
+export type EmployeePortalLeavesResponse = EmployeePortalLeavesResponses[keyof EmployeePortalLeavesResponses];
+
+export type EmployeePortalAdvancesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/emp-portal/advances';
+};
+
+export type EmployeePortalAdvancesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type EmployeePortalAdvancesError = EmployeePortalAdvancesErrors[keyof EmployeePortalAdvancesErrors];
+
+export type EmployeePortalAdvancesResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: AdvanceList;
+        error: null;
+    };
+};
+
+export type EmployeePortalAdvancesResponse = EmployeePortalAdvancesResponses[keyof EmployeePortalAdvancesResponses];
 
 export type PulseSelfData = {
     body?: never;

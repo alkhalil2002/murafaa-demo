@@ -12,3 +12,8 @@ export function relTime(iso: string | null | undefined): string {
   const n = daysAgo(iso);
   return n <= 0 ? t("common.today") : t("common.daysAgo", { n: n.toLocaleString("ar-SA") });
 }
+
+/** Today on the Riyadh calendar as YYYY-MM-DD, to compare with date-only fields. */
+export function todayIso(): string {
+  return riyadhCalendarDate(new Date()).toISOString().slice(0, 10);
+}

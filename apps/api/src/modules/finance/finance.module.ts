@@ -30,6 +30,6 @@ import { TrustService } from "./trust.service.js";
     ReportsService,
     TrustService,
   ],
-  exports: [InvoicesService, LedgerPoster, TrustService],
+  exports: [InvoicePdfService, InvoicesService, LedgerPoster, TrustService],
 })
 export class FinanceModule {}

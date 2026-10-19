@@ -84,7 +84,7 @@ export function AiAnswer({ data }: { data: AiAnswerData }) {
 /** Shown wherever AI is offered while no model provider is configured. */
 export function AiNotConnected() {
   return (
-    <div className="panel" style={{ borderColor: "var(--gold)" }}>
+    <div className="panel" style={{ borderColor: "var(--amber-400)" }}>
       <div className="sub" style={{ marginBottom: 0, color: "var(--warn)" }}>
         {t("ai.notConnected")}
       </div>

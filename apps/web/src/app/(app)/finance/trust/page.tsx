@@ -19,7 +19,7 @@ export default async function TrustPage() {
   const parties = canEdit ? (await financeParties({ client: api })).data?.data : undefined;
   return (
     <>
-      <div className="panel" style={{ borderColor: "var(--gold)" }}>
+      <div className="panel" style={{ borderColor: "var(--amber-400)" }}>
         <span className="sub">{t("trust.totalBalance")}: </span>
         <b style={{ color: "var(--bench)" }}>{formatSar(data.total)}</b>
         <span className="sub" style={{ marginInlineStart: 8 }}>

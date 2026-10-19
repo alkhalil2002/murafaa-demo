@@ -511,7 +511,7 @@ export default async function CaseDetailPage({
           </div>
         ) : (
           c.hearings.map((h) => {
-            const gold = { color: "var(--gold)", borderColor: "var(--gold)" };
+            const gold = { color: "var(--amber-600)", borderColor: "var(--amber-400)" };
             const linked = requestsByHearing.get(h.id) ?? [];
             return (
               <div className="panel" key={h.id}>
@@ -666,7 +666,7 @@ export default async function CaseDetailPage({
         ) : (
           c.assignees.map((a) => (
             <div className="approve-row" key={a.userId}>
-              <span className="ndot" style={{ background: "var(--gold)" }} />
+              <span className="ndot" style={{ background: "var(--amber-400)" }} />
               <span className="at">{a.name}</span>
             </div>
           ))
@@ -718,7 +718,9 @@ export default async function CaseDetailPage({
             <div className="approve-row" key={m.id}>
               <span
                 className="ndot"
-                style={{ background: m.senderType === "CLIENT" ? "var(--gold)" : "var(--bench)" }}
+                style={{
+                  background: m.senderType === "CLIENT" ? "var(--amber-600)" : "var(--bench)",
+                }}
               />
               <span className="at">
                 {m.body}
@@ -770,7 +772,7 @@ export default async function CaseDetailPage({
     const CLIENT_DOT: Record<string, string> = {
       APPROVED: "var(--ok)",
       REJECTED: "var(--advocate)",
-      PENDING: "var(--gold)",
+      PENDING: "var(--amber-600)",
     };
     body = (
       <>
@@ -793,7 +795,7 @@ export default async function CaseDetailPage({
               <div className="approve-row" key={a.id} style={{ flexWrap: "wrap" }}>
                 <span
                   className="ndot"
-                  style={{ background: a.stage === "APPROVED" ? "var(--ok)" : "var(--gold)" }}
+                  style={{ background: a.stage === "APPROVED" ? "var(--ok)" : "var(--amber-600)" }}
                 />
                 <span className="at">
                   {a.title}
@@ -922,7 +924,9 @@ export default async function CaseDetailPage({
                 <div className="approve-row" key={pr.id} style={{ flexWrap: "wrap" }}>
                   <span
                     className="ndot"
-                    style={{ background: pr.status === "EXECUTED" ? "var(--ok)" : "var(--gold)" }}
+                    style={{
+                      background: pr.status === "EXECUTED" ? "var(--ok)" : "var(--amber-600)",
+                    }}
                   />
                   <span className="at">
                     {pr.type}
@@ -1170,7 +1174,7 @@ export default async function CaseDetailPage({
             ) : (
               caseExpenses.map((e) => (
                 <div className="approve-row" key={e.id}>
-                  <span className="ndot" style={{ background: "var(--gold)" }} />
+                  <span className="ndot" style={{ background: "var(--amber-400)" }} />
                   <span className="at">
                     {t(`expCat.${e.category}` as MessageKey)}
                     {e.vendor ? <span className="chip"> {e.vendor}</span> : null}
@@ -1356,7 +1360,11 @@ export default async function CaseDetailPage({
           <Link
             href={`/ai/arena/${c.id}`}
             className="mini"
-            style={{ marginInlineStart: "auto", color: "var(--warn)", borderColor: "var(--gold)" }}
+            style={{
+              marginInlineStart: "auto",
+              color: "var(--warn)",
+              borderColor: "var(--amber-400)",
+            }}
           >
             ⚖ {t("cases.tab.ai")}
           </Link>
@@ -1389,7 +1397,10 @@ export default async function CaseDetailPage({
         </span>
       </div>
       {activeFlags.length > 0 && (
-        <div className="panel" style={{ borderColor: anyHigh ? "var(--advocate)" : "var(--gold)" }}>
+        <div
+          className="panel"
+          style={{ borderColor: anyHigh ? "var(--advocate)" : "var(--amber-600)" }}
+        >
           <div style={{ color: "var(--advocate)", fontWeight: 600, marginBottom: 8 }}>
             ⚠ {anyHigh ? t("conflict.banner.titleHigh") : t("conflict.banner.title")}
           </div>

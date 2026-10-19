@@ -1,21 +1,20 @@
 import Link from "next/link";
 import { clientPortalCaseDetail } from "@murafaa/sdk";
-import { formatSar, t, type MessageKey } from "@murafaa/i18n";
+import { PROC_STAGES } from "@murafaa/rules";
+import { t, type MessageKey } from "@murafaa/i18n";
 import {
-  PortalDecideForm,
-  PortalMessageForm,
-  PortalUploadForm,
-} from "@/components/portal/portal-forms";
+  ChatThread,
+  DecidedApproval,
+  DocRow,
+  PendingApproval,
+  UploadHint,
+} from "@/components/portal/portal-blocks";
+import { PortalUploadForm } from "@/components/portal/portal-forms";
 import { serverApi } from "@/lib/api";
 import { fmtDate } from "@/lib/dates-ui";
+import { arNum } from "@/lib/portal-data";
 
-const DOT: Record<string, string> = {
-  APPROVED: "var(--ok)",
-  REJECTED: "var(--advocate)",
-  PENDING: "var(--gold)",
-};
-
-/** One of the client's cases (legacy portal case page): approvals, shared documents, chat. */
+/** One of the client's cases: stage, dates, approvals, shared documents and the chat. */
 export default async function PortalCasePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const c = (await clientPortalCaseDetail({ client: await serverApi(), path: { id } })).data?.data;
@@ -27,6 +26,9 @@ export default async function PortalCasePage({ params }: { params: Promise<{ id:
         </div>
       </div>
     );
+  const stageIdx = PROC_STAGES.indexOf(c.stage);
+  const pending = c.approvals.filter((a) => a.status === "PENDING");
+  const decided = c.approvals.filter((a) => a.status !== "PENDING");
   return (
     <>
       <Link href="/portal" className="backbtn">
@@ -34,7 +36,17 @@ export default async function PortalCasePage({ params }: { params: Promise<{ id:
       </Link>
       <div className="vhead">
         <h2>{c.title}</h2>
-        <span className="pill">{t(`case.status.${c.status}` as MessageKey)}</span>
+        <span className={`status ${c.status === "ACTIVE" ? "active" : "done"}`}>
+          {t(`case.status.${c.status}` as MessageKey)}
+        </span>
+        <span className="pill">{c.number}</span>
+      </div>
+      <div className="statusbar" style={{ marginBottom: 20 }}>
+        {PROC_STAGES.map((s, i) => (
+          <div key={s} className={`stp${i < stageIdx ? " done" : i === stageIdx ? " cur" : ""}`}>
+            {t(`case.stage.${s}` as MessageKey)}
+          </div>
+        ))}
       </div>
       <div className="kpis">
         <div className="kpi">
@@ -49,97 +61,46 @@ export default async function PortalCasePage({ params }: { params: Promise<{ id:
           <div className="v">{fmtDate(c.objectionDueAt)}</div>
           <div className="l">{t("cases.objectionDue")}</div>
         </div>
+        <div className={`kpi${pending.length > 0 ? " warn" : ""}`}>
+          <div className="v">{arNum(pending.length)}</div>
+          <div className="l">{t("portal.case.pendingApprovals")}</div>
+        </div>
+      </div>
+
+      {pending.map((a) => (
+        <PendingApproval key={a.id} caseId={c.id} a={a} />
+      ))}
+      {decided.length > 0 && (
+        <div className="panel">
+          <h2>{t("portal.approvals.tabDone")}</h2>
+          {decided.map((a) => (
+            <DecidedApproval key={a.id} a={a} />
+          ))}
+        </div>
+      )}
+
+      <div className="grid2" style={{ alignItems: "start" }}>
+        <div className="panel">
+          <h2>{t("portal.documents.title")}</h2>
+          {c.documents.length === 0 ? (
+            <div className="sub" style={{ marginBottom: 0 }}>
+              {t("portal.documents.empty")}
+            </div>
+          ) : (
+            c.documents.map((d) => <DocRow key={d.id} d={d} />)
+          )}
+        </div>
+        <div className="panel">
+          <h2>{t("portal.upload.title")}</h2>
+          <UploadHint />
+          <PortalUploadForm caseId={c.id} />
+        </div>
       </div>
 
       <div className="panel">
-        <h2 style={{ marginTop: 0 }}>{t("portal.approvals.title")}</h2>
-        {c.approvals.length === 0 ? (
-          <div className="sub" style={{ marginBottom: 0 }}>
-            {t("portal.approvals.empty")}
-          </div>
-        ) : (
-          c.approvals.map((a) => (
-            <div className="panel" key={a.id} style={{ marginBottom: 10 }}>
-              <div className="approve-row" style={{ border: "none", padding: 0 }}>
-                <span className="ndot" style={{ background: DOT[a.status] }} />
-                <span className="at">
-                  {a.title}
-                  <span className="chip"> {t(`clientApprovalKind.${a.kind}` as MessageKey)}</span>
-                  {a.amount != null && (
-                    <span className="chip">
-                      {" "}
-                      {t("portal.approvals.amount")}: {formatSar(a.amount)}
-                    </span>
-                  )}
-                </span>
-                <span className="chip st">
-                  {t(`clientApprovalStatus.${a.status}` as MessageKey)}
-                </span>
-              </div>
-              {a.note && (
-                <div className="sub" style={{ marginTop: 6, marginBottom: 0 }}>
-                  {t("portal.approvals.note")}: {a.note}
-                </div>
-              )}
-              {a.decisionNote && (
-                <div className="sub" style={{ marginTop: 6, marginBottom: 0 }}>
-                  {t("portal.approvals.decisionNote")}: {a.decisionNote}
-                </div>
-              )}
-              {a.status === "PENDING" && <PortalDecideForm caseId={c.id} approvalId={a.id} />}
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="panel">
-        <h2 style={{ marginTop: 0 }}>{t("portal.documents.title")}</h2>
-        {c.documents.length === 0 ? (
-          <div className="sub" style={{ marginBottom: 0 }}>
-            {t("portal.documents.empty")}
-          </div>
-        ) : (
-          c.documents.map((d) => (
-            <div className="approve-row" key={d.id}>
-              <span className="ndot" style={{ background: "var(--bench)" }} />
-              <span className="at">📄 {d.fileName}</span>
-              <a href={`/api/v1/portal/documents/${d.id}/download`} className="tinybtn">
-                {t("documents.download")}
-              </a>
-            </div>
-          ))
-        )}
-        <PortalUploadForm caseId={c.id} />
-      </div>
-
-      <div className="panel">
-        <h2 style={{ marginTop: 0 }}>{t("cases.chat.title")}</h2>
-        <div className="sub">{t("cases.chat.hint")}</div>
-        {c.messages.length === 0 ? (
-          <div className="sub" style={{ marginBottom: 0 }}>
-            {t("cases.chat.empty")}
-          </div>
-        ) : (
-          c.messages.map((m) => (
-            <div className="approve-row" key={m.id}>
-              <span
-                className="ndot"
-                style={{ background: m.senderType === "CLIENT" ? "var(--gold)" : "var(--bench)" }}
-              />
-              <span className="at">
-                {m.body}
-                <span className="chip">
-                  {" "}
-                  {m.senderType === "CLIENT"
-                    ? t("cases.chat.fromClient")
-                    : t("cases.chat.fromOffice")}
-                </span>
-              </span>
-              <span className="chip">{fmtDate(m.createdAt)}</span>
-            </div>
-          ))
-        )}
-        <PortalMessageForm caseId={c.id} />
+        <h2>{t("portal.nav.chat")}</h2>
+        <div className="sub">{t("portal.chat.pill")}</div>
+        <ChatThread caseId={c.id} messages={c.messages} />
       </div>
     </>
   );

@@ -3698,6 +3698,9 @@ describe("client and employee portals: own data only, revocable sessions", () =>
   let hiddenDoc = "";
   let approvalId = "";
   let employeeId = "";
+  let otherEmployeeId = "";
+  let ownInvoice = "";
+  let otherInvoice = "";
   const as = (
     cookie: string,
     method: "GET" | "POST" | "PUT" | "PATCH",
@@ -3767,20 +3770,32 @@ describe("client and employee portals: own data only, revocable sessions", () =>
       amount: 500_000,
     });
     approvalId = (await data(partner, "GET", `/cases/${ownCase}/client-approvals`))[0].id;
-    await data(partner, "POST", "/finance/invoices", {
-      clientId,
-      items: [{ description: "أتعاب", unitPrice: 100_000 }],
-    });
-    await data(partner, "POST", "/finance/invoices", {
-      clientId: other,
-      items: [{ description: "أتعاب", unitPrice: 50_000 }],
-    });
+    ownInvoice = (
+      await data(partner, "POST", "/finance/invoices", {
+        clientId,
+        items: [{ description: "أتعاب", unitPrice: 100_000 }],
+      })
+    ).id;
+    otherInvoice = (
+      await data(partner, "POST", "/finance/invoices", {
+        clientId: other,
+        items: [{ description: "أتعاب", unitPrice: 50_000 }],
+      })
+    ).id;
     employeeId = (
       await data(partner, "POST", "/hr/employees", {
         name: "موظف البوابة",
         phone: EMPLOYEE_PHONE,
         hireDate: "2024-01-01",
         basicSalary: 500_000,
+        leaveBalanceDays: 10,
+      })
+    ).id;
+    otherEmployeeId = (
+      await data(partner, "POST", "/hr/employees", {
+        name: "موظف آخر",
+        hireDate: "2024-01-01",
+        basicSalary: 400_000,
         leaveBalanceDays: 10,
       })
     ).id;
@@ -3823,6 +3838,21 @@ describe("client and employee portals: own data only, revocable sessions", () =>
     const invoices = await data(client, "GET", "/portal/invoices");
     expect(invoices).toHaveLength(1);
     expect(invoices[0]).toMatchObject({ total: 115_000, status: "DUE" });
+  });
+
+  it("prints the client's own tax invoice only, once the office has a VAT number", async () => {
+    const early = await as(client, "GET", `/portal/invoices/${ownInvoice}/pdf`);
+    expect(early.statusCode).toBe(409);
+    expect(early.json().error.messageKey).toBe("errors.TAX_PROFILE_MISSING");
+    await data(partner, "PUT", "/offices/tax-profile", { vatNumber: "310122393500003" });
+    pdfStub.html.length = 0;
+    const own = await as(client, "GET", `/portal/invoices/${ownInvoice}/pdf`);
+    expect(own.statusCode).toBe(200);
+    expect(own.headers["content-type"]).toContain("application/pdf");
+    expect(pdfStub.html[0]).toContain("عميل البوابة");
+    expect((await as(client, "GET", `/portal/invoices/${otherInvoice}/pdf`)).statusCode).toBe(404);
+    expect(pdfStub.html).toHaveLength(1);
+    expect((await as(partner, "GET", `/portal/invoices/${ownInvoice}/pdf`)).statusCode).toBe(401);
   });
 
   it("lets the client write to the chat, send a file and decide an approval once", async () => {
@@ -3900,6 +3930,22 @@ describe("client and employee portals: own data only, revocable sessions", () =>
       kind: "LEAVE",
     });
     expect((await as(cookie, "GET", "/portal/cases")).statusCode).toBe(401);
+
+    const day = new Date().toISOString().slice(0, 10);
+    await data(partner, "POST", "/hr/leaves", { employeeId, days: 2, startDate: day });
+    await data(partner, "POST", "/hr/leaves", {
+      employeeId: otherEmployeeId,
+      days: 1,
+      startDate: day,
+    });
+    await data(partner, "POST", "/hr/advances", { employeeId, amount: 300_000, months: 3 });
+    await data(partner, "POST", "/hr/advances", { employeeId: otherEmployeeId, amount: 100_000 });
+    expect(await data(cookie, "GET", "/emp-portal/leaves")).toMatchObject([
+      { employeeId, type: "ANNUAL", days: 2 },
+    ]);
+    expect(await data(cookie, "GET", "/emp-portal/advances")).toMatchObject([
+      { employeeId, amount: 300_000, monthlyDue: 100_000, remaining: 300_000 },
+    ]);
     await data(partner, "POST", `/hr/employees/${employeeId}/terminate`);
     expect((await as(cookie, "GET", "/emp-portal/profile")).statusCode).toBe(401);
   });

@@ -176,18 +176,9 @@ export function ShellFrame({
               </div>
             )}
           </form>
-          <Link
-            href="/notifications"
-            className="bell"
-            aria-label={bellLabel}
-            style={{ position: "relative" }}
-          >
+          <Link href="/notifications" className="bell" aria-label={bellLabel}>
             <IconBell />
-            {bellCount > 0 ? (
-              <span className="cnt" style={{ position: "absolute", top: -4, insetInlineEnd: -4 }}>
-                {bellCount.toLocaleString("ar-SA")}
-              </span>
-            ) : null}
+            {bellCount > 0 ? <span className="nb">{bellCount.toLocaleString("ar-SA")}</span> : null}
           </Link>
         </div>
         {children}

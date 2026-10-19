@@ -1,32 +1,35 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { clientPortalMe } from "@murafaa/sdk";
 import { t } from "@murafaa/i18n";
-import { PortalLogoutButton } from "@/components/portal/portal-forms";
-import { serverApi } from "@/lib/api";
+import { PortalShell } from "@/components/portal/portal-shell";
+import { clientPortalData } from "@/lib/portal-data";
 
-/** بوابة العميل shell (legacy portal layout): no staff navigation at all. */
+/** بوابة العميل shell: the shared portal frame, no staff navigation at all. */
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const me = (await clientPortalMe({ client: await serverApi() })).data?.data;
-  if (!me) redirect("/portal/login");
+  const data = await clientPortalData();
+  if (!data) redirect("/portal/login");
+  const pending = data.details
+    .flatMap((d) => d.approvals)
+    .filter((a) => a.status === "PENDING").length;
   return (
-    <div dir="rtl" style={{ minHeight: "100vh", background: "var(--parch)" }}>
-      <div className="topbar" style={{ maxWidth: 900, margin: "0 auto", padding: "16px 16px 0" }}>
-        <Link href="/portal" className="pill">
-          {me.officeName} — {t("portal.login.tagline")}
-        </Link>
-        <Link href="/portal" className="chip">
-          {t("portal.nav.cases")}
-        </Link>
-        <Link href="/portal/invoices" className="chip">
-          {t("portal.nav.invoices")}
-        </Link>
-        <span className="chip" style={{ marginInlineStart: "auto" }}>
-          {me.name}
-        </span>
-        <PortalLogoutButton kind="CLIENT" />
-      </div>
-      <main style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>{children}</main>
-    </div>
+    <PortalShell
+      kind="CLIENT"
+      officeName={data.me.officeName}
+      badge={t("portal.login.tagline")}
+      userName={data.me.name}
+      items={[
+        { href: "/portal", label: t("portal.nav.cases"), icon: "cases" },
+        {
+          href: "/portal/approvals",
+          label: t("portal.nav.approvals"),
+          icon: "tasks",
+          count: pending,
+        },
+        { href: "/portal/documents", label: t("portal.nav.documents"), icon: "documents" },
+        { href: "/portal/invoices", label: t("portal.nav.invoices"), icon: "finance" },
+        { href: "/portal/chat", label: t("portal.nav.chat"), icon: "chat" },
+      ]}
+    >
+      {children}
+    </PortalShell>
   );
 }

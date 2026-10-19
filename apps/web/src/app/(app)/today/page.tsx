@@ -9,7 +9,7 @@ const arNum = (n: number) => n.toLocaleString("ar-SA");
 /** Three-band colour from the prototype's dlc() (Today only). */
 function urgencyColor(daysLeft: number): string {
   if (daysLeft <= 2) return "var(--advocate)";
-  if (daysLeft <= 7) return "var(--gold)";
+  if (daysLeft <= 7) return "var(--amber-600)";
   return "var(--ok)";
 }
 
@@ -123,7 +123,7 @@ export default async function TodayPage() {
           className="panel"
           style={{
             background: "linear-gradient(135deg, rgba(194,151,75,.12), rgba(14,58,48,.06))",
-            border: "1px solid var(--gold)",
+            border: "1px solid var(--amber-400)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -134,7 +134,7 @@ export default async function TodayPage() {
                 className="sub"
                 style={{
                   fontSize: 14.375,
-                  color: "var(--gold)",
+                  color: "var(--amber-600)",
                   fontWeight: 700,
                   letterSpacing: 1,
                   marginBottom: 0,
@@ -153,7 +153,7 @@ export default async function TodayPage() {
                   fontFamily: "var(--font-amiri), serif",
                   fontSize: 37.5,
                   fontWeight: 700,
-                  color: "var(--gold)",
+                  color: "var(--amber-600)",
                   lineHeight: 1,
                 }}
               >
@@ -229,7 +229,7 @@ export default async function TodayPage() {
                 style={{ cursor: "pointer" }}
                 key={item.id}
               >
-                <span className="ndot" style={{ background: "var(--gold)" }} />
+                <span className="ndot" style={{ background: "var(--amber-400)" }} />
                 <span className="at">
                   {item.title} — {item.caseTitle}
                 </span>

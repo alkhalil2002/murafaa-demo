@@ -83,7 +83,7 @@ function UserOptions({ users }: { users: User[] }) {
 
 /** Days until the hearing → border colour (legacy dlColor). */
 const dlColor = (dl: number) =>
-  dl <= 2 ? "var(--advocate)" : dl <= 7 ? "var(--gold)" : "var(--ok)";
+  dl <= 2 ? "var(--advocate)" : dl <= 7 ? "var(--amber-600)" : "var(--ok)";
 
 /** Upcoming-hearing row (record now / edit date / delete), or the schedule form (legacy). */
 export function UpcomingHearing({
@@ -188,7 +188,9 @@ function PendingFields({ isPending, items }: { isPending?: boolean; items?: stri
       className="field"
       style={{
         ...boxStyle,
-        ...(isPending ? { borderColor: "var(--gold)", background: "rgba(194,151,75,.05)" } : {}),
+        ...(isPending
+          ? { borderColor: "var(--amber-400)", background: "rgba(194,151,75,.05)" }
+          : {}),
       }}
     >
       <label style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
@@ -490,7 +492,9 @@ export function ReportApproval({
   } else if (h.reportApprovalRequested) {
     body = (
       <div style={{ marginTop: 8 }}>
-        <div style={{ color: "var(--gold)", fontSize: 15.625, fontWeight: 600, marginBottom: 6 }}>
+        <div
+          style={{ color: "var(--amber-600)", fontSize: 15.625, fontWeight: 600, marginBottom: 6 }}
+        >
           {t("cases.hearings.reportPendingApproval")}
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -685,7 +689,7 @@ export function HearingActions({
                 }
               }}
             >
-              <span className="ndot" style={{ background: "var(--gold)" }} />
+              <span className="ndot" style={{ background: "var(--amber-400)" }} />
               <span className="chip">{bare("cases.hearings.addTask")}</span>
               <input
                 type="text"
@@ -739,7 +743,7 @@ export function HearingActions({
         ))}
         {tasks.map((tk) => (
           <div className="approve-row" key={tk.id}>
-            <span className="ndot" style={{ background: "var(--gold)" }} />
+            <span className="ndot" style={{ background: "var(--amber-400)" }} />
             <span className="at">
               {tk.title}
               {tk.done && <span className="chip"> ✓ {t("cases.hearings.actionDone")}</span>}

@@ -8,7 +8,16 @@ import { apiErrorKey } from "@/lib/api-error";
  * Opens the ZATCA tax invoice PDF. Fetched first so a refusal (no office VAT
  * number, PDF service down) shows its message instead of a raw error page.
  */
-export function TaxInvoicePdfButton({ invoiceId }: { invoiceId: string }) {
+export function TaxInvoicePdfButton({
+  invoiceId,
+  path,
+  label,
+}: {
+  invoiceId?: string;
+  /** The portal passes its own route; staff screens pass invoiceId. */
+  path?: string;
+  label?: string;
+}) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<MessageKey | null>(null);
   return (
@@ -21,7 +30,7 @@ export function TaxInvoicePdfButton({ invoiceId }: { invoiceId: string }) {
           setPending(true);
           setError(null);
           try {
-            const res = await fetch(`/api/v1/finance/invoices/${invoiceId}/pdf`, {
+            const res = await fetch(path ?? `/api/v1/finance/invoices/${invoiceId}/pdf`, {
               credentials: "same-origin",
             });
             if (!res.ok) return setError(apiErrorKey(await res.json().catch(() => null)));
@@ -31,7 +40,7 @@ export function TaxInvoicePdfButton({ invoiceId }: { invoiceId: string }) {
           }
         }}
       >
-        {t("finance.taxInvoicePdf")}
+        {label ?? t("finance.taxInvoicePdf")}
       </button>
       {error && <div className="lerr">{t(error)}</div>}
     </>

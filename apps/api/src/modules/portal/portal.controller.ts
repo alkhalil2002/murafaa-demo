@@ -7,6 +7,8 @@ import {
   empPortalRequests,
   ErrorCode,
   idParams,
+  advanceList,
+  leaveList,
   portalApprovalParams,
   portalCase,
   portalCaseList,
@@ -35,6 +37,7 @@ import { ENV, type Env } from "../../config/env.js";
 import { clearedSessionCookie, sessionCookie } from "../auth/cookies.js";
 import { ClientCasesService } from "../cases/client-cases.service.js";
 import { DocumentsService } from "../documents/documents.service.js";
+import { InvoicePdfService } from "../finance/invoice-pdf.service.js";
 import { InvoicesService } from "../finance/invoices.service.js";
 import { EmployeesService } from "../hr/employees.service.js";
 import { HrRecordsService } from "../hr/records.service.js";
@@ -109,6 +112,7 @@ export class ClientPortalController extends PortalAuthRoutes {
     private readonly cases: ClientCasesService,
     private readonly docs: DocumentsService,
     private readonly invoices: InvoicesService,
+    private readonly invoicePdfs: InvoicePdfService,
   ) {
     super(auth, env);
   }
@@ -218,6 +222,17 @@ export class ClientPortalController extends PortalAuthRoutes {
   listInvoices(@Req() req: FastifyRequest) {
     return this.invoices.clientInvoices(who(req).subjectId);
   }
+
+  @PortalRoute("CLIENT")
+  @Get("invoices/:id/pdf")
+  async invoicePdf(@ZodParams(idParams) params: Id, @Req() req: FastifyRequest) {
+    const file = await this.invoicePdfs.clientRender(who(req), params.id, meta(req));
+    return new StreamableFile(file.bytes, {
+      type: "application/pdf",
+      disposition: `inline; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+      length: file.bytes.length,
+    });
+  }
 }
 
 /** بوابة الموظف (legacy app/emp-portal): profile, own requests, new requests. */
@@ -283,6 +298,20 @@ export class EmployeePortalController extends PortalAuthRoutes {
   @ZodResponse(empPortalRequests)
   requests(@Req() req: FastifyRequest) {
     return this.records.selfRequests(who(req).subjectId);
+  }
+
+  @PortalRoute("EMPLOYEE")
+  @Get("leaves")
+  @ZodResponse(leaveList)
+  leaves(@Req() req: FastifyRequest) {
+    return this.records.leaves(who(req).subjectId);
+  }
+
+  @PortalRoute("EMPLOYEE")
+  @Get("advances")
+  @ZodResponse(advanceList)
+  advances(@Req() req: FastifyRequest) {
+    return this.records.advances(who(req).subjectId);
   }
 
   @PortalRoute("EMPLOYEE")

@@ -1,0 +1,109 @@
+/* Murafaa colour tokens — v2 (single source; every UI kit reads this via /styles.css).
+ * Every family has a tonal ramp 50/100/200/400/600/800. Saturated steps (600/800)
+ * are for text, fills and dots; light steps (50/100/200) are for chip/state backgrounds. */
+:root {
+  /* bench — the platform green (primary) */
+  --bench-50: #eef5f2;
+  --bench-100: #d7e8e0;
+  --bench-200: #afcfc2;
+  --bench-400: #4e8c77;
+  --bench-600: #1f5a4a;
+  --bench-800: #0e3a30;
+  --bench-900: #0a2a22; /* sidebar gradient end · platform shell */
+  --bench-950: #06201a; /* platform-admin shell end only */
+  /* gold — accent, restricted to: logo ring, selected nav item, hover border */
+  --gold-50: #fbf6eb;
+  --gold-100: #f5e9cf;
+  --gold-200: #e7d2a4;
+  --gold-400: #c2974b;
+  --gold-600: #8a6a2a;
+  --gold-800: #5a4416;
+  /* advocate — maroon, restricted to: urgent (≤2 days), rejected, destructive, HIGH conflict */
+  --advocate-50: #fbf1f1;
+  --advocate-100: #f4dcdd;
+  --advocate-200: #e4b3b6;
+  --advocate-400: #b0565c;
+  --advocate-600: #7a2e33;
+  --advocate-800: #4f1d21;
+  /* amber — warnings & pending (takes over the jobs gold used to do) */
+  --amber-50: #fcf4ec;
+  --amber-100: #f7e2cf;
+  --amber-200: #eec39f;
+  --amber-400: #d07a3a;
+  --amber-600: #9a4d16;
+  --amber-800: #683310;
+  /* warm neutrals */
+  --neutral-0: #ffffff;
+  --neutral-25: #faf9f6;
+  --neutral-50: #f4f2ee;
+  --neutral-100: #ece9e3;
+  --neutral-200: #e2ded5;
+  --neutral-400: #a39d90;
+  --neutral-600: #6b6557;
+  --neutral-700: #4a453a;
+  --neutral-800: #2e2a22;
+  --neutral-900: #1c1a15;
+  /* brand-only */
+  --parch: #faf6ec; /* login card, brand moments, printed letterhead — never the app page */
+  --wa: #25d366; /* WhatsApp glyph only — never a fill */
+
+  /* ---- semantic ---- */
+  --surface-page: var(--neutral-25);
+  --surface-card: var(--neutral-0);
+  --surface-sunken: var(--neutral-50);
+  --surface-brand: var(--parch);
+  --surface-nav: linear-gradient(180deg, var(--bench-800), var(--bench-900));
+
+  --text-strong: var(--neutral-900);
+  --text-body: var(--neutral-800);
+  --text-muted: var(--neutral-600);
+  --text-on-nav: var(--bench-100);
+  --text-on-nav-muted: rgb(255 255 255 / 0.6);
+
+  --border: var(--neutral-200);
+  --divider: var(--neutral-100);
+  --line-on-nav: rgb(255 255 255 / 0.12);
+
+  --accent: var(--gold-400);
+  --accent-tint: rgb(194 151 75 / 0.16);
+  --focus-ring: var(--bench-400);
+
+  --action-primary: var(--bench-800);
+  --action-primary-hover: var(--bench-600);
+  --action-danger: var(--advocate-600);
+
+  --status-success-bg: var(--bench-50);
+  --status-success-fg: var(--bench-800);
+  --status-success-dot: var(--bench-600);
+  --status-warning-bg: var(--amber-50);
+  --status-warning-fg: var(--amber-800);
+  --status-warning-dot: var(--amber-400);
+  --status-danger-bg: var(--advocate-50);
+  --status-danger-fg: var(--advocate-600);
+  --status-danger-dot: var(--advocate-600);
+  --status-neutral-bg: var(--neutral-50);
+  --status-neutral-fg: var(--neutral-700);
+  --status-neutral-dot: var(--neutral-400);
+
+  /* ---- v1 aliases: keep old references resolving. Do not use in new work. ---- */
+  --bench: var(--bench-800);
+  --bench-2: var(--bench-900);
+  --gold: var(--gold-400);
+  --gold-soft: var(--gold-200);
+  --advocate: var(--advocate-600);
+  --advocate-2: var(--advocate-800);
+  --parch-line: var(--divider);
+  --line: var(--border);
+  --ink: var(--neutral-900);
+  --ink-soft: var(--neutral-600);
+  --ok: var(--bench-600);
+  --warn: var(--amber-600);
+  --white: #ffffff;
+  --tint-ok: var(--bench-50);
+  --tint-warn: var(--amber-50);
+  --tint-advocate: var(--advocate-50);
+  --tint-gold: var(--bench-50);
+  --tint-gold-strong: var(--accent-tint);
+  --wa-bubble: var(--bench-50);
+  --wa-bubble-line: var(--bench-100);
+}

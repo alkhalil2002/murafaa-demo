@@ -266,7 +266,7 @@ export function SatisfactionStars({
             cursor: canEdit ? "pointer" : "default",
             fontSize: 32.5,
             lineHeight: 1,
-            color: score && n <= score ? "var(--gold)" : "var(--line)",
+            color: score && n <= score ? "var(--amber-600)" : "var(--line)",
           }}
         >
           ★

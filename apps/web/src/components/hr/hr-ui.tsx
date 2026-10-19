@@ -16,10 +16,10 @@ export function StatCard({ label, value, hint }: { label: string; value: string;
 export type Tone = "ok" | "warn" | "muted" | "bad" | "gold";
 const TONE_CLASS: Record<Tone, string> = {
   ok: "bg-ok/15 text-ok",
-  warn: "bg-gold/20 text-warn",
+  warn: "bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]",
   muted: "bg-parch text-ink-soft",
   bad: "bg-advocate/15 text-advocate",
-  gold: "bg-gold/25 text-warn",
+  gold: "bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]",
 };
 
 /** A small status pill (legacy hr-ui Pill). */

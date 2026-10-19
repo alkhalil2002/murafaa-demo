@@ -13,7 +13,7 @@ The first implementation (single Next.js app + Prisma) lives in `legacy/` as **r
 ## Owner decisions (binding)
 
 - **2026-07-05:** `office_id` on every table from day one; isolation is enforced by Postgres RLS.
-- **2026-07-24:** the prototype is the **binding visual reference** for the chrome and screens, matched 1:1 (sizes, radii, colours, spacing). Rebuild it with the stack; never port its HTML/JS. The docs stay binding for behaviour and business rules.
+- **2026-10-19:** the **Murafaa Design System v2** is the binding visual reference (ADR-0002), replacing the 2026-07-24 rule that the prototype be matched 1:1. Tokens live in `apps/web/src/styles/tokens/`; `globals.css` holds its component classes. Gold is used only for the logo ring, the selected nav item and hover borders. Design screens with no real data behind them are left out, not mocked. The prototype stays a behavioural reference; never port its HTML/JS. The docs stay binding for behaviour and business rules.
 - **2026-07-24:** PDFs are rendered with headless Chrome (puppeteer), an approved stack addition for correct Arabic shaping/RTL. Run it as its own service with Arabic fonts installed, not inside the API process.
 - **No fabricated integrations:** an integration without a real connection is shown disconnected, never mocked.
 - **2026-10-18:** monorepo + NestJS API + Drizzle + RLS (ADR-0001).
@@ -54,7 +54,7 @@ Decided 2026-10-18 (ADR-0001). Versions are pinned in each `package.json`.
   packages/sdk        API client GENERATED from apps/api/openapi.json — never edit src/gen
   packages/config     ESLint (incl. no-Arabic-literal rule) and tsconfig presets
   ```
-- **UI:** Tailwind CSS 4 + shadcn/ui (Radix), full **RTL**, fonts: IBM Plex Sans Arabic + Amiri, prototype tokens in `@theme`.
+- **UI:** Tailwind CSS 4 + shadcn/ui (Radix), full **RTL**, fonts: IBM Plex Sans Arabic + Amiri (self-hosted), Design System v2 tokens in `@theme` (ADR-0002).
 - **i18n:** all UI text via `@murafaa/i18n` `t()` — **never hardcode Arabic strings in components** (ESLint fails on it).
 - **DB:** PostgreSQL (Cloud SQL, Dammam) + **pgvector**, **row-level security on `office_id` always on**.
 - **ORM:** Drizzle (schema + policies are the source of truth; reviewed SQL migrations).
