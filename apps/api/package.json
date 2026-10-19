@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "openapi": "node dist/scripts/openapi.js",
-    "seed:demo": "node --env-file-if-exists=.env dist/scripts/seed-demo.js"
+    "seed:demo": "node --env-file-if-exists=.env dist/scripts/seed-demo.js",
+    "platform:admin:create": "node --env-file-if-exists=.env dist/scripts/platform-admin-create.js"
   },
   "dependencies": {
     "@anthropic-ai/vertex-sdk": "0.20.2",

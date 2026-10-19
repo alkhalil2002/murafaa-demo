@@ -16,3 +16,4 @@ export * from "./finance.js";
 export * from "./ai.js";
 export * from "./hr.js";
 export * from "./portal.js";
+export * from "./platform.js";

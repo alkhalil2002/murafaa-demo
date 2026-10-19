@@ -59,7 +59,8 @@ export const verifyOtpResponse = z
 export const me = z
   .object({
     user: sessionUser,
-    office: z.object({ id: z.uuid(), name: z.string() }),
+    /** readOnly: suspended by إدارة المنصة; the API refuses every write. */
+    office: z.object({ id: z.uuid(), name: z.string(), readOnly: z.boolean() }),
     /** Screens this session may open (docs/04 layer 1, effective role). */
     screens: z.array(screen),
     /** Effective module levels, for hiding controls; the API still enforces. */

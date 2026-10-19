@@ -6,7 +6,15 @@ import {
   type grantAccountBody,
   type updateEmployeeBody,
 } from "@murafaa/contracts";
-import { advances, employeeRequests, employees, leaves, type Tx, users } from "@murafaa/database";
+import {
+  advances,
+  employeeRequests,
+  employees,
+  leaves,
+  phoneOffices,
+  type Tx,
+  users,
+} from "@murafaa/database";
 import {
   advanceMonthly,
   advanceRemaining,
@@ -211,6 +219,9 @@ export class EmployeesService {
         const e = await lockEmployee(tx, id);
         if (e.userId) throw conflict("hr.err.EMPLOYEE_ALREADY_HAS_ACCOUNT");
         if (e.status === "TERMINATED") throw conflict("hr.err.EMPLOYEE_ALREADY_TERMINATED");
+        // Staff phones are unique across offices: sign-in could not choose between them.
+        if ((await phoneOffices(tx, input.phone)).some((o) => o !== p.officeId))
+          throw conflict("errors.PHONE_IN_OTHER_OFFICE");
         const [user] = await tx
           .insert(users)
           .values({

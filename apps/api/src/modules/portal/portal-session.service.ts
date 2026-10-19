@@ -4,6 +4,7 @@ import {
   clients,
   type Db,
   employees,
+  offices,
   portalSessions,
   type Tx,
   withTenant,
@@ -104,6 +105,7 @@ export class PortalSessionService {
       if (!row || !sameDigest(row.tokenHash, sha256(parsed.secret))) return null;
       if (!isSessionLive(row, now, PORTAL_SESSION_POLICY)) return null;
       if (!(await this.subjectAllowed(tx, kind, row.subjectId))) return null;
+      const [office] = await tx.select({ status: offices.status }).from(offices).limit(1);
       if (now.getTime() - row.lastSeenAt.getTime() >= PORTAL_SESSION_POLICY.touchIntervalMs)
         await tx
           .update(portalSessions)
@@ -111,7 +113,12 @@ export class PortalSessionService {
           .where(eq(portalSessions.id, row.id));
       return {
         sessionId: row.id,
-        principal: { kind, subjectId: row.subjectId, officeId: parsed.officeId },
+        principal: {
+          kind,
+          subjectId: row.subjectId,
+          officeId: parsed.officeId,
+          officeReadOnly: office?.status === "SUSPENDED",
+        },
       };
     });
   }

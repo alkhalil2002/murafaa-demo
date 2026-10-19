@@ -22,10 +22,12 @@ import { ApiException } from "../http/api.exception.js";
 import type { Principal } from "../tenancy/principal.js";
 import {
   ALLOW_IN_PREVIEW,
+  ALLOW_WHEN_SUSPENDED,
   IS_AUTHENTICATED_ONLY,
   IS_PUBLIC,
   PARTNER_ONLY,
   type PermissionRequirement,
+  PLATFORM_ROUTE,
   PORTAL_ROUTE,
   REQUIRED_PERMISSION,
 } from "./permission.decorators.js";
@@ -55,11 +57,25 @@ export class PermissionsGuard implements CanActivate {
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, targets)) return true;
 
     const request = context.switchToHttp().getRequest<FastifyRequest>();
+    // Platform routes accept only a platform session; office and portal sessions never reach them.
+    if (this.reflector.getAllAndOverride<boolean>(PLATFORM_ROUTE, targets)) {
+      if (request.platform) return true;
+      throw new ApiException(ErrorCode.UNAUTHENTICATED);
+    }
+    // A suspended office is read-only for everyone in it (owner, 2026-10-19).
+    const writeWhileSuspended = (readOnly: boolean | undefined) =>
+      readOnly &&
+      !READ_METHODS.has(request.method) &&
+      !this.reflector.getAllAndOverride<boolean>(ALLOW_WHEN_SUSPENDED, targets) &&
+      // Sign-out and the role-preview switch change nothing in the office.
+      !this.reflector.getAllAndOverride<boolean>(ALLOW_IN_PREVIEW, targets);
     // Portal routes accept only their own portal session; staff sessions do not reach them.
     const portalKind = this.reflector.getAllAndOverride<string | undefined>(PORTAL_ROUTE, targets);
     if (portalKind) {
-      if (request.portal?.kind === portalKind) return true;
-      throw new ApiException(ErrorCode.UNAUTHENTICATED);
+      if (request.portal?.kind !== portalKind) throw new ApiException(ErrorCode.UNAUTHENTICATED);
+      if (writeWhileSuspended(request.portal.officeReadOnly))
+        throw new ApiException(ErrorCode.FORBIDDEN, undefined, "errors.OFFICE_SUSPENDED");
+      return true;
     }
     const principal = request.principal;
     if (!principal) {
@@ -68,6 +84,9 @@ export class PermissionsGuard implements CanActivate {
       if (request.sessionRejected === "ORIGIN") throw new ApiException(ErrorCode.FORBIDDEN);
       throw new ApiException(ErrorCode.UNAUTHENTICATED);
     }
+
+    if (writeWhileSuspended(principal.officeReadOnly))
+      return this.deny(request, principal, "office:suspended", "errors.OFFICE_SUSPENDED");
 
     const partnerAction = this.reflector.getAllAndOverride<PartnerOnlyAction | undefined>(
       PARTNER_ONLY,
@@ -110,6 +129,7 @@ export class PermissionsGuard implements CanActivate {
     request: FastifyRequest,
     principal: Principal,
     reason: string,
+    messageKey?: string,
   ): Promise<never> {
     try {
       await withTenant(this.db, principal.officeId, (tx) =>
@@ -128,6 +148,6 @@ export class PermissionsGuard implements CanActivate {
       // The denial stands even if the audit write fails.
       this.logger.error({ err: error }, "failed to audit permission denial");
     }
-    throw new ApiException(ErrorCode.FORBIDDEN);
+    throw new ApiException(ErrorCode.FORBIDDEN, undefined, messageKey);
   }
 }

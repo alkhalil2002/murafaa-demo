@@ -1,4 +1,11 @@
-import { createDb, runMigrations, seedOfficePolicy, withTenant } from "@murafaa/database";
+import {
+  createDb,
+  platformAdmins,
+  runMigrations,
+  seedOfficePolicy,
+  withPlatform,
+  withTenant,
+} from "@murafaa/database";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { mkdtempSync } from "node:fs";
 import { createServer, type Server } from "node:http";
@@ -186,7 +193,7 @@ beforeAll(async () => {
   const pdfPort = (pdfStub.server.address() as { port: number }).port;
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate portal_sessions, portal_otp_challenges, performance_events, office_performance_weights, candidates, payroll_lines, payroll_runs, employee_requests, attendance, leaves, advances, employees, ai_citations, ai_interactions, knowledge_chunks, knowledge_sources, expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate platform_sessions, platform_otp_challenges, platform_audit_log, platform_admins, portal_sessions, portal_otp_challenges, performance_events, office_performance_weights, candidates, payroll_lines, payroll_runs, employee_requests, attendance, leaves, advances, employees, ai_citations, ai_interactions, knowledge_chunks, knowledge_sources, expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -483,7 +490,7 @@ describe("OTP login", () => {
     const me = (
       await app.inject({ method: "GET", url: "/api/v1/auth/me", headers: { cookie } })
     ).json().data;
-    expect(me.office).toEqual({ id: OFFICE_A, name: "Office A" });
+    expect(me.office).toEqual({ id: OFFICE_A, name: "Office A", readOnly: false });
     expect(me.isPartner).toBe(true);
     expect(me.screens).toEqual(expect.arrayContaining(["today", "cases", "finance", "perms"]));
     expect(me.modules.FINANCE).toBe("FULL");
@@ -3948,5 +3955,237 @@ describe("client and employee portals: own data only, revocable sessions", () =>
     ]);
     await data(partner, "POST", `/hr/employees/${employeeId}/terminate`);
     expect((await as(cookie, "GET", "/emp-portal/profile")).statusCode).toBe(401);
+  });
+});
+
+describe("platform admin: offices from one place, counts only, suspended = read-only", () => {
+  const WEB = { origin: "http://localhost:3000" };
+  const ADMIN_PHONE = "0500001701";
+  const NEW_PARTNER = "0500001702";
+  const NEW_CLIENT = "0500001703";
+  const OTHER_PARTNER = "0500001704";
+  let admin = "";
+  let other = "";
+  let officeId = "";
+  let partner = "";
+  let portal = "";
+  let caseId = "";
+  const as = (
+    cookie: string,
+    method: "GET" | "POST" | "PUT" | "PATCH",
+    url: string,
+    payload?: object,
+  ) =>
+    app.inject({
+      method,
+      url: `/api/v1${url}`,
+      headers: { cookie, ...WEB },
+      ...(payload ? { payload } : {}),
+    });
+  const data = async (
+    cookie: string,
+    method: "GET" | "POST" | "PUT" | "PATCH",
+    url: string,
+    payload?: object,
+  ) => {
+    const res = await as(cookie, method, url, payload);
+    if (res.statusCode >= 400) throw new Error(`${method} ${url} → ${res.statusCode} ${res.body}`);
+    return res.json().data;
+  };
+  const ownerQuery = async <T>(q: (sql: postgres.Sql) => Promise<T>) => {
+    const owner = postgres(OWNER_URL, { max: 1 });
+    try {
+      return await q(owner);
+    } finally {
+      await owner.end();
+    }
+  };
+
+  beforeAll(async () => {
+    const h = createDb(APP_URL, { max: 1 });
+    try {
+      await withPlatform(h.db, (tx) =>
+        tx.insert(platformAdmins).values({
+          name: "نورة — فريق مُرافعة",
+          phone: "+966500001701",
+          totpSecretEnc: encryptSecret(ENCRYPTION_KEY, TOTP_SECRET),
+        }),
+      );
+    } finally {
+      await h.close();
+    }
+  });
+
+  it("signs a platform admin in with OTP plus authenticator, and keeps the layers apart", async () => {
+    const otp = await as("", "POST", "/platform/auth/otp", { phone: ADMIN_PHONE });
+    const code = otp.json().data.devCode as string;
+    const noTotp = await as("", "POST", "/platform/auth/verify", {
+      phone: ADMIN_PHONE,
+      code,
+      totp: "000000",
+    });
+    expect(noTotp.json().error.code).toBe("TOTP_INVALID");
+    const ok = await as("", "POST", "/platform/auth/verify", {
+      phone: ADMIN_PHONE,
+      code,
+      totp: totpCode(TOTP_SECRET),
+    });
+    expect(ok.json().data).toEqual({ name: "نورة — فريق مُرافعة" });
+    admin = cookieOf(ok);
+    expect(admin.startsWith("murafaa_platform=")).toBe(true);
+    // A staff number is not a platform admin: same answer, nothing sent.
+    expect((await as("", "POST", "/platform/auth/otp", { phone: PARTNER_A })).json().data).toEqual({
+      sent: true,
+    });
+    expect((await as(admin, "GET", "/cases")).statusCode).toBe(401);
+    expect((await as(admin, "GET", "/portal/cases")).statusCode).toBe(401);
+    expect((await as("", "GET", "/platform/offices")).statusCode).toBe(401);
+  });
+
+  it("creates an office with its permission matrix and first partner; a phone of another office is refused", async () => {
+    const dup = await as(admin, "POST", "/platform/offices", {
+      name: "مكتب مكرر",
+      ownerName: "شريك",
+      ownerPhone: PARTNER_R,
+      status: "ACTIVE",
+    });
+    expect(dup.statusCode).toBe(409);
+    expect(dup.json().error.messageKey).toBe("errors.PHONE_IN_OTHER_OFFICE");
+    const noEnd = await as(admin, "POST", "/platform/offices", {
+      name: "مكتب تجريبي",
+      ownerName: "شريك",
+      ownerPhone: NEW_PARTNER,
+      status: "TRIAL",
+    });
+    expect(noEnd.statusCode).toBe(400);
+
+    officeId = (
+      await data(admin, "POST", "/platform/offices", {
+        name: "مكتب الميزان",
+        city: "الدمام",
+        crNumber: "2050123456",
+        ownerName: "هند الزهراني",
+        ownerPhone: NEW_PARTNER,
+        status: "TRIAL",
+        trialEndsAt: "2026-12-31",
+      })
+    ).id;
+    partner = cookieOf(await login(NEW_PARTNER));
+    // An office session never reaches the platform.
+    expect((await as(partner, "GET", "/platform/offices")).statusCode).toBe(401);
+    await data(admin, "POST", "/platform/offices", {
+      name: "مكتب آخر",
+      ownerName: "شريك آخر",
+      ownerPhone: OTHER_PARTNER,
+      status: "ACTIVE",
+      paidUntil: "2027-06-30",
+    });
+    other = cookieOf(await login(OTHER_PARTNER));
+    expect((await data(partner, "GET", "/cases")).items ?? []).toHaveLength(0);
+    const client = await data(partner, "POST", "/clients", {
+      name: "عميل الميزان",
+      phone: NEW_CLIENT,
+    });
+    caseId = (
+      await data(partner, "POST", "/cases", { number: "9/9", title: "سرية", clientId: client.id })
+    ).id;
+
+    // HR can't hand a phone of another office to a new login either.
+    const emp = await data(partner, "POST", "/hr/employees", {
+      name: "موظف",
+      hireDate: "2024-01-01",
+      basicSalary: 300_000,
+    });
+    const grant = await as(partner, "POST", `/hr/employees/${emp.id}/account`, {
+      phone: PARTNER_A,
+      role: "LAWYER",
+    });
+    expect(grant.statusCode).toBe(409);
+    expect(grant.json().error.messageKey).toBe("errors.PHONE_IN_OTHER_OFFICE");
+  });
+
+  it("lists offices with counts only, never their content", async () => {
+    const res = await as(admin, "GET", "/platform/offices");
+    expect(res.statusCode).toBe(200);
+    const mine = res.json().data.find((o: { id: string }) => o.id === officeId);
+    expect(mine).toMatchObject({
+      name: "مكتب الميزان",
+      status: "TRIAL",
+      trialEndsAt: "2026-12-31",
+      users: 1,
+      cases: 1,
+      clients: 1,
+      ownerName: "هند الزهراني",
+    });
+    // Case titles and client names of any office never leave through the platform.
+    for (const secret of ["سرية", "عميل الميزان", "قضية العميل", "عميل البوابة"])
+      expect(res.body).not.toContain(secret);
+    const detail = await data(admin, "GET", `/platform/offices/${officeId}`);
+    expect(detail.staff).toEqual([
+      expect.objectContaining({ name: "هند الزهراني", role: "PARTNER", isActive: true }),
+    ]);
+    expect(JSON.stringify(detail)).not.toContain("سرية");
+  });
+
+  it("makes a suspended office read-only for staff and portals, until reactivated", async () => {
+    const otp = await as("", "POST", "/portal/auth/otp", { phone: NEW_CLIENT });
+    const verified = await as("", "POST", "/portal/auth/verify", {
+      phone: NEW_CLIENT,
+      code: otp.json().data.devCode,
+    });
+    portal = cookieOf(verified);
+
+    await data(admin, "PATCH", `/platform/offices/${officeId}`, {
+      status: "SUSPENDED",
+      paidUntil: null,
+    });
+    expect((await as(partner, "GET", `/cases/${caseId}`)).statusCode).toBe(200);
+    const write = await as(partner, "POST", "/clients", { name: "جديد" });
+    expect(write.statusCode).toBe(403);
+    expect(write.json().error.messageKey).toBe("errors.OFFICE_SUSPENDED");
+    expect((await as(portal, "GET", `/portal/cases/${caseId}`)).statusCode).toBe(200);
+    const msg = await as(portal, "POST", `/portal/cases/${caseId}/messages`, { body: "مرحبا" });
+    expect(msg.json().error.messageKey).toBe("errors.OFFICE_SUSPENDED");
+    // Other offices are untouched.
+    expect((await as(other, "POST", "/clients", { name: "عميل المكتب الآخر" })).statusCode).toBe(
+      201,
+    );
+
+    await data(admin, "PATCH", `/platform/offices/${officeId}`, {
+      status: "ACTIVE",
+      paidUntil: "2027-01-31",
+    });
+    expect((await as(partner, "POST", "/clients", { name: "جديد" })).statusCode).toBe(201);
+    expect(
+      (await data(admin, "GET", "/platform/offices")).find(
+        (o: { id: string }) => o.id === officeId,
+      ),
+    ).toMatchObject({ status: "ACTIVE", paidUntil: "2027-01-31", suspendedAt: null });
+
+    const actions = (await data(admin, "GET", "/platform/audit")).map(
+      (a: { action: string }) => a.action,
+    );
+    expect(actions).toEqual(
+      expect.arrayContaining([
+        "platform.office.create",
+        "platform.office.suspend",
+        "platform.office.reactivate",
+        "platform.login",
+      ]),
+    );
+    const officeAudit = await ownerQuery(
+      (sql) =>
+        sql`select action from audit_log where office_id = ${officeId} and action like 'platform.%' order by created_at`,
+    );
+    expect(officeAudit.map((r) => r.action)).toEqual([
+      "platform.office.create",
+      "platform.office.suspend",
+      "platform.office.reactivate",
+    ]);
+  });
+
+  it("ends the platform session on sign-out", async () => {
+    await data(admin, "POST", "/platform/auth/logout");
+    expect((await as(admin, "GET", "/platform/me")).statusCode).toBe(401);
   });
 });

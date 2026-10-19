@@ -255,7 +255,11 @@ export class AuthService {
         role: principal.role,
         previewRole: principal.previewRole ?? null,
       },
-      office: { id: principal.officeId, name: row.officeName },
+      office: {
+        id: principal.officeId,
+        name: row.officeName,
+        readOnly: principal.officeReadOnly ?? false,
+      },
       screens: (Object.keys(SCREEN_ACCESS) as Screen[]).filter((s) =>
         canSeeScreen(policy, principal, s),
       ),

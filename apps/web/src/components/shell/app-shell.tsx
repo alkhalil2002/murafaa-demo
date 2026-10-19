@@ -132,6 +132,19 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       bellCount={bell.data?.data.count ?? 0}
     >
       <IdleLogout />
+      {me.office.readOnly && (
+        <div
+          className="docnote"
+          role="status"
+          style={{
+            background: "var(--status-danger-bg)",
+            color: "var(--status-danger-fg)",
+            marginBottom: 24,
+          }}
+        >
+          {t("shell.readOnly")}
+        </div>
+      )}
       {me.user.previewRole && (
         <div className="panel" style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span className="sub" style={{ marginBottom: 0 }}>

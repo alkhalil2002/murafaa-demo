@@ -157,6 +157,7 @@ export type Me = {
     office: {
         id: string;
         name: string;
+        readOnly: boolean;
     };
     screens: Array<'today' | 'dashboard' | 'settings' | 'notifications' | 'clientportal' | 'empportal' | 'search' | 'accountSecurity' | 'cases' | 'workspace' | 'copilot' | 'clients' | 'leads' | 'documents' | 'kb' | 'finance' | 'billing' | 'hr' | 'journey' | 'activity' | 'perms' | 'whatsapp' | 'deadlines' | 'appointments' | 'tasks' | 'alerts' | 'pulse'>;
     modules: {
@@ -1680,6 +1681,95 @@ export type ActivityFeed = {
     counts: {
         [key: string]: number;
     };
+};
+
+export type PlatformMe = {
+    name: string;
+};
+
+export type PlatformVerifyBody = {
+    phone: string;
+    code: string;
+    totp: string;
+};
+
+export type PlatformOfficeList = Array<PlatformOffice>;
+
+export type PlatformOffice = {
+    id: string;
+    name: string;
+    status: 'TRIAL' | 'ACTIVE' | 'SUSPENDED';
+    city: string | null;
+    licenseNumber: string | null;
+    crNumber: string | null;
+    trialEndsAt: string | null;
+    paidUntil: string | null;
+    suspendedAt: string | null;
+    createdAt: string;
+    users: number;
+    cases: number;
+    clients: number;
+    documents: number;
+    storageBytes: number;
+    ownerName: string | null;
+    ownerPhone: string | null;
+};
+
+export type PlatformCreateOfficeBody = {
+    name: string;
+    city?: string | null;
+    crNumber?: string | null;
+    licenseNumber?: string | null;
+    ownerName: string;
+    ownerPhone: string;
+    status: 'TRIAL' | 'ACTIVE';
+    trialEndsAt?: string | null;
+    paidUntil?: string | null;
+};
+
+export type PlatformOfficeDetail = {
+    id: string;
+    name: string;
+    status: 'TRIAL' | 'ACTIVE' | 'SUSPENDED';
+    city: string | null;
+    licenseNumber: string | null;
+    crNumber: string | null;
+    trialEndsAt: string | null;
+    paidUntil: string | null;
+    suspendedAt: string | null;
+    createdAt: string;
+    users: number;
+    cases: number;
+    clients: number;
+    documents: number;
+    storageBytes: number;
+    ownerName: string | null;
+    ownerPhone: string | null;
+    staff: Array<{
+        id: string;
+        name: string;
+        role: 'PARTNER' | 'LAWYER' | 'ASSISTANT' | 'ACCOUNTANT' | 'ADMIN' | 'RECEPTION';
+        isActive: boolean;
+        lastLoginAt: string | null;
+    }>;
+    audit: PlatformAuditList;
+};
+
+export type PlatformAuditList = Array<PlatformAuditRow>;
+
+export type PlatformAuditRow = {
+    id: string;
+    action: string;
+    actorName: string | null;
+    officeId: string | null;
+    officeName: string | null;
+    createdAt: string;
+};
+
+export type PlatformUpdateOfficeBody = {
+    status: 'TRIAL' | 'ACTIVE' | 'SUSPENDED';
+    trialEndsAt?: string | null;
+    paidUntil?: string | null;
 };
 
 export type PortalMe = {
@@ -7157,6 +7247,262 @@ export type OverviewActivityResponses = {
 };
 
 export type OverviewActivityResponse = OverviewActivityResponses[keyof OverviewActivityResponses];
+
+export type PlatformRequestOtpData = {
+    body: RequestOtpBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/auth/otp';
+};
+
+export type PlatformRequestOtpErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformRequestOtpError = PlatformRequestOtpErrors[keyof PlatformRequestOtpErrors];
+
+export type PlatformRequestOtpResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: RequestOtpResponse;
+        error: null;
+    };
+};
+
+export type PlatformRequestOtpResponse = PlatformRequestOtpResponses[keyof PlatformRequestOtpResponses];
+
+export type PlatformVerifyData = {
+    body: PlatformVerifyBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/auth/verify';
+};
+
+export type PlatformVerifyErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformVerifyError = PlatformVerifyErrors[keyof PlatformVerifyErrors];
+
+export type PlatformVerifyResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PlatformMe;
+        error: null;
+    };
+};
+
+export type PlatformVerifyResponse = PlatformVerifyResponses[keyof PlatformVerifyResponses];
+
+export type PlatformLogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/auth/logout';
+};
+
+export type PlatformLogoutErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformLogoutError = PlatformLogoutErrors[keyof PlatformLogoutErrors];
+
+export type PlatformLogoutResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type PlatformLogoutResponse = PlatformLogoutResponses[keyof PlatformLogoutResponses];
+
+export type PlatformMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/me';
+};
+
+export type PlatformMeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformMeError = PlatformMeErrors[keyof PlatformMeErrors];
+
+export type PlatformMeResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PlatformMe;
+        error: null;
+    };
+};
+
+export type PlatformMeResponse = PlatformMeResponses[keyof PlatformMeResponses];
+
+export type PlatformListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/offices';
+};
+
+export type PlatformListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformListError = PlatformListErrors[keyof PlatformListErrors];
+
+export type PlatformListResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PlatformOfficeList;
+        error: null;
+    };
+};
+
+export type PlatformListResponse = PlatformListResponses[keyof PlatformListResponses];
+
+export type PlatformCreateData = {
+    body: PlatformCreateOfficeBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/offices';
+};
+
+export type PlatformCreateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformCreateError = PlatformCreateErrors[keyof PlatformCreateErrors];
+
+export type PlatformCreateResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: CreatedCase;
+        error: null;
+    };
+};
+
+export type PlatformCreateResponse = PlatformCreateResponses[keyof PlatformCreateResponses];
+
+export type PlatformDetailData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/platform/offices/{id}';
+};
+
+export type PlatformDetailErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformDetailError = PlatformDetailErrors[keyof PlatformDetailErrors];
+
+export type PlatformDetailResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PlatformOfficeDetail;
+        error: null;
+    };
+};
+
+export type PlatformDetailResponse = PlatformDetailResponses[keyof PlatformDetailResponses];
+
+export type PlatformUpdateData = {
+    body: PlatformUpdateOfficeBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/platform/offices/{id}';
+};
+
+export type PlatformUpdateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformUpdateError = PlatformUpdateErrors[keyof PlatformUpdateErrors];
+
+export type PlatformUpdateResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type PlatformUpdateResponse = PlatformUpdateResponses[keyof PlatformUpdateResponses];
+
+export type PlatformAuditData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/audit';
+};
+
+export type PlatformAuditErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformAuditError = PlatformAuditErrors[keyof PlatformAuditErrors];
+
+export type PlatformAuditResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PlatformAuditList;
+        error: null;
+    };
+};
+
+export type PlatformAuditResponse = PlatformAuditResponses[keyof PlatformAuditResponses];
 
 export type ClientPortalRequestOtpData = {
     body: RequestOtpBody;

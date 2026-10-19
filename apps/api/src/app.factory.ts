@@ -10,6 +10,10 @@ import { MAX_UPLOAD_BYTES } from "@murafaa/documents";
 import { buildOpenApi } from "./common/zod/openapi.js";
 import { readCookie, SESSION_COOKIE } from "./modules/auth/cookies.js";
 import { PORTAL_COOKIE, PortalSessionService } from "./modules/portal/portal-session.service.js";
+import {
+  PLATFORM_COOKIE,
+  PlatformSessionService,
+} from "./modules/platform/platform-session.service.js";
 import { SessionService } from "./modules/auth/session.service.js";
 import type { Env } from "./config/env.js";
 import type { LlmProvider } from "./modules/ai/llm.js";
@@ -72,12 +76,30 @@ const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 function attachSessions(app: NestFastifyApplication, env: Env): void {
   const sessions = app.get(SessionService);
   const portalSessions = app.get(PortalSessionService);
+  const platformSessions = app.get(PlatformSessionService);
   app
     .getHttpAdapter()
     .getInstance()
     .addHook("onRequest", async (request) => {
       const auth = request.headers.authorization;
       const bearer = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : null;
+      // إدارة المنصة reads only its own cookie; no office or portal session applies there.
+      if (request.url.startsWith(`/${API_PREFIX}/v1/platform/`)) {
+        const platformToken = readCookie(request.headers.cookie, PLATFORM_COOKIE);
+        if (!platformToken) return;
+        if (
+          UNSAFE_METHODS.has(request.method) &&
+          request.headers.origin &&
+          !env.CORS_ORIGINS.includes(request.headers.origin)
+        )
+          return;
+        const resolved = await platformSessions.resolve(platformToken, request.ip);
+        if (resolved) {
+          request.platform = resolved.principal;
+          request.platformSessionId = resolved.sessionId;
+        }
+        return;
+      }
       // Portal routes read their own cookie; a staff session never applies there.
       const portalKind = request.url.startsWith(`/${API_PREFIX}/v1/portal/`)
         ? "CLIENT"

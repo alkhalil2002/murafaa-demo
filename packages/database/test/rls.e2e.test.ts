@@ -2,9 +2,10 @@ import { eq, sql } from "drizzle-orm";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDb, type DbHandle, withTenant } from "../src/client.js";
-import { loginCandidates } from "../src/login-lookup.js";
+import { loginCandidates, phoneOffices } from "../src/login-lookup.js";
 import { runMigrations } from "../src/migrator.js";
-import { auditLog, offices, users } from "../src/schema/index.js";
+import { platformOffices, platformUpdateOffice, withPlatform } from "../src/platform.js";
+import { auditLog, offices, platformAdmins, platformAuditLog, users } from "../src/schema/index.js";
 
 /**
  * Proves tenant isolation is enforced by Postgres, not by app code: the app
@@ -37,7 +38,7 @@ let app: DbHandle;
 beforeAll(async () => {
   await runMigrations(OWNER_URL);
   owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate platform_sessions, platform_otp_challenges, platform_audit_log, platform_admins, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   // The owner is subject to FORCE RLS too, so seed each office inside its own scope.
   for (const [office, phone] of [
     [OFFICE_A, "+966500000001"],
@@ -132,5 +133,48 @@ describe("row-level security", () => {
     expect(await loginCandidates(app.db, "+966599999999")).toEqual([]);
     // The lookup's broad policy belongs to murafaa_auth, not to the app role.
     expect(await app.db.select().from(users)).toHaveLength(0);
+  });
+
+  it("keeps platform tables out of every tenant transaction", async () => {
+    await withPlatform(app.db, (tx) =>
+      tx.insert(platformAdmins).values({ name: "op", phone: "+966500000099", totpSecretEnc: "x" }),
+    );
+    expect(
+      await withTenant(app.db, OFFICE_A, (tx) => tx.select().from(platformAdmins)),
+    ).toHaveLength(0);
+    expect(await app.db.select().from(platformAdmins)).toHaveLength(0);
+    expect(await withPlatform(app.db, (tx) => tx.select().from(platformAdmins))).toHaveLength(1);
+    // Append-only like the office audit log.
+    await withPlatform(app.db, (tx) => tx.insert(platformAuditLog).values({ action: "test" }));
+    expect(
+      await pgErrorOf(
+        withPlatform(app.db, (tx) => tx.update(platformAuditLog).set({ action: "tampered" })),
+      ),
+    ).toMatch(/permission denied/);
+  });
+
+  it("reads across offices only through platform_api, and only inside withPlatform", async () => {
+    expect(await pgErrorOf(withTenant(app.db, OFFICE_A, (tx) => platformOffices(tx)))).toMatch(
+      /platform context required/,
+    );
+    const rows = await withPlatform(app.db, (tx) => platformOffices(tx));
+    expect(rows.map((r) => r.id).sort()).toEqual([OFFICE_A, OFFICE_B].sort());
+    expect(rows.find((r) => r.id === OFFICE_A)).toMatchObject({ users: 1, status: "ACTIVE" });
+    expect(
+      await withPlatform(app.db, (tx) =>
+        platformUpdateOffice(tx, OFFICE_B, {
+          status: "SUSPENDED",
+          trialEndsAt: null,
+          paidUntil: null,
+        }),
+      ),
+    ).toBe(true);
+    const [b] = await withTenant(app.db, OFFICE_B, (tx) =>
+      tx.select({ status: offices.status, suspendedAt: offices.suspendedAt }).from(offices),
+    );
+    expect(b?.status).toBe("SUSPENDED");
+    expect(b?.suspendedAt).toBeInstanceOf(Date);
+    // A phone's offices, for refusing it in another office.
+    expect(await phoneOffices(app.db, "+966500000001")).toEqual([OFFICE_A]);
   });
 });

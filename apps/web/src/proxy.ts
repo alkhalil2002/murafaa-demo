@@ -7,6 +7,7 @@ const PUBLIC_PATHS = ["/login", "/auth/expired"];
 const PORTALS = [
   { prefix: "/portal", cookie: "murafaa_portal", login: "/portal/login" },
   { prefix: "/emp-portal", cookie: "murafaa_emp_portal", login: "/emp-portal/login" },
+  { prefix: "/platform", cookie: "murafaa_platform", login: "/platform/login" },
 ] as const;
 
 /**

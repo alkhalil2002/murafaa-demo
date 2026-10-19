@@ -15,6 +15,19 @@ const envSchema = z
           .filter(Boolean),
       ),
     RBAC_ENFORCEMENT: z.enum(["strict", "permissive"]).default("strict"),
+    /**
+     * Where إدارة المنصة may sign in from (exact IPs or IPv4 CIDRs, comma
+     * separated). Empty = anywhere; set it in production.
+     */
+    PLATFORM_IP_ALLOWLIST: z
+      .string()
+      .default("")
+      .transform((s) =>
+        s
+          .split(",")
+          .map((o) => o.trim())
+          .filter(Boolean),
+      ),
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
     APP_VERSION: z.string().default("0.0.0"),
     /** HMAC key for stored OTP codes. Required: an empty key would make the hashes guessable. */

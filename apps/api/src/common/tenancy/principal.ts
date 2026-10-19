@@ -7,6 +7,8 @@ export type Principal = {
   role: Role;
   /** Set while a partner previews another role ("معاينة حسب الدور"). */
   previewRole?: Role | null;
+  /** The office is suspended by إدارة المنصة: everything is read-only. */
+  officeReadOnly?: boolean;
 };
 
 /**
@@ -18,12 +20,22 @@ export type PortalPrincipal = {
   /** The client or employee id. */
   subjectId: string;
   officeId: string;
+  /** The office is suspended: the portal is read-only. */
+  officeReadOnly?: boolean;
 };
+
+/**
+ * A Murafaa platform operator (إدارة المنصة). Belongs to no office and
+ * reaches only routes marked @PlatformRoute(); it has no tenant scope at all.
+ */
+export type PlatformPrincipal = { adminId: string };
 
 declare module "fastify" {
   interface FastifyRequest {
     portal?: PortalPrincipal;
     portalSessionId?: string;
+    platform?: PlatformPrincipal;
+    platformSessionId?: string;
     principal?: Principal;
     /** The session behind `principal`, for logout and role preview. */
     sessionId?: string;

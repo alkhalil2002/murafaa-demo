@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import type { Db } from "./client.js";
+import type { Db, Tx } from "./client.js";
 
 export type LoginCandidate = { userId: string; officeId: string; totpEnabled: boolean };
 
@@ -35,4 +35,17 @@ export async function portalCandidates(
     sql`select subject_id, office_id from auth_api.portal_candidates(${phone}, ${kind})`,
   );
   return rows.map((r) => ({ subjectId: r.subject_id, officeId: r.office_id }));
+}
+
+/**
+ * Offices where this phone already belongs to a staff user (any status, not
+ * deleted). Staff phones are unique across offices (owner, 2026-10-19), so a
+ * new user in another office is refused before sign-in would become ambiguous.
+ * Works with a transaction too.
+ */
+export async function phoneOffices(db: Db | Tx, phone: string): Promise<string[]> {
+  const rows = await db.execute<{ office_id: string }>(
+    sql`select office_id from auth_api.phone_offices(${phone})`,
+  );
+  return rows.map((r) => r.office_id);
 }

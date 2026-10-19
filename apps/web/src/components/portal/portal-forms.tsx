@@ -9,6 +9,7 @@ import {
   clientPortalUpload,
   employeePortalLogout,
   employeePortalSubmit,
+  platformLogout,
 } from "@murafaa/sdk";
 import type { ClientPortalUploadData, EmpPortalRequestBody } from "@murafaa/sdk";
 import { MAX_PORTAL_UPLOAD_BYTES, UPLOAD_MIME_ALLOW } from "@murafaa/documents";
@@ -22,15 +23,21 @@ function ErrorLine({ error }: { error: MessageKey | null }) {
   return error ? <div className="lerr">{t(error)}</div> : null;
 }
 
-export function PortalLogoutButton({ kind }: { kind: "CLIENT" | "EMPLOYEE" }) {
+const SIGN_OUT = {
+  CLIENT: { logout: clientPortalLogout, login: "/portal/login" },
+  EMPLOYEE: { logout: employeePortalLogout, login: "/emp-portal/login" },
+  PLATFORM: { logout: platformLogout, login: "/platform/login" },
+} as const;
+
+export function PortalLogoutButton({ kind }: { kind: keyof typeof SIGN_OUT }) {
   const router = useRouter();
   return (
     <button
       type="button"
       className="logout"
       onClick={async () => {
-        await (kind === "CLIENT" ? clientPortalLogout : employeePortalLogout)({ client: c });
-        router.replace(kind === "CLIENT" ? "/portal/login" : "/emp-portal/login");
+        await SIGN_OUT[kind].logout({ client: c });
+        router.replace(SIGN_OUT[kind].login);
         router.refresh();
       }}
     >

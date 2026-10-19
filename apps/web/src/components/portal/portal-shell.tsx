@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { t } from "@murafaa/i18n";
 import {
   BrandMark,
+  IconActivity,
   IconCases,
   IconClients,
+  IconDashboard,
   IconDeadlines,
   IconDocuments,
   IconFinance,
@@ -24,6 +26,9 @@ const ICONS = {
   chat: IconClients,
   today: IconToday,
   leaves: IconDeadlines,
+  offices: IconClients,
+  usage: IconDashboard,
+  audit: IconActivity,
 };
 
 export type PortalNavItem = {
@@ -46,7 +51,7 @@ export function PortalShell({
   items,
   children,
 }: {
-  kind: "CLIENT" | "EMPLOYEE";
+  kind: "CLIENT" | "EMPLOYEE" | "PLATFORM";
   officeName: string;
   badge: string;
   userName: string;
@@ -58,12 +63,16 @@ export function PortalShell({
   const home = items[0]?.href;
   const isOn = (href: string) =>
     href === home
-      ? path === href || (path.startsWith(`${href}/cases`) && kind === "CLIENT")
+      ? path === href ||
+        (path.startsWith(`${href}/cases`) && kind === "CLIENT") ||
+        (path.startsWith(`${href}/offices`) && kind === "PLATFORM")
       : path === href || path.startsWith(`${href}/`);
   const count = (n?: number) => (n ? n.toLocaleString("ar-SA") : null);
+  // إدارة المنصة reads as a separate, darker layer (design system tone="platform").
+  const tone = kind === "PLATFORM" ? " platform" : "";
   return (
     <div className="app-grid has-bottomnav">
-      <aside className="side">
+      <aside className={`side${tone}`}>
         <div className="sbrand">
           <div className="s">
             <BrandMark />
@@ -102,7 +111,7 @@ export function PortalShell({
               <span className="tb-word">{t("app.name")}</span>
             </span>
             <span className="tb-office">{officeName}</span>
-            <span className="portalbadge">{badge}</span>
+            <span className={`portalbadge${tone}`}>{badge}</span>
           </div>
           <div className="spacer" />
           <span className="topuser">{userName}</span>

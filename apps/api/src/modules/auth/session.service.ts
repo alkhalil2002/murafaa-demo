@@ -64,6 +64,7 @@ export class SessionService {
           isActive: users.isActive,
           userDeletedAt: users.deletedAt,
           ipAllowlist: offices.ipAllowlist,
+          officeStatus: offices.status,
         })
         .from(sessions)
         .innerJoin(users, eq(users.id, sessions.userId))
@@ -88,6 +89,7 @@ export class SessionService {
           role,
           // Only a real partner can preview; a stale preview on a demoted user is ignored.
           previewRole: role === "PARTNER" ? ((row.previewRole as Role | null) ?? null) : null,
+          officeReadOnly: row.officeStatus === "SUSPENDED",
         },
       };
     });

@@ -46,3 +46,20 @@ export function tenantPolicy(column: "office_id" | "id" = "office_id") {
     withCheck: match,
   });
 }
+
+/**
+ * Platform tables (إدارة المنصة) hold no office data and have no office_id.
+ * They are visible only inside withPlatform(), which sets app.platform for one
+ * transaction; tenant transactions never set it, so tenant code reads nothing.
+ */
+export const platformOn = sql`current_setting('app.platform', true) = 'on'`;
+
+export function platformPolicy() {
+  return pgPolicy("platform_only", {
+    as: "permissive",
+    for: "all",
+    to: appRole,
+    using: platformOn,
+    withCheck: platformOn,
+  });
+}

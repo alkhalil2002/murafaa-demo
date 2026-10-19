@@ -97,6 +97,16 @@ export const PORTAL_SESSION_POLICY = {
   touchIntervalMs: 60 * 1000,
 } as const;
 
+/**
+ * إدارة المنصة sessions: the strongest account in the system, so the
+ * shortest life (15 minutes idle, 12 hours at most).
+ */
+export const PLATFORM_SESSION_POLICY = {
+  idleTimeoutMs: 15 * 60 * 1000,
+  absoluteTtlMs: 12 * 60 * 60 * 1000,
+  touchIntervalMs: 60 * 1000,
+} as const;
+
 /** Whether a session is still usable at `now` (not revoked, not idle too long, not past its lifetime). */
 export function isSessionLive(
   s: { expiresAt: Date; lastSeenAt: Date; revokedAt: Date | null },

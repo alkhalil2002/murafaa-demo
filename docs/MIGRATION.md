@@ -939,7 +939,11 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | new | Design v2: employee performance criteria, quarterly reviews and manager notes | a single performance score | **Open** — needs the review rules; the employee portal shows only the score until then |
 | new | Design v2: employee documents (payslip PDF, contract, GOSI certificate) | none | **Open** — payslip PDF can come from payroll lines; GOSI certificate needs the GOSI integration |
 | new | Design v2: sick-leave balance (labour law art. 117) | annual balance only | **Open** — needs the rule in docs/06 before it is shown |
-| new | Design v2: platform admin portal (offices, subscriptions, usage, audit) | none (offices only from the seed) | **Decided 2026-10-19** — its own milestone later; needs a cross-office role outside RLS |
+| new | Design v2: platform admin portal (offices, subscriptions, usage, audit) | none (offices only from the seed) | ✅ **Built 2026-10-19** (ADR-0003): platform_* tables + platform_api functions (counts only), OTP + mandatory TOTP, create office with partner and matrix, suspend = read-only, manual paid-until, audit |
+| new | Platform: plans, prices and seat limits | design has 3 plans | **Open** — owner chose no plans for now (2026-10-19) |
+| new | Platform: invoicing offices (Murafaa's own ZATCA invoices) and online payment | none | **Open** — billing is recorded by hand; payment shows not connected |
+| new | Platform: automatic suspension after a trial or a late payment | none | **Open** — needs the jobs runner (outbox + Cloud Tasks); manual for now |
+| new | Platform: AI usage per office | none | **Open** — AI queries are not metered per office yet |
 | 4 | Sentry vs PDPL | no Sentry | **Open** — new stack uses Cloud Logging only |
 | 5 | OTP provider | console + Unifonic | **Open** — Unifonic vs WhatsApp Business (Buraq/Meta from Alkhalil) |
 | 6 | 30-day objection for every case type | fixed 30 days | As documented; confirm urgent tracks |
@@ -999,7 +1003,7 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | OTP HMAC key falls back to an empty AUTH_SECRET | lib/auth/otp.ts hashCode | ✅ fixed: AUTH_SECRET required (≥32 chars) at boot |
 | Login reveals whether a phone is registered (USER_NOT_FOUND) and whether it has 2FA (2fa-status) | lib/auth/otp.ts, api/auth/2fa-status | ✅ fixed: same answer for every number; 2FA is asked only after a correct OTP |
 | IP allowlist enforced only when rendering the page shell, not on actions | components/app-shell.tsx | ✅ fixed: enforced by the API on every request |
-| A phone registered in two offices cannot log in (resolveUser needs exactly one match) | lib/auth/otp.ts | office picker or per-office login (M1 decision) |
+| A phone registered in two offices cannot log in (resolveUser needs exactly one match) | lib/auth/otp.ts | ✅ decided 2026-10-19: a staff phone belongs to one office only; new offices and HR grants refuse a phone of another office (auth_api.phone_offices) |
 | Money columns are int4 (MAX_HALALAS ≈ 21.47M SAR) | prisma schema | bigint halalas in Drizzle (M4) |
 | TOTP could be disabled without a code; the enrolment secret round-tripped through the browser | server/security.ts | ✅ fixed: disabling needs a current code; pending secret stored encrypted server-side for 10 min |
 | IP allowlist saved without validation; a partner could lock the office out with one save | server/security.ts | ✅ fixed: entries validated, and a list excluding the caller's own address is refused |

@@ -20,7 +20,8 @@
     "sdk:generate": "pnpm --filter @murafaa/api openapi && pnpm --filter @murafaa/sdk generate",
     "db:seed": "pnpm --filter @murafaa/database seed",
     "db:seed:demo": "pnpm --filter @murafaa/api build && pnpm --filter @murafaa/api seed:demo",
-    "db:reset": "pnpm --filter @murafaa/database reset"
+    "db:reset": "pnpm --filter @murafaa/database reset",
+    "platform:admin:create": "pnpm --filter @murafaa/api build && pnpm --filter @murafaa/api platform:admin:create"
   },
   "devDependencies": {
     "prettier": "3.9.10",

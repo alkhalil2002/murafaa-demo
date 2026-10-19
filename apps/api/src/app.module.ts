@@ -11,6 +11,7 @@ import { LLM, type LlmProvider, llmFor } from "./modules/ai/llm.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { AiModule } from "./modules/ai/ai.module.js";
 import { HrModule } from "./modules/hr/hr.module.js";
+import { PlatformModule } from "./modules/platform/platform.module.js";
 import { PortalModule } from "./modules/portal/portal.module.js";
 import { WhatsappModule } from "./modules/whatsapp/whatsapp.module.js";
 import { IntegrationsModule } from "./modules/integrations/integrations.module.js";
@@ -71,6 +72,7 @@ export class AppModule {
         HrModule,
         IntegrationsModule,
         OverviewModule,
+        PlatformModule,
         PortalModule,
         PulseModule,
         PermissionsModule,

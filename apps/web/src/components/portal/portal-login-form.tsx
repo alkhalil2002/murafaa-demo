@@ -7,6 +7,8 @@ import {
   clientPortalVerify,
   employeePortalRequestOtp,
   employeePortalVerify,
+  platformRequestOtp,
+  platformVerify,
 } from "@murafaa/sdk";
 import { t, type MessageKey } from "@murafaa/i18n";
 import { IconWhatsapp } from "@/components/icons";
@@ -14,17 +16,22 @@ import { apiErrorKey } from "@/lib/api-error";
 import { browserApi } from "@/lib/browser-api";
 
 const FLOW = {
-  CLIENT: { otp: clientPortalRequestOtp, verify: clientPortalVerify, home: "/portal" },
-  EMPLOYEE: { otp: employeePortalRequestOtp, verify: employeePortalVerify, home: "/emp-portal" },
+  CLIENT: { otp: clientPortalRequestOtp, home: "/portal" },
+  EMPLOYEE: { otp: employeePortalRequestOtp, home: "/emp-portal" },
+  PLATFORM: { otp: platformRequestOtp, home: "/platform" },
 } as const;
 
-/** Portal sign-in (legacy portal-login-form / emp-portal-login-form): phone → WhatsApp code. */
+/**
+ * Portal sign-in (legacy portal-login-form / emp-portal-login-form): phone →
+ * WhatsApp code. إدارة المنصة also asks for the authenticator code, always.
+ */
 export function PortalLoginForm({ kind }: { kind: keyof typeof FLOW }) {
   const flow = FLOW[kind];
   const router = useRouter();
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
+  const [totp, setTotp] = useState("");
   const [devMode, setDevMode] = useState(false);
   const [error, setError] = useState<MessageKey | null>(null);
   const [busy, setBusy] = useState(false);
@@ -54,7 +61,13 @@ export function PortalLoginForm({ kind }: { kind: keyof typeof FLOW }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await flow.verify({ client: browserApi, body: { phone, code } });
+      const res =
+        kind === "PLATFORM"
+          ? await platformVerify({ client: browserApi, body: { phone, code, totp } })
+          : await (kind === "CLIENT" ? clientPortalVerify : employeePortalVerify)({
+              client: browserApi,
+              body: { phone, code },
+            });
       if (res.error) return setError(apiErrorKey(res.error));
       router.replace(flow.home);
       router.refresh();
@@ -114,6 +127,20 @@ export function PortalLoginForm({ kind }: { kind: keyof typeof FLOW }) {
           style={{ textAlign: "center", fontSize: 30, letterSpacing: "0.4em" }}
         />
       </div>
+      {kind === "PLATFORM" && (
+        <div className="field">
+          <label>{t("auth.login.totpLabel")}</label>
+          <input
+            dir="ltr"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={totp}
+            onChange={(e) => setTotp(e.target.value.replace(/\D/g, ""))}
+            style={{ textAlign: "center", fontSize: 30, letterSpacing: "0.4em" }}
+          />
+        </div>
+      )}
       <button type="submit" disabled={busy} className="lbtn go">
         {busy ? t("common.loading") : t("auth.login.verify")}
       </button>

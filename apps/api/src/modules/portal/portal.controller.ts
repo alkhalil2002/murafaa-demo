@@ -24,7 +24,11 @@ import {
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { z } from "zod";
 import { ApiException } from "../../common/http/api.exception.js";
-import { PortalRoute, Public } from "../../common/permissions/permission.decorators.js";
+import {
+  AllowWhenSuspended,
+  PortalRoute,
+  Public,
+} from "../../common/permissions/permission.decorators.js";
 import type { PortalPrincipal } from "../../common/tenancy/principal.js";
 import {
   BinaryBody,
@@ -141,6 +145,7 @@ export class ClientPortalController extends PortalAuthRoutes {
   }
 
   @PortalRoute("CLIENT")
+  @AllowWhenSuspended()
   @Post("auth/logout")
   @HttpCode(200)
   logout(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
@@ -273,6 +278,7 @@ export class EmployeePortalController extends PortalAuthRoutes {
   }
 
   @PortalRoute("EMPLOYEE")
+  @AllowWhenSuspended()
   @Post("auth/logout")
   @HttpCode(200)
   logout(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {

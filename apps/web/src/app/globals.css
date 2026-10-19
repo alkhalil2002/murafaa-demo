@@ -1048,7 +1048,8 @@
     flex-wrap: wrap;
     margin-top: 12px;
   }
-  button.act {
+  button.act,
+  a.act {
     font-family: inherit;
     font-size: var(--fs-body);
     font-weight: 600;
@@ -1062,7 +1063,8 @@
     gap: 8px;
     transition: var(--dur-fast);
   }
-  button.act:active {
+  button.act:active,
+  a.act:active {
     transform: translateY(1px);
   }
   button.act:disabled {

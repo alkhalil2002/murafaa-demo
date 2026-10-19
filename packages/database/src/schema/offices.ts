@@ -1,6 +1,9 @@
-import { boolean, check, jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, check, date, jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { audit, id, tenantPolicy, timestamps } from "./_helpers.js";
+
+/** Values match OFFICE_STATUSES in @murafaa/rules. SUSPENDED = read-only (owner, 2026-10-19). */
+export const officeStatusEnum = pgEnum("office_status", ["TRIAL", "ACTIVE", "SUSPENDED"]);
 
 /** The tenant root. A session sees only its own office row. */
 export const offices = pgTable(
@@ -22,6 +25,14 @@ export const offices = pgTable(
     crNumber: text("cr_number"),
     /** National address as printed on invoices. */
     taxAddress: text("tax_address"),
+    /** Set by إدارة المنصة. */
+    status: officeStatusEnum("status").notNull().default("ACTIVE"),
+    city: text("city"),
+    licenseNumber: text("license_number"),
+    trialEndsAt: date("trial_ends_at"),
+    /** Subscription paid up to this day (recorded by hand; no billing yet). */
+    paidUntil: date("paid_until"),
+    suspendedAt: timestamp("suspended_at", { withTimezone: true }),
     ...timestamps,
     ...audit,
   },

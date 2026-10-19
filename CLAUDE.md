@@ -15,6 +15,7 @@ The first implementation (single Next.js app + Prisma) lives in `legacy/` as **r
 - **2026-07-05:** `office_id` on every table from day one; isolation is enforced by Postgres RLS.
 - **2026-10-19:** the **Murafaa Design System v2** is the binding visual reference (ADR-0002), replacing the 2026-07-24 rule that the prototype be matched 1:1. Tokens live in `apps/web/src/styles/tokens/`; `globals.css` holds its component classes. Gold is used only for the logo ring, the selected nav item and hover borders. Design screens with no real data behind them are left out, not mocked. The prototype stays a behavioural reference; never port its HTML/JS. The docs stay binding for behaviour and business rules.
 - **2026-07-24:** PDFs are rendered with headless Chrome (puppeteer), an approved stack addition for correct Arabic shaping/RTL. Run it as its own service with Arabic fonts installed, not inside the API process.
+- **2026-10-19:** إدارة المنصة (ADR-0003): offices are created, suspended and dated from the platform layer. No plans or prices yet; billing is recorded by hand; a suspended office is read-only for staff and portals; a staff phone may belong to one office only.
 - **No fabricated integrations:** an integration without a real connection is shown disconnected, never mocked.
 - **2026-10-18:** monorepo + NestJS API + Drizzle + RLS (ADR-0001).
 
@@ -73,6 +74,7 @@ pnpm db:up               # local Postgres 17 + pgvector on :5440 (Docker)
 MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnpm db:migrate
 DATABASE_URL=postgres://murafaa_api:murafaa_api@localhost:5440/murafaa_dev pnpm db:seed   # demo office, users 0500000001–6 (runs as the app role)
 pnpm db:seed:demo        # optional demo cases through the real API (skips if the office has cases)
+pnpm platform:admin:create --name "…" --phone 05XXXXXXXX   # إدارة المنصة operator (prints the TOTP URI once)
 pnpm dev                 # api :4000, web :3000, pdf :4100 (apps/pdf, headless Chrome)
 pnpm build
 pnpm lint                # lint (incl. i18n rule)
@@ -92,6 +94,7 @@ Details: `docs/DEVELOPMENT.md`.
 - Money: store as **integer minor units (halalas)** — never floats.
 - Every table has: `id` (UUID), `created_at`, `updated_at`, `created_by`, `deleted_at` (soft delete) — use the helpers in `packages/database/src/schema/_helpers.ts`.
 - Every tenant table: `office_id`, `tenantPolicy()`, `.enableRLS()`, plus `FORCE ROW LEVEL SECURITY` and least-privilege grants in a custom migration (no DELETE for the app role).
+- The only tables without `office_id` are the `platform_*` tables (إدارة المنصة, ADR-0003). They hold no office data, use `platformPolicy()` (visible only inside `withPlatform()`), and are FORCE RLS too. The platform reads across offices **only** through `platform_api` functions that return metadata and counts, never case, client or document content.
 - Services touch tenant data only through `TenantDb.run()`; the API connects as a non-owner role so RLS always applies.
 - Every route declares `@Public()`, `@Authenticated()` or `@RequirePermission(module, action)`; undeclared routes are denied.
 - API responses: uniform `{ data, error }` (added by the envelope interceptor / exception filter); errors carry a `code` and an i18n `messageKey`, never display text.
