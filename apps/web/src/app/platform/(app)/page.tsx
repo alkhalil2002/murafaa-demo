@@ -4,7 +4,7 @@ import { OFFICE_STATUSES } from "@murafaa/rules";
 import { t } from "@murafaa/i18n";
 import { serverApi } from "@/lib/api";
 import { dueOf, STATUS_TONE, statusLabel } from "@/lib/platform-ui";
-import { arNum } from "@/lib/portal-data";
+import { arNum, platformMeData } from "@/lib/portal-data";
 
 /** المكاتب: KPIs, search and status filter, one card per office. */
 export default async function PlatformOfficesPage({
@@ -14,6 +14,7 @@ export default async function PlatformOfficesPage({
 }) {
   const { q = "", status = "" } = await searchParams;
   const offices = (await platformList({ client: await serverApi() })).data?.data ?? [];
+  const canCreate = (await platformMeData())?.actions.includes("office.create") ?? false;
   const needle = q.trim();
   const shown = offices.filter(
     (o) =>
@@ -27,13 +28,15 @@ export default async function PlatformOfficesPage({
       <div className="vhead">
         <h2>{t("platform.nav.offices")}</h2>
         <span className="pill">{t("platform.offices.pill", { n: arNum(offices.length) })}</span>
-        <Link
-          href="/platform/offices/new"
-          className="act b-primary"
-          style={{ marginInlineStart: "auto" }}
-        >
-          {t("platform.offices.add")}
-        </Link>
+        {canCreate && (
+          <Link
+            href="/platform/offices/new"
+            className="act b-primary"
+            style={{ marginInlineStart: "auto" }}
+          >
+            {t("platform.offices.add")}
+          </Link>
+        )}
       </div>
       <div className="kpis">
         <div className="kpi">

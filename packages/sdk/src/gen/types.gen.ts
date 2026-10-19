@@ -1685,6 +1685,8 @@ export type ActivityFeed = {
 
 export type PlatformMe = {
     name: string;
+    role: 'OWNER' | 'OPERATIONS' | 'BILLING' | 'SUPPORT';
+    actions: Array<'office.create' | 'office.status' | 'subscription.update' | 'team.manage'>;
 };
 
 export type PlatformVerifyBody = {
@@ -1770,6 +1772,60 @@ export type PlatformUpdateOfficeBody = {
     status: 'TRIAL' | 'ACTIVE' | 'SUSPENDED';
     trialEndsAt?: string | null;
     paidUntil?: string | null;
+};
+
+export type PlatformTeam = Array<PlatformMember>;
+
+export type PlatformMember = {
+    id: string;
+    name: string;
+    phone: string;
+    role: 'OWNER' | 'OPERATIONS' | 'BILLING' | 'SUPPORT';
+    status: 'ACTIVE' | 'PENDING' | 'DISABLED';
+    lastLoginAt: string | null;
+    isSelf: boolean;
+};
+
+export type PlatformInviteLink = {
+    id: string;
+    link: string;
+    expiresAt: string;
+};
+
+export type PlatformInviteBody = {
+    name: string;
+    phone: string;
+    role: 'OWNER' | 'OPERATIONS' | 'BILLING' | 'SUPPORT';
+};
+
+export type PlatformUpdateMemberBody = {
+    role?: 'OWNER' | 'OPERATIONS' | 'BILLING' | 'SUPPORT';
+    isActive?: boolean;
+};
+
+export type PlatformActivateOtpResponse = {
+    name: string;
+    phone: string;
+    devCode?: string;
+};
+
+export type PlatformActivateBody = {
+    token: string;
+};
+
+export type PlatformActivateEnrolment = {
+    qrSvg: string;
+    setupKey: string;
+};
+
+export type PlatformActivateVerifyBody = {
+    token: string;
+    code: string;
+};
+
+export type PlatformActivateConfirmBody = {
+    token: string;
+    totp: string;
 };
 
 export type PortalMe = {
@@ -7503,6 +7559,206 @@ export type PlatformAuditResponses = {
 };
 
 export type PlatformAuditResponse = PlatformAuditResponses[keyof PlatformAuditResponses];
+
+export type PlatformListTeamData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/team';
+};
+
+export type PlatformListTeamErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformListTeamError = PlatformListTeamErrors[keyof PlatformListTeamErrors];
+
+export type PlatformListTeamResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PlatformTeam;
+        error: null;
+    };
+};
+
+export type PlatformListTeamResponse = PlatformListTeamResponses[keyof PlatformListTeamResponses];
+
+export type PlatformInviteData = {
+    body: PlatformInviteBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/team';
+};
+
+export type PlatformInviteErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformInviteError = PlatformInviteErrors[keyof PlatformInviteErrors];
+
+export type PlatformInviteResponses = {
+    /**
+     * OK
+     */
+    201: {
+        data: PlatformInviteLink;
+        error: null;
+    };
+};
+
+export type PlatformInviteResponse = PlatformInviteResponses[keyof PlatformInviteResponses];
+
+export type PlatformUpdateMemberData = {
+    body: PlatformUpdateMemberBody;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/platform/team/{id}';
+};
+
+export type PlatformUpdateMemberErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformUpdateMemberError = PlatformUpdateMemberErrors[keyof PlatformUpdateMemberErrors];
+
+export type PlatformUpdateMemberResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: unknown;
+        error: null;
+    };
+};
+
+export type PlatformUpdateMemberResponse = PlatformUpdateMemberResponses[keyof PlatformUpdateMemberResponses];
+
+export type PlatformResetMemberData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/platform/team/{id}/reset';
+};
+
+export type PlatformResetMemberErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformResetMemberError = PlatformResetMemberErrors[keyof PlatformResetMemberErrors];
+
+export type PlatformResetMemberResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PlatformInviteLink;
+        error: null;
+    };
+};
+
+export type PlatformResetMemberResponse = PlatformResetMemberResponses[keyof PlatformResetMemberResponses];
+
+export type PlatformActivateOtpData = {
+    body: PlatformActivateBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/activate/otp';
+};
+
+export type PlatformActivateOtpErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformActivateOtpError = PlatformActivateOtpErrors[keyof PlatformActivateOtpErrors];
+
+export type PlatformActivateOtpResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PlatformActivateOtpResponse;
+        error: null;
+    };
+};
+
+export type PlatformActivateOtpResponse2 = PlatformActivateOtpResponses[keyof PlatformActivateOtpResponses];
+
+export type PlatformActivateVerifyData = {
+    body: PlatformActivateVerifyBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/activate/verify';
+};
+
+export type PlatformActivateVerifyErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformActivateVerifyError = PlatformActivateVerifyErrors[keyof PlatformActivateVerifyErrors];
+
+export type PlatformActivateVerifyResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PlatformActivateEnrolment;
+        error: null;
+    };
+};
+
+export type PlatformActivateVerifyResponse = PlatformActivateVerifyResponses[keyof PlatformActivateVerifyResponses];
+
+export type PlatformActivateConfirmData = {
+    body: PlatformActivateConfirmBody;
+    path?: never;
+    query?: never;
+    url: '/api/v1/platform/activate/confirm';
+};
+
+export type PlatformActivateConfirmErrors = {
+    /**
+     * Error
+     */
+    default: ErrorEnvelope;
+};
+
+export type PlatformActivateConfirmError = PlatformActivateConfirmErrors[keyof PlatformActivateConfirmErrors];
+
+export type PlatformActivateConfirmResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data: PlatformMe;
+        error: null;
+    };
+};
+
+export type PlatformActivateConfirmResponse = PlatformActivateConfirmResponses[keyof PlatformActivateConfirmResponses];
 
 export type ClientPortalRequestOtpData = {
     body: RequestOtpBody;

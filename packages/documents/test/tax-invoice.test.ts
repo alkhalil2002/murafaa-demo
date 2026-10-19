@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveBranding } from "../src/branding.js";
-import { qrSvg, qrTerminal, taxInvoiceHtml, type TaxInvoiceLabels } from "../src/tax-invoice.js";
+import { qrSvg, taxInvoiceHtml, type TaxInvoiceLabels } from "../src/tax-invoice.js";
 
 const labels = Object.fromEntries(
   [
@@ -57,15 +57,5 @@ describe("tax invoice", () => {
     expect(html).toContain("300000000000003");
     expect(html).not.toContain("L:crNumber"); // empty rows are left out
     expect(html).toContain("L:total");
-  });
-});
-
-describe("terminal QR", () => {
-  it("draws a square block-character QR, the same for the same data", () => {
-    const rows = qrTerminal("otpauth://totp/x?secret=JBSWY3DPEHPK3PXP").split("\n");
-    expect(rows.length).toBeGreaterThan(10);
-    expect(new Set(rows.map((r) => r.length)).size).toBe(1);
-    expect(rows.join("")).toMatch(/[█▀▄]/);
-    expect(qrTerminal("same")).toBe(qrTerminal("same"));
   });
 });

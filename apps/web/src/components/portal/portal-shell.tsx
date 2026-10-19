@@ -12,6 +12,7 @@ import {
   IconDeadlines,
   IconDocuments,
   IconFinance,
+  IconShield,
   IconTasks,
   IconToday,
   IconUser,
@@ -29,6 +30,7 @@ const ICONS = {
   offices: IconClients,
   usage: IconDashboard,
   audit: IconActivity,
+  team: IconShield,
 };
 
 export type PortalNavItem = {

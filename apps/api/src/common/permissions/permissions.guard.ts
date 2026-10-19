@@ -9,12 +9,14 @@ import { Reflector } from "@nestjs/core";
 import {
   canModule,
   canPartnerOnly,
+  canPlatform,
   effectiveRole,
   type PartnerOnlyAction,
+  type PlatformAction,
   previewAllows,
 } from "@murafaa/auth";
 import { ErrorCode } from "@murafaa/contracts";
-import { auditLog, type Db, withTenant } from "@murafaa/database";
+import { auditLog, type Db, platformAuditLog, withPlatform, withTenant } from "@murafaa/database";
 import type { FastifyRequest } from "fastify";
 import { ENV, type Env } from "../../config/env.js";
 import { DB } from "../../database/database.tokens.js";
@@ -58,9 +60,29 @@ export class PermissionsGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<FastifyRequest>();
     // Platform routes accept only a platform session; office and portal sessions never reach them.
-    if (this.reflector.getAllAndOverride<boolean>(PLATFORM_ROUTE, targets)) {
-      if (request.platform) return true;
-      throw new ApiException(ErrorCode.UNAUTHENTICATED);
+    const platformRoute = this.reflector.getAllAndOverride<PlatformAction | true | undefined>(
+      PLATFORM_ROUTE,
+      targets,
+    );
+    if (platformRoute) {
+      const who = request.platform;
+      if (!who) throw new ApiException(ErrorCode.UNAUTHENTICATED);
+      if (platformRoute === true || canPlatform(who.role, platformRoute)) return true;
+      try {
+        await withPlatform(this.db, (tx) =>
+          tx.insert(platformAuditLog).values({
+            actorId: who.adminId,
+            createdBy: who.adminId,
+            action: "platform.denied",
+            details: { method: request.method, url: request.url, action: platformRoute },
+            ip: request.ip,
+            requestId: String(request.id),
+          }),
+        );
+      } catch (error) {
+        this.logger.error({ err: error }, "failed to audit platform denial");
+      }
+      throw new ApiException(ErrorCode.FORBIDDEN);
     }
     // A suspended office is read-only for everyone in it (owner, 2026-10-19).
     const writeWhileSuspended = (readOnly: boolean | undefined) =>

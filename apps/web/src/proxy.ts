@@ -15,8 +15,12 @@ const PORTALS = [
  * visitors to the right login page and signed-in ones away from it. It checks
  * only that a cookie exists; the API decides whether the session is valid.
  */
+/** Platform activation links work before any session exists. */
+const OPEN_PATHS = ["/platform/activate"];
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (OPEN_PATHS.includes(pathname)) return NextResponse.next();
   const portal = PORTALS.find((p) => pathname === p.prefix || pathname.startsWith(`${p.prefix}/`));
   if (portal) {
     const signedIn = request.cookies.has(portal.cookie);

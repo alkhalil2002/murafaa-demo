@@ -1,4 +1,4 @@
-import type { Role } from "@murafaa/auth";
+import type { PlatformRole, Role } from "@murafaa/auth";
 
 /** The authenticated caller. Set on the request by the auth layer (OTP sessions, next milestone). */
 export type Principal = {
@@ -28,7 +28,7 @@ export type PortalPrincipal = {
  * A Murafaa platform operator (إدارة المنصة). Belongs to no office and
  * reaches only routes marked @PlatformRoute(); it has no tenant scope at all.
  */
-export type PlatformPrincipal = { adminId: string };
+export type PlatformPrincipal = { adminId: string; role: PlatformRole };
 
 declare module "fastify" {
   interface FastifyRequest {

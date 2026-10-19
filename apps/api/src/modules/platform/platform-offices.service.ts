@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
-import { Role } from "@murafaa/auth";
+import { canPlatform, type PlatformAction, Role } from "@murafaa/auth";
 import {
   ErrorCode,
   type platformCreateOfficeBody,
@@ -161,6 +161,23 @@ export class PlatformOfficesService {
     return withPlatform(this.db, async (tx) => {
       const before = (await platformOffices(tx)).find((o) => o.id === id);
       if (!before) throw new ApiException(ErrorCode.NOT_FOUND);
+      // Suspending is an operations decision; the dates are a billing one.
+      const needs: PlatformAction[] = [];
+      if (input.status !== before.status) needs.push("office.status");
+      if (input.paidUntil !== before.paidUntil || input.trialEndsAt !== before.trialEndsAt)
+        needs.push("subscription.update");
+      const missing = needs.filter((a) => !canPlatform(who.role, a));
+      if (missing.length > 0) {
+        await platformAudit(tx, {
+          actorId: who.adminId,
+          action: "platform.denied",
+          officeId: id,
+          details: { actions: missing },
+          ip: meta.ip,
+          requestId: meta.requestId,
+        });
+        return "DENIED" as const;
+      }
       await platformUpdateOffice(tx, id, input);
       const action =
         input.status === before.status
@@ -194,6 +211,7 @@ export class PlatformOfficesService {
         ip: meta.ip,
         requestId: meta.requestId,
       });
+      return "OK" as const;
     });
   }
 }

@@ -11,6 +11,7 @@ import { mkdtempSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { sql } from "drizzle-orm";
 import postgres from "postgres";
 import { dateInDays, endOfServiceAward, riyadhCalendarDate, serviceYears } from "@murafaa/rules";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -193,7 +194,7 @@ beforeAll(async () => {
   const pdfPort = (pdfStub.server.address() as { port: number }).port;
   await runMigrations(OWNER_URL);
   const owner = postgres(OWNER_URL, { max: 1 });
-  await owner`truncate platform_sessions, platform_otp_challenges, platform_audit_log, platform_admins, portal_sessions, portal_otp_challenges, performance_events, office_performance_weights, candidates, payroll_lines, payroll_runs, employee_requests, attendance, leaves, advances, employees, ai_citations, ai_interactions, knowledge_chunks, knowledge_sources, expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
+  await owner`truncate platform_invites, platform_sessions, platform_otp_challenges, platform_audit_log, platform_admins, portal_sessions, portal_otp_challenges, performance_events, office_performance_weights, candidates, payroll_lines, payroll_runs, employee_requests, attendance, leaves, advances, employees, ai_citations, ai_interactions, knowledge_chunks, knowledge_sources, expenses, trust_transactions, trust_accounts, time_entries, credit_notes, payments, invoice_items, invoices, case_fee_agreements, journal_lines, journal_entries, doc_counters, accounting_periods, chart_of_accounts, documents, client_approval_requests, execution_procedures, case_executions, case_messages, client_communications, contracts, case_approvals, appointments, procedure_requests, case_reminders, tasks, hearings, conflict_flags, case_events, case_assignees, cases, leads, clients, permissions, field_permissions, role_case_scopes, sessions, otp_challenges, audit_log, outbox, users, offices cascade`;
   const seed: Array<
     [office: string, name: string, allowlist: string[], users: Array<[string, string, string?]>]
   > = [
@@ -4008,6 +4009,8 @@ describe("platform admin: offices from one place, counts only, suspended = read-
         tx.insert(platformAdmins).values({
           name: "نورة — فريق مُرافعة",
           phone: "+966500001701",
+          role: "OWNER",
+          activatedAt: new Date(),
           totpSecretEnc: encryptSecret(ENCRYPTION_KEY, TOTP_SECRET),
         }),
       );
@@ -4030,7 +4033,11 @@ describe("platform admin: offices from one place, counts only, suspended = read-
       code,
       totp: totpCode(TOTP_SECRET),
     });
-    expect(ok.json().data).toEqual({ name: "نورة — فريق مُرافعة" });
+    expect(ok.json().data).toEqual({
+      name: "نورة — فريق مُرافعة",
+      role: "OWNER",
+      actions: ["office.create", "office.status", "subscription.update", "team.manage"],
+    });
     admin = cookieOf(ok);
     expect(admin.startsWith("murafaa_platform=")).toBe(true);
     // A staff number is not a platform admin: same answer, nothing sent.
@@ -4182,6 +4189,160 @@ describe("platform admin: offices from one place, counts only, suspended = read-
       "platform.office.suspend",
       "platform.office.reactivate",
     ]);
+  });
+
+  /** Let a member ask for another code at once (the 30-second resend gap is a rule, not under test here). */
+  const ageOtps = async () => {
+    const h = createDb(APP_URL, { max: 1 });
+    try {
+      await withPlatform(h.db, (tx) =>
+        tx.execute(
+          sql`update platform_otp_challenges set created_at = now() - interval '1 minute'`,
+        ),
+      );
+    } finally {
+      await h.close();
+    }
+  };
+  /** Walk a one-time link: OTP to the invited phone, QR in the browser, first code. */
+  const activate = async (link: string) => {
+    const token = link.split("#")[1]!;
+    await ageOtps();
+    const otp = await data("", "POST", "/platform/activate/otp", { token });
+    const enrol = await data("", "POST", "/platform/activate/verify", { token, code: otp.devCode });
+    const done = await as("", "POST", "/platform/activate/confirm", {
+      token,
+      totp: totpCode(enrol.setupKey),
+    });
+    return { token, otp, enrol, done, cookie: cookieOf(done) };
+  };
+  let billing = "";
+
+  it("lets the owner invite members who activate from a one-time link", async () => {
+    const team = await data(admin, "GET", "/platform/team");
+    expect(team).toEqual([
+      expect.objectContaining({
+        role: "OWNER",
+        status: "ACTIVE",
+        isSelf: true,
+        phone: "•••• 1701",
+      }),
+    ]);
+    const invite = await data(admin, "POST", "/platform/team", {
+      name: "محاسب المنصة",
+      phone: "0500001711",
+      role: "BILLING",
+    });
+    expect(invite.link).toMatch(/^http:\/\/localhost:3000\/platform\/activate#[A-Za-z0-9_-]{43}$/);
+    const token = invite.link.split("#")[1];
+    // Pending: sign-in does not know this member yet.
+    expect((await data("", "POST", "/platform/auth/otp", { phone: "0500001711" })).devCode).toBe(
+      undefined,
+    );
+    const wrong = await as("", "POST", "/platform/activate/otp", { token: "x".repeat(43) });
+    expect(wrong.json().error.messageKey).toBe("platform.err.LINK_INVALID");
+    const early = await as("", "POST", "/platform/activate/confirm", { token, totp: "123456" });
+    expect(early.json().error.messageKey).toBe("platform.err.OTP_FIRST");
+
+    const otp = await data("", "POST", "/platform/activate/otp", { token });
+    expect(otp).toMatchObject({ name: "محاسب المنصة", phone: "•••• 1711" });
+    const bad = await as("", "POST", "/platform/activate/verify", { token, code: "000000" });
+    expect(bad.json().error.code).toBe("OTP_INVALID");
+    const enrol = await data("", "POST", "/platform/activate/verify", { token, code: otp.devCode });
+    expect(enrol.qrSvg).toMatch(/^<svg/);
+    const done = await as("", "POST", "/platform/activate/confirm", {
+      token,
+      totp: totpCode(enrol.setupKey),
+    });
+    expect(done.json().data).toEqual({
+      name: "محاسب المنصة",
+      role: "BILLING",
+      actions: ["subscription.update"],
+    });
+    billing = cookieOf(done);
+    // The link works once.
+    expect((await as("", "POST", "/platform/activate/otp", { token })).statusCode).toBe(404);
+  });
+
+  it("applies each role's actions on the server", async () => {
+    expect((await as(billing, "GET", "/platform/offices")).statusCode).toBe(200);
+    expect(
+      (
+        await as(billing, "PATCH", `/platform/offices/${officeId}`, {
+          status: "ACTIVE",
+          paidUntil: "2027-02-28",
+          trialEndsAt: null,
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await as(billing, "PATCH", `/platform/offices/${officeId}`, {
+          status: "SUSPENDED",
+          paidUntil: "2027-02-28",
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await as(billing, "POST", "/platform/offices", {
+          name: "مكتب",
+          ownerName: "شريك",
+          ownerPhone: "0500001799",
+          status: "ACTIVE",
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect((await as(billing, "GET", "/platform/team")).statusCode).toBe(403);
+
+    const support = await activate(
+      (
+        await data(admin, "POST", "/platform/team", {
+          name: "الدعم",
+          phone: "0500001712",
+          role: "SUPPORT",
+        })
+      ).link,
+    );
+    expect(
+      (
+        await as(support.cookie, "PATCH", `/platform/offices/${officeId}`, {
+          status: "ACTIVE",
+          paidUntil: "2027-03-31",
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (await data(admin, "GET", "/platform/audit")).map((a: { action: string }) => a.action),
+    ).toContain("platform.denied");
+  });
+
+  it("changes roles at once, disables members, and replaces a lost authenticator", async () => {
+    const team = await data(admin, "GET", "/platform/team");
+    const self = team.find((m: { isSelf: boolean }) => m.isSelf);
+    expect(
+      (await as(admin, "PATCH", `/platform/team/${self.id}`, { role: "SUPPORT" })).json().error
+        .messageKey,
+    ).toBe("platform.err.SELF");
+
+    const billingId = team.find((m: { role: string }) => m.role === "BILLING").id;
+    await data(admin, "PATCH", `/platform/team/${billingId}`, { role: "OPERATIONS" });
+    expect((await data(billing, "GET", "/platform/me")).role).toBe("OPERATIONS");
+    await data(admin, "PATCH", `/platform/team/${billingId}`, { isActive: false });
+    expect((await as(billing, "GET", "/platform/me")).statusCode).toBe(401);
+    expect(
+      (await data(admin, "GET", "/platform/team")).find((m: { id: string }) => m.id === billingId)
+        .status,
+    ).toBe("DISABLED");
+
+    const supportId = team.find((m: { role: string }) => m.role === "SUPPORT").id;
+    const fresh = await data(admin, "POST", `/platform/team/${supportId}/reset`);
+    expect(
+      (await data(admin, "GET", "/platform/team")).find((m: { id: string }) => m.id === supportId)
+        .status,
+    ).toBe("PENDING");
+    const again = await activate(fresh.link);
+    expect(again.done.json().data.role).toBe("SUPPORT");
   });
 
   it("ends the platform session on sign-out", async () => {

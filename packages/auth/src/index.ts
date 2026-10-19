@@ -5,3 +5,4 @@ export * from "./policy.js";
 export * from "./partner.js";
 export * from "./otp-policy.js";
 export * from "./screens.js";
+export * from "./platform.js";

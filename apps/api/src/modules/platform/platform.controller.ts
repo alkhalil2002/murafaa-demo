@@ -4,7 +4,16 @@ import {
   createdCase,
   ErrorCode,
   idParams,
+  platformActivateBody,
+  platformActivateConfirmBody,
+  platformActivateEnrolment,
+  platformActivateOtpResponse,
+  platformActivateVerifyBody,
   platformAuditList,
+  platformInviteBody,
+  platformInviteLink,
+  platformTeam,
+  platformUpdateMemberBody,
   platformCreateOfficeBody,
   platformMe,
   platformOfficeDetail,
@@ -22,9 +31,11 @@ import type { PlatformPrincipal } from "../../common/tenancy/principal.js";
 import { ZodBody, ZodParams, ZodResponse } from "../../common/zod/zod.decorators.js";
 import { ENV, type Env } from "../../config/env.js";
 import { clearedSessionCookie, sessionCookie } from "../auth/cookies.js";
+import { PlatformActivationService } from "./platform-activation.service.js";
 import { PlatformAuthService } from "./platform-auth.service.js";
 import { PlatformOfficesService } from "./platform-offices.service.js";
 import { PLATFORM_COOKIE } from "./platform-session.service.js";
+import { PlatformTeamService } from "./platform-team.service.js";
 
 type Id = z.infer<typeof idParams>;
 const meta = (req: FastifyRequest) => ({
@@ -46,8 +57,22 @@ export class PlatformController {
   constructor(
     private readonly auth: PlatformAuthService,
     private readonly offices: PlatformOfficesService,
+    private readonly team: PlatformTeamService,
+    private readonly activation: PlatformActivationService,
     @Inject(ENV) private readonly env: Env,
   ) {}
+
+  private signIn(reply: FastifyReply, token: string) {
+    void reply.header(
+      "set-cookie",
+      sessionCookie(
+        token,
+        PLATFORM_SESSION_POLICY.absoluteTtlMs / 1000,
+        this.env.NODE_ENV === "production",
+        PLATFORM_COOKIE,
+      ),
+    );
+  }
 
   @Public()
   @Post("auth/otp")
@@ -114,7 +139,7 @@ export class PlatformController {
     return this.offices.list();
   }
 
-  @PlatformRoute()
+  @PlatformRoute("office.create")
   @Post("offices")
   @ZodResponse(createdCase)
   create(
@@ -139,7 +164,9 @@ export class PlatformController {
     @ZodBody(platformUpdateOfficeBody) body: z.infer<typeof platformUpdateOfficeBody>,
     @Req() req: FastifyRequest,
   ) {
-    await this.offices.update(who(req), params.id, body, meta(req));
+    // The denial is audited inside the transaction, which must commit first.
+    if ((await this.offices.update(who(req), params.id, body, meta(req))) === "DENIED")
+      throw new ApiException(ErrorCode.FORBIDDEN);
     return null;
   }
 
@@ -148,5 +175,82 @@ export class PlatformController {
   @ZodResponse(platformAuditList)
   audit() {
     return this.offices.audit();
+  }
+
+  // ── فريق المنصة (owner) ──
+
+  @PlatformRoute("team.manage")
+  @Get("team")
+  @ZodResponse(platformTeam)
+  listTeam(@Req() req: FastifyRequest) {
+    return this.team.list(who(req));
+  }
+
+  @PlatformRoute("team.manage")
+  @Post("team")
+  @ZodResponse(platformInviteLink)
+  invite(
+    @ZodBody(platformInviteBody) body: z.infer<typeof platformInviteBody>,
+    @Req() req: FastifyRequest,
+  ) {
+    return this.team.invite(who(req), body, meta(req));
+  }
+
+  @PlatformRoute("team.manage")
+  @Patch("team/:id")
+  @HttpCode(200)
+  async updateMember(
+    @ZodParams(idParams) params: Id,
+    @ZodBody(platformUpdateMemberBody) body: z.infer<typeof platformUpdateMemberBody>,
+    @Req() req: FastifyRequest,
+  ) {
+    await this.team.update(who(req), params.id, body, meta(req));
+    return null;
+  }
+
+  @PlatformRoute("team.manage")
+  @Post("team/:id/reset")
+  @HttpCode(200)
+  @ZodResponse(platformInviteLink)
+  resetMember(@ZodParams(idParams) params: Id, @Req() req: FastifyRequest) {
+    return this.team.reset(who(req), params.id, meta(req));
+  }
+
+  // ── Activation from a one-time link (no session yet) ──
+
+  @Public()
+  @Post("activate/otp")
+  @HttpCode(200)
+  @ZodResponse(platformActivateOtpResponse)
+  activateOtp(
+    @ZodBody(platformActivateBody) body: z.infer<typeof platformActivateBody>,
+    @Req() req: FastifyRequest,
+  ) {
+    return this.activation.sendOtp(body.token, meta(req));
+  }
+
+  @Public()
+  @Post("activate/verify")
+  @HttpCode(200)
+  @ZodResponse(platformActivateEnrolment)
+  activateVerify(
+    @ZodBody(platformActivateVerifyBody) body: z.infer<typeof platformActivateVerifyBody>,
+    @Req() req: FastifyRequest,
+  ) {
+    return this.activation.verifyOtp(body.token, body.code, meta(req));
+  }
+
+  @Public()
+  @Post("activate/confirm")
+  @HttpCode(200)
+  @ZodResponse(platformMe)
+  async activateConfirm(
+    @ZodBody(platformActivateConfirmBody) body: z.infer<typeof platformActivateConfirmBody>,
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const { token, principal } = await this.activation.confirm(body.token, body.totp, meta(req));
+    this.signIn(reply, token);
+    return this.auth.me(principal);
   }
 }

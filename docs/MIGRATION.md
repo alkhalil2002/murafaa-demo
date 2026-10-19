@@ -940,6 +940,7 @@ Status as implemented in legacy. Anything marked Open still needs the owner's an
 | new | Design v2: employee documents (payslip PDF, contract, GOSI certificate) | none | **Open** — payslip PDF can come from payroll lines; GOSI certificate needs the GOSI integration |
 | new | Design v2: sick-leave balance (labour law art. 117) | annual balance only | **Open** — needs the rule in docs/06 before it is shown |
 | new | Design v2: platform admin portal (offices, subscriptions, usage, audit) | none (offices only from the seed) | ✅ **Built 2026-10-19** (ADR-0003): platform_* tables + platform_api functions (counts only), OTP + mandatory TOTP, create office with partner and matrix, suspend = read-only, manual paid-until, audit |
+| new | Platform team roles and member onboarding | none | ✅ **Built 2026-10-19** (ADR-0003 addendum): OWNER / OPERATIONS / BILLING / SUPPORT, invite from «فريق المنصة», one-time activation link (OTP + TOTP enrolled in the member's own browser) |
 | new | Platform: plans, prices and seat limits | design has 3 plans | **Open** — owner chose no plans for now (2026-10-19) |
 | new | Platform: invoicing offices (Murafaa's own ZATCA invoices) and online payment | none | **Open** — billing is recorded by hand; payment shows not connected |
 | new | Platform: automatic suspension after a trial or a late payment | none | **Open** — needs the jobs runner (outbox + Cloud Tasks); manual for now |

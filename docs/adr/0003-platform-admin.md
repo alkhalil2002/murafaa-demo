@@ -53,3 +53,26 @@
   - automatic suspension;
   - AI usage metering.
 - Existing duplicate phones (from before this rule) still cannot sign in. New ones can no longer be created.
+
+## Addendum (owner, 2026-10-19): team roles and activation links
+
+- **Roles.** `PLATFORM_ROLES` and `canPlatform()` live in `packages/auth`, with unit tests. No role sees office content.
+  - **OWNER:** everything, including `team.manage`.
+  - **OPERATIONS:** create offices, change their status, change their dates.
+  - **BILLING:** paid-until and trial end only.
+  - **SUPPORT:** read only.
+- **Enforcement.**
+  - `@PlatformRoute(action)` is enforced by the guard.
+  - The office PATCH requires `office.status` when the status changes and `subscription.update` when a date changes.
+  - Denials are audited as `platform.denied`.
+  - The role is read fresh on every request.
+- **Members join from «فريق المنصة»** (owner only) through a **one-time activation link**:
+  - The link is 24 h, single use, and burned after 5 wrong codes.
+  - The token sits in the URL fragment and is stored only as a SHA-256 hash.
+  - Activation steps: an OTP to the invited phone, then a new TOTP secret shown **only in the member's own browser**, then its first code.
+- **Team rules.**
+  - Nobody changes their own role or access.
+  - At least one active owner always remains.
+  - Disabling a member ends their sessions.
+  - «رابط جديد» (lost phone) clears the authenticator and issues a new link.
+- **The CLI only creates the first owner** (or resets an owner locked out entirely), and it prints a link, not a QR. Links are built from `WEB_ORIGIN` (default: the first `CORS_ORIGINS` entry).

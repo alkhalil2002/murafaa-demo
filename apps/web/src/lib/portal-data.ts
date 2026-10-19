@@ -4,6 +4,7 @@ import {
   clientPortalListCases,
   clientPortalMe,
   employeePortalMe,
+  platformMe,
 } from "@murafaa/sdk";
 import { daysLeft, urgencyOf } from "@murafaa/rules";
 import { t } from "@murafaa/i18n";
@@ -28,6 +29,11 @@ export const clientPortalData = cache(async () => {
 
 export const employeePortalMeData = cache(async () => {
   return (await employeePortalMe({ client: await serverApi() })).data?.data ?? null;
+});
+
+/** The signed-in platform member with their role's actions (the API enforces them too). */
+export const platformMeData = cache(async () => {
+  return (await platformMe({ client: await serverApi() })).data?.data ?? null;
 });
 
 export const arNum = (n: number) => n.toLocaleString("ar-SA");

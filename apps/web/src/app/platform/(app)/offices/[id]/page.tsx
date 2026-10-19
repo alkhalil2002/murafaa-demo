@@ -5,7 +5,7 @@ import { OfficeStatusButton, SubscriptionForm } from "@/components/platform/offi
 import { serverApi } from "@/lib/api";
 import { fmtDate, relTime } from "@/lib/dates-ui";
 import { actionLabel, dueOf, STATUS_TONE, statusLabel, storageMb } from "@/lib/platform-ui";
-import { arNum } from "@/lib/portal-data";
+import { arNum, platformMeData } from "@/lib/portal-data";
 
 const TABS: Array<[string, MessageKey]> = [
   ["overview", "platform.tab.overview"],
@@ -34,6 +34,7 @@ export default async function PlatformOfficePage({
       </div>
     );
   const due = dueOf(o);
+  const actions = (await platformMeData())?.actions ?? [];
   const row = (label: string, value: React.ReactNode) => (
     <div className="approve-row">
       <span className="at">{label}</span>
@@ -52,7 +53,7 @@ export default async function PlatformOfficePage({
           {o.city ? `${o.city} · ` : ""}
           {t("platform.since", { date: fmtDate(o.createdAt) })}
         </span>
-        <OfficeStatusButton office={o} />
+        {actions.includes("office.status") && <OfficeStatusButton office={o} />}
       </div>
       <div className="ftabs">
         {TABS.map(([key, label]) => (
@@ -180,7 +181,24 @@ export default async function PlatformOfficePage({
         <div className="panel">
           <h2>{t("platform.tab.subscription")}</h2>
           <div className="sub">{t("platform.subs.pill")}</div>
-          <SubscriptionForm office={o} />
+          {actions.includes("subscription.update") ? (
+            <SubscriptionForm office={o} />
+          ) : (
+            <>
+              {row(
+                t("platform.field.status"),
+                <span className={`chip ${STATUS_TONE[o.status]}`}>{statusLabel(o.status)}</span>,
+              )}
+              {row(
+                t("platform.field.trialEndsAt"),
+                <span className="chip">{fmtDate(o.trialEndsAt)}</span>,
+              )}
+              {row(
+                t("platform.field.paidUntil"),
+                <span className="chip">{fmtDate(o.paidUntil)}</span>,
+              )}
+            </>
+          )}
         </div>
       )}
 

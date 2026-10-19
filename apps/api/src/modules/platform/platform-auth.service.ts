@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { canResendOtp, checkOtpChallenge, otpExpiry } from "@murafaa/auth";
+import { canResendOtp, checkOtpChallenge, otpExpiry, platformActions } from "@murafaa/auth";
 import { ErrorCode } from "@murafaa/contracts";
 import {
   type Db,
@@ -8,17 +8,18 @@ import {
   type Tx,
   withPlatform,
 } from "@murafaa/database";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { ApiException } from "../../common/http/api.exception.js";
 import type { PlatformPrincipal } from "../../common/tenancy/principal.js";
 import { ENV, type Env } from "../../config/env.js";
 import { DB } from "../../database/database.tokens.js";
-import { decryptSecret, hashOtpCode, randomOtpCode, sameDigest } from "../auth/auth-crypto.js";
+import { decryptSecret, randomOtpCode, sameDigest } from "../auth/auth-crypto.js";
 import { OTP_PROVIDER, type OtpChannel, type OtpProvider } from "../auth/otp-provider.js";
 import { verifyTotpCode } from "../auth/totp.js";
 import {
   platformAudit,
   type PlatformMeta,
+  platformOtpHash,
   PlatformSessionService,
 } from "./platform-session.service.js";
 
@@ -37,7 +38,7 @@ export class PlatformAuthService {
   ) {}
 
   private hash(phone: string, code: string) {
-    return hashOtpCode(this.env.AUTH_SECRET, `platform:${phone}`, code);
+    return platformOtpHash(this.env, phone, code);
   }
 
   private admin(tx: Tx, phone: string) {
@@ -48,6 +49,7 @@ export class PlatformAuthService {
         and(
           eq(platformAdmins.phone, phone),
           eq(platformAdmins.isActive, true),
+          isNotNull(platformAdmins.activatedAt),
           isNull(platformAdmins.deletedAt),
         ),
       )
@@ -115,7 +117,9 @@ export class PlatformAuthService {
         if (check === "TOO_MANY_ATTEMPTS") return { error: ErrorCode.OTP_TOO_MANY_ATTEMPTS };
         const otpOk = sameDigest(challenge.codeHash, this.hash(phone, code));
         const totpOk =
-          otpOk && verifyTotpCode(decryptSecret(this.env.ENCRYPTION_KEY, a.totpSecretEnc), totp);
+          otpOk &&
+          a.totpSecretEnc !== null &&
+          verifyTotpCode(decryptSecret(this.env.ENCRYPTION_KEY, a.totpSecretEnc), totp);
         if (!totpOk) {
           // A wrong authenticator code spends an attempt too, so neither can be guessed.
           await tx
@@ -146,7 +150,7 @@ export class PlatformAuthService {
           ip: meta.ip,
           requestId: meta.requestId,
         });
-        return { token, principal: { adminId: a.id } };
+        return { token, principal: { adminId: a.id, role: a.role } };
       },
     );
     // Thrown after commit, so a failed attempt is still counted.
@@ -157,11 +161,11 @@ export class PlatformAuthService {
   me(who: PlatformPrincipal) {
     return withPlatform(this.db, async (tx) => {
       const [a] = await tx
-        .select({ name: platformAdmins.name })
+        .select({ name: platformAdmins.name, role: platformAdmins.role })
         .from(platformAdmins)
         .where(eq(platformAdmins.id, who.adminId));
       if (!a) throw new ApiException(ErrorCode.UNAUTHENTICATED);
-      return { name: a.name };
+      return { name: a.name, role: a.role, actions: platformActions(a.role) };
     });
   }
 

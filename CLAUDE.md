@@ -74,7 +74,7 @@ pnpm db:up               # local Postgres 17 + pgvector on :5440 (Docker)
 MIGRATION_DATABASE_URL=postgres://murafaa:murafaa@localhost:5440/murafaa_dev pnpm db:migrate
 DATABASE_URL=postgres://murafaa_api:murafaa_api@localhost:5440/murafaa_dev pnpm db:seed   # demo office, users 0500000001–6 (runs as the app role)
 pnpm db:seed:demo        # optional demo cases through the real API (skips if the office has cases)
-pnpm platform:admin:create --name "…" --phone 05XXXXXXXX   # إدارة المنصة operator (prints the TOTP URI once; --reset-totp for a lost authenticator)
+pnpm platform:admin:create --name "…" --phone 05XXXXXXXX   # first إدارة المنصة owner: prints a one-time activation link (--reset-totp: new link); other members are invited from «فريق المنصة»
 pnpm dev                 # api :4000, web :3000, pdf :4100 (apps/pdf, headless Chrome)
 pnpm build
 pnpm lint                # lint (incl. i18n rule)

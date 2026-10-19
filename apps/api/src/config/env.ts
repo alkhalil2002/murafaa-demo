@@ -15,6 +15,8 @@ const envSchema = z
           .filter(Boolean),
       ),
     RBAC_ENFORCEMENT: z.enum(["strict", "permissive"]).default("strict"),
+    /** The web app's public origin, for links the API hands out (platform activation). Default: the first CORS origin. */
+    WEB_ORIGIN: z.url().optional(),
     /**
      * Where إدارة المنصة may sign in from (exact IPs or IPv4 CIDRs, comma
      * separated). Empty = anywhere; set it in production.

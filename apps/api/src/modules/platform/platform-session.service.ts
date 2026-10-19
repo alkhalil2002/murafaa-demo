@@ -13,7 +13,7 @@ import { isIpAllowed } from "../../common/security/ip-allowlist.js";
 import type { PlatformPrincipal } from "../../common/tenancy/principal.js";
 import { ENV, type Env } from "../../config/env.js";
 import { DB } from "../../database/database.tokens.js";
-import { newSessionSecret, sameDigest, sha256 } from "../auth/auth-crypto.js";
+import { hashOtpCode, newSessionSecret, sameDigest, sha256 } from "../auth/auth-crypto.js";
 
 export const PLATFORM_COOKIE = "murafaa_platform";
 
@@ -91,20 +91,35 @@ export class PlatformSessionService {
     const secret = m[2];
     return withPlatform(this.db, async (tx) => {
       const [row] = await tx
-        .select({ s: platformSessions, active: platformAdmins.isActive })
+        .select({
+          s: platformSessions,
+          active: platformAdmins.isActive,
+          activatedAt: platformAdmins.activatedAt,
+          role: platformAdmins.role,
+        })
         .from(platformSessions)
         .innerJoin(platformAdmins, eq(platformAdmins.id, platformSessions.adminId))
         .where(and(eq(platformSessions.id, sessionId), isNull(platformAdmins.deletedAt)));
       const now = new Date();
-      if (!row || !row.active || !sameDigest(row.s.tokenHash, sha256(secret))) return null;
+      if (!row || !row.active || !row.activatedAt) return null;
+      if (!sameDigest(row.s.tokenHash, sha256(secret))) return null;
       if (!isSessionLive(row.s, now, PLATFORM_SESSION_POLICY)) return null;
       if (now.getTime() - row.s.lastSeenAt.getTime() >= PLATFORM_SESSION_POLICY.touchIntervalMs)
         await tx
           .update(platformSessions)
           .set({ lastSeenAt: now })
           .where(eq(platformSessions.id, sessionId));
-      return { sessionId, principal: { adminId: row.s.adminId } };
+      // The role is read fresh on every request, so a change applies at once.
+      return { sessionId, principal: { adminId: row.s.adminId, role: row.role } };
     });
+  }
+
+  /** End every open session of a member (disabled, or a new activation link). */
+  revokeAll(tx: Tx, adminId: string) {
+    return tx
+      .update(platformSessions)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(platformSessions.adminId, adminId), isNull(platformSessions.revokedAt)));
   }
 
   revoke(sessionId: string) {
@@ -115,4 +130,19 @@ export class PlatformSessionService {
         .where(and(eq(platformSessions.id, sessionId), isNull(platformSessions.revokedAt))),
     );
   }
+}
+
+/** Where activation links point: WEB_ORIGIN, else the first allowed origin. */
+export function webOrigin(env: Env): string {
+  return (env.WEB_ORIGIN ?? env.CORS_ORIGINS[0] ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
+/** `•••• 1234`: enough to recognise a number, not to read it. */
+export function maskPhone(phone: string): string {
+  return `•••• ${phone.slice(-4)}`;
+}
+
+/** The OTP hash for platform codes (the same for sign-in and activation). */
+export function platformOtpHash(env: Env, phone: string, code: string): string {
+  return hashOtpCode(env.AUTH_SECRET, `platform:${phone}`, code);
 }

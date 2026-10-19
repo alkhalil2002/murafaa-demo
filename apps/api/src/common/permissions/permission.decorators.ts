@@ -1,5 +1,5 @@
 import { SetMetadata } from "@nestjs/common";
-import type { PartnerOnlyAction, PermAction, PermModule } from "@murafaa/auth";
+import type { PartnerOnlyAction, PermAction, PermModule, PlatformAction } from "@murafaa/auth";
 
 export const IS_PUBLIC = "murafaa:public";
 export const IS_AUTHENTICATED_ONLY = "murafaa:authenticated";
@@ -38,9 +38,12 @@ export const AllowInPreview = (): MethodDecorator & ClassDecorator =>
 export const PortalRoute = (kind: "CLIENT" | "EMPLOYEE"): MethodDecorator & ClassDecorator =>
   SetMetadata(PORTAL_ROUTE, kind);
 
-/** An إدارة المنصة route: only a platform session reaches it, never an office or portal one. */
-export const PlatformRoute = (): MethodDecorator & ClassDecorator =>
-  SetMetadata(PLATFORM_ROUTE, true);
+/**
+ * An إدارة المنصة route: only a platform session reaches it, never an office
+ * or portal one. With an action, the member's role must allow it too.
+ */
+export const PlatformRoute = (action?: PlatformAction): MethodDecorator & ClassDecorator =>
+  SetMetadata(PLATFORM_ROUTE, action ?? true);
 
 /** A write that stays allowed while the office is suspended (sign out). */
 export const AllowWhenSuspended = (): MethodDecorator & ClassDecorator =>
