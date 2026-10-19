@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 import { createDb, platformAdmins, platformSessions, withPlatform } from "@murafaa/database";
+import { qrTerminal } from "@murafaa/documents";
 import { normalizeSaudiPhone } from "@murafaa/rules";
 import { and, eq, isNull } from "drizzle-orm";
 import { loadEnv } from "../src/config/env.js";
@@ -18,7 +19,7 @@ import { platformAudit } from "../src/modules/platform/platform-session.service.
  *
  *   pnpm platform:admin:create --phone 05XXXXXXXX --reset-totp
  *
- * Prints the authenticator (TOTP) enrolment URI once; it is required at
+ * Prints the authenticator (TOTP) enrolment QR and setup key once; it is required at
  * every sign-in and is not shown again.
  */
 const { values } = parseArgs({
@@ -85,8 +86,10 @@ try {
     process.exitCode = 1;
   } else {
     console.log(outcome);
-    console.log("Add this to an authenticator app now; it is not shown again:");
-    console.log(totpUri(secret, phone, "Murafaa Platform"));
+    const uri = totpUri(secret, phone, "Murafaa Platform");
+    console.log("Scan this with an authenticator app now; it is not shown again:\n");
+    console.log(qrTerminal(uri));
+    console.log(`Or enter the setup key by hand: ${secret}`);
   }
 } finally {
   await close();

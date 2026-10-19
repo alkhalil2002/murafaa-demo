@@ -19,6 +19,17 @@ export function qrSvg(data: string, sizePx = 132): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${sizePx}" height="${sizePx}" viewBox="0 0 ${box} ${box}" shape-rendering="crispEdges"><rect width="${box}" height="${box}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
 }
 
+/**
+ * The same QR as block characters for a terminal (light modules are drawn,
+ * for the usual dark background), e.g. to scan an authenticator secret.
+ */
+export function qrTerminal(data: string): string {
+  const qr = qrcode(0, "M");
+  qr.addData(data, "Byte");
+  qr.make();
+  return qr.createASCII(1, 2);
+}
+
 /** Fixed wording on the invoice, from @murafaa/i18n (this package holds no UI text). */
 export type TaxInvoiceLabels = {
   title: string;
